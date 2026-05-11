@@ -870,33 +870,34 @@ async function startCamera() {
         const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
 
+
         scanInterval = setInterval(() => {
             if (!camActive || video.readyState < 2) return;
-            
-            // 비디오의 실제 출력 크기 계산
+
+            // 비디오 크기
             const vW = video.videoWidth;
             const vH = video.videoHeight;
-            
-            canvas.width = vW;
-            canvas.height = vH;
-            
-            ctx.drawImage(video, 0, 0, vW, vH);
-            
-            // 이미지 데이터를 가져와 jsQR에 전달
-            try {
-                const imageData = ctx.getImageData(0, 0, vW, vH);
-                const code = jsQR(imageData.data, imageData.width, imageData.height, {
-                    inversionAttempts: 'attemptBoth'
-                });
 
-                if (code && code.data.trim() !== "") {
-                    console.log("Found QR:", code.data); // 디버깅용
-                    handleQRResult(code.data);
-                }
-            } catch(e) {
-                console.error("Scanning error:", e);
+            // 분석할 영역 설정 (예: 중앙 300x300 영역)
+            const scanSize = Math.min(vW, vH) * 0.7; // 화면의 70% 크기
+            const sx = (vW - scanSize) / 2;
+            const sy = (vH - scanSize) / 2;
+
+            canvas.width = scanSize;
+            canvas.height = scanSize;
+
+            // 중앙 부분만 잘라서 캔버스에 그리기
+            ctx.filter = "brightness(110%) contrast(130%)";
+            ctx.drawImage(video, sx, sy, scanSize, scanSize, 0, 0, scanSize, scanSize);
+
+            const imageData = ctx.getImageData(0, 0, scanSize, scanSize);
+            const code = jsQR(imageData.data, scanSize, scanSize);
+
+            if (code && code.data) {
+                handleQRResult(code.data);
             }
-        }, 300); // 0.3초마다 스캔 (부하 감소)
+        }, 200);
+
 
 
 
