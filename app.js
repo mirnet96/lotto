@@ -1,0 +1,482 @@
+/* ══════════════════════════════════════════════════
+   LOTTO+ — app.js
+   ══════════════════════════════════════════════════ */
+
+const LS_KEY = 'lotto_my_history_v1';
+let lottoData = [];
+let avgSum = 137;
+let freqMap = {};
+
+/* ── localStorage ── */
+function getHistory() {
+    try { return JSON.parse(localStorage.getItem(LS_KEY) || '[]'); }
+    catch { return []; }
+}
+function setHistory(arr) {
+    localStorage.setItem(LS_KEY, JSON.stringify(arr));
+    refreshBadges();
+}
+function refreshBadges() {
+    const n = getHistory().length;
+    ['pc-badge', 'mob-badge'].forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (n > 0) { el.textContent = n > 99 ? '99+' : n; el.classList.remove('hidden'); }
+        else el.classList.add('hidden');
+    });
+}
+
+/* ── Tabs ── */
+function switchTab(name) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    ['tn-', 'bn-'].forEach(p =>
+        document.querySelectorAll(`[id^="${p}"]`).forEach(b => b.classList.remove('active'))
+    );
+    document.getElementById('page-' + name).classList.add('active');
+    const tn = document.getElementById('tn-' + name);
+    const bn = document.getElementById('bn-' + name);
+    if (tn) tn.classList.add('active');
+    if (bn) bn.classList.add('active');
+    if (name === 'myhistory') renderMyHistory();
+    if (name !== 'qr') stopCamera();
+}
+
+/* ── Ball helpers ── */
+function bCls(n) {
+    if (n <= 10) return 'b-y';
+    if (n <= 20) return 'b-b';
+    if (n <= 30) return 'b-r';
+    if (n <= 40) return 'b-g';
+    return 'b-gr';
+}
+function bHex(n) {
+    if (n <= 10) return '#FBC02D';
+    if (n <= 20) return '#1976D2';
+    if (n <= 30) return '#E53935';
+    if (n <= 40) return '#757575';
+    return '#43A047';
+}
+function mkBall(n, size = 'ball', delay = 0) {
+    const d = document.createElement('div');
+    d.className = `${size} ${bCls(n)}`;
+    if (size === 'ball') {
+        d.classList.add('anim');
+        if (delay) d.style.animationDelay = delay + 'ms';
+    }
+    d.textContent = n;
+    return d;
+}
+
+/* ── Toast ── */
+let toastTimer;
+function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2400);
+}
+
+/* ── Save one set ── */
+function applySet(nums, cardEl, btnEl) {
+    const arr = getHistory();
+    const now = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    const dateStr = `${now.getFullYear()}.${pad(now.getMonth() + 1)}.${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+    arr.unshift({ id: Date.now(), date: dateStr, nums });
+    setHistory(arr);
+    cardEl.classList.add('saved');
+    btnEl.classList.add('done');
+    btnEl.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>저장됨`;
+    toast('✅ 번호가 저장되었습니다');
+}
+
+/* ── 번호 생성 알고리즘 ── */
+function scoreNums(arr) {
+    let score = 100;
+    const sum = arr.reduce((a, b) => a + b, 0);
+    if (sum >= 115 && sum <= 160) score += 20;
+    else if (sum >= 100 && sum <= 175) score += 5;
+    const odd = arr.filter(n => n % 2 !== 0).length;
+    if (odd === 3) score += 15;
+    else if (odd === 2 || odd === 4) score += 8;
+    const low = arr.filter(n => n <= 23).length;
+    if (low === 3) score += 15;
+    else if (low === 2 || low === 4) score += 8;
+    let maxConsec = 1, cur = 1;
+    for (let i = 1; i < arr.length; i++) {
+        if (arr[i] === arr[i - 1] + 1) { cur++; maxConsec = Math.max(maxConsec, cur); }
+        else cur = 1;
+    }
+    if (maxConsec === 1) score += 10;
+    else if (maxConsec === 2) score += 5;
+    const zones = new Set(arr.map(n => Math.min(4, Math.floor((n - 1) / 10))));
+    score += zones.size * 8;
+    if (Object.keys(freqMap).length > 0) {
+        const maxFreq = Math.max(...Object.values(freqMap));
+        const freqScore = arr.reduce((acc, n) => acc + (freqMap[n] || 0), 0);
+        score += Math.round((freqScore / (maxFreq * 6)) * 20);
+    }
+    return score;
+}
+
+function isValid(arr) {
+    const sum = arr.reduce((a, b) => a + b, 0);
+    if (sum < 100 || sum > 175) return false;
+    const odd = arr.filter(n => n % 2 !== 0).length;
+    if (odd === 0 || odd === 6) return false;
+    const low = arr.filter(n => n <= 23).length;
+    if (low === 0 || low === 6) return false;
+    for (let i = 0; i < arr.length - 2; i++) {
+        if (arr[i + 1] === arr[i] + 1 && arr[i + 2] === arr[i] + 2) return false;
+    }
+    const endCnt = {};
+    for (const n of arr) {
+        const e = n % 10;
+        endCnt[e] = (endCnt[e] || 0) + 1;
+        if (endCnt[e] >= 3) return false;
+    }
+    const zones = new Set(arr.map(n => Math.min(4, Math.floor((n - 1) / 10))));
+    if (zones.size < 3) return false;
+    return true;
+}
+
+function weightedRandom(pool) {
+    if (Object.keys(freqMap).length === 0)
+        return pool[Math.floor(Math.random() * pool.length)];
+    const weights = pool.map(n => (freqMap[n] || 1));
+    const total = weights.reduce((a, b) => a + b, 0);
+    let r = Math.random() * total;
+    for (let i = 0; i < pool.length; i++) {
+        r -= weights[i];
+        if (r <= 0) return pool[i];
+    }
+    return pool[pool.length - 1];
+}
+
+function smartNums(excludeNums = []) {
+    const exclude = new Set(excludeNums);
+    const pool = Array.from({ length: 45 }, (_, i) => i + 1).filter(n => !exclude.has(n));
+    let best = null, bestScore = -1;
+    for (let t = 0; t < 500; t++) {
+        const s = new Set();
+        const localPool = [...pool];
+        while (s.size < 6 && localPool.length > 0) {
+            const pick = weightedRandom(localPool.filter(n => !s.has(n)));
+            s.add(pick);
+        }
+        if (s.size < 6) continue;
+        const arr = [...s].sort((a, b) => a - b);
+        if (!isValid(arr)) continue;
+        const sc = scoreNums(arr);
+        if (sc > bestScore) { bestScore = sc; best = arr; if (sc >= 160) break; }
+    }
+    if (!best) {
+        for (let t = 0; t < 300; t++) {
+            const s = new Set();
+            while (s.size < 6) s.add(pool[Math.floor(Math.random() * pool.length)]);
+            const arr = [...s].sort((a, b) => a - b);
+            const sum = arr.reduce((a, b) => a + b, 0);
+            if (sum >= avgSum - 22 && sum <= avgSum + 22) return { nums: arr, score: 0 };
+        }
+        const s = new Set();
+        while (s.size < 6) s.add(pool[Math.floor(Math.random() * pool.length)]);
+        return { nums: [...s].sort((a, b) => a - b), score: 0 };
+    }
+    return { nums: best, score: bestScore };
+}
+
+function getQualityBadge(score) {
+    if (score >= 160) return { label: 'S급', cls: 'S' };
+    if (score >= 140) return { label: 'A급', cls: 'A' };
+    return { label: 'B급', cls: 'B' };
+}
+
+/* ── Generate ── */
+function generateAll(excludeNums = []) {
+    const btn = document.getElementById('genBtn');
+    btn.classList.add('spinning');
+    const wrap = document.getElementById('sets-container');
+    wrap.innerHTML = '';
+    Array.from({ length: 5 }).forEach((_, i) => {
+        const { nums, score } = smartNums(excludeNums);
+        const card = document.createElement('div');
+        card.className = 'set-card';
+        if (score > 0) {
+            const qb = getQualityBadge(score);
+            const badge = document.createElement('div');
+            badge.className = `quality-badge ${qb.cls}`;
+            badge.textContent = qb.label;
+            card.appendChild(badge);
+        }
+        const lbl = document.createElement('div');
+        lbl.className = 'set-label';
+        lbl.textContent = 'ABCDE'[i];
+
+        const row = document.createElement('div');
+        row.className = 'balls-row';
+        nums.forEach((n, j) => row.appendChild(mkBall(n, 'ball', i * 65 + j * 42)));
+
+        const meta = document.createElement('div');
+        meta.className = 'set-meta';
+        const sumEl = document.createElement('div');
+        sumEl.className = 'set-sum';
+        sumEl.textContent = '합 ' + nums.reduce((a, b) => a + b, 0);
+        const applyBtn = document.createElement('button');
+        applyBtn.className = 'apply-btn';
+        applyBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>`;
+        applyBtn.onclick = () => applySet(nums, card, applyBtn);
+        meta.append(sumEl, applyBtn);
+        card.append(lbl, row, meta);
+        wrap.appendChild(card);
+    });
+    setTimeout(() => btn.classList.remove('spinning'), 550);
+}
+
+/* ══════════════════════════════════════════════════
+   QR 카메라 + 스캔 (html5-qrcode)
+   ══════════════════════════════════════════════════ */
+let html5QrCode = null;
+let camActive = false;
+let scannedNums = [];
+
+async function toggleCamera() {
+    camActive ? await stopCamera() : await startCamera();
+}
+
+async function startCamera() {
+    const statusEl = document.getElementById('cam-status');
+    const btn = document.getElementById('cam-toggle-btn');
+    const placeholder = document.getElementById('qr-placeholder');
+    const readerEl = document.getElementById('reader');
+    statusEl.textContent = '카메라 준비 중...';
+    statusEl.className = '';
+    try {
+        if (!html5QrCode) html5QrCode = new Html5Qrcode('reader');
+        await html5QrCode.start(
+            { facingMode: 'environment' },
+            { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 },
+            (decodedText) => handleQRResult(decodedText)
+        );
+        camActive = true;
+        placeholder.style.display = 'none';
+        readerEl.style.display = 'block';
+        statusEl.textContent = '������ 스캔 중... QR코드를 사각형 안에 맞춰주세요';
+        statusEl.className = 'ok';
+        btn.className = 'cam-btn stop';
+        btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>카메라 중지`;
+    } catch (err) {
+        console.error(err);
+        statusEl.textContent = '⚠️ 카메라를 시작할 수 없습니다. 권한을 확인해 주세요.';
+        statusEl.className = 'error';
+    }
+}
+
+async function stopCamera() {
+    if (!html5QrCode) return;
+    try {
+        if (camActive) { await html5QrCode.stop(); camActive = false; }
+        const btn = document.getElementById('cam-toggle-btn');
+        const statusEl = document.getElementById('cam-status');
+        const placeholder = document.getElementById('qr-placeholder');
+        const readerEl = document.getElementById('reader');
+        readerEl.style.display = 'none';
+        placeholder.style.display = 'flex';
+        statusEl.textContent = '';
+        btn.className = 'cam-btn start';
+        btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>카메라 시작하기`;
+    } catch (err) { console.error('카메라 중지 실패', err); }
+}
+
+function handleQRResult(data) {
+    if (navigator.vibrate) navigator.vibrate(100);
+    stopCamera();
+    const urlParts = data.split('v=');
+    if (urlParts.length < 2) { showQRError('⚠️ 올바른 로또 QR 형식이 아닙니다.'); return; }
+    const qrRawNumbers = urlParts[1].split('q');
+    let allNums = [];
+    for (let i = 1; i < qrRawNumbers.length; i++) {
+        const gameStr = qrRawNumbers[i];
+        for (let j = 0; j < gameStr.length; j += 2) {
+            const num = parseInt(gameStr.substring(j, j + 2), 10);
+            if (num >= 1 && num <= 45) allNums.push(num);
+        }
+    }
+    if (allNums.length === 0) { showQRError('⚠️ 유효한 번호를 찾지 못했습니다.'); return; }
+    scannedNums = [...new Set(allNums)].sort((a, b) => a - b);
+    const panel = document.getElementById('qr-result-panel');
+    const numsWrap = document.getElementById('qr-res-nums');
+    const statusEl = document.getElementById('cam-status');
+    numsWrap.innerHTML = '';
+    scannedNums.forEach(n => numsWrap.appendChild(mkBall(n, 'mini-ball')));
+    panel.classList.add('show');
+    statusEl.textContent = `✅ ${scannedNums.length}개 번호 스캔 완료`;
+    statusEl.className = 'ok';
+    toast(`������ ${scannedNums.length}개 번호 인식됨!`);
+}
+
+function showQRError(msg) {
+    const statusEl = document.getElementById('cam-status');
+    statusEl.textContent = msg;
+    statusEl.className = 'error';
+}
+
+function applyQRExclude() {
+    if (!scannedNums.length) return;
+    switchTab('home');
+    generateAll(scannedNums);
+    toast(`������ 스캔된 번호 제외 후 생성 완료!`);
+}
+
+function resetQR() {
+    scannedNums = [];
+    document.getElementById('qr-result-panel').classList.remove('show');
+    document.getElementById('cam-status').textContent = '';
+    startCamera();
+}
+
+/* ── My History ── */
+function renderMyHistory() {
+    const wrap = document.getElementById('my-wrap');
+    const arr = getHistory();
+    wrap.innerHTML = '';
+    if (!arr.length) {
+        wrap.innerHTML = `<div class="my-empty">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            <p>저장된 번호가 없어요</p>
+            <small>홈에서 마음에 드는 번호를 저장해 보세요</small>
+        </div>`;
+        return;
+    }
+    const bar = document.createElement('div');
+    bar.className = 'my-count-bar';
+    bar.innerHTML = `<span>총 <strong>${arr.length}세트</strong> 저장됨</span>`;
+    wrap.appendChild(bar);
+    arr.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'my-item';
+        card.id = 'mi-' + item.id;
+        const hdr = document.createElement('div');
+        hdr.className = 'my-item-header';
+        hdr.innerHTML = `<span class="my-item-date">������ ${item.date}</span><span class="my-item-sum">합 ${item.nums.reduce((a, b) => a + b, 0)}</span>`;
+        const nums = document.createElement('div');
+        nums.className = 'my-item-nums';
+        item.nums.forEach(n => nums.appendChild(mkBall(n, 'mini-ball')));
+        const acts = document.createElement('div');
+        acts.className = 'my-item-actions';
+        const db = document.createElement('button');
+        db.className = 'del-btn';
+        db.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>삭제`;
+        db.onclick = () => deleteItem(item.id);
+        acts.appendChild(db);
+        card.append(hdr, nums, acts);
+        wrap.appendChild(card);
+    });
+    const cb = document.createElement('button');
+    cb.className = 'clear-all-btn';
+    cb.textContent = '전체 삭제';
+    cb.onclick = () => {
+        if (confirm('저장된 번호를 모두 삭제할까요?')) { setHistory([]); renderMyHistory(); }
+    };
+    wrap.appendChild(cb);
+}
+
+function deleteItem(id) {
+    const el = document.getElementById('mi-' + id);
+    if (!el) return;
+    el.style.opacity = '0';
+    el.style.transform = 'translateX(20px)';
+    setTimeout(() => { setHistory(getHistory().filter(x => x.id !== id)); renderMyHistory(); }, 200);
+}
+
+/* ── Stats ── */
+function buildStats() {
+    if (!lottoData.length) return;
+    const sums = lottoData.map(d => d.stats.sum);
+    const ends = lottoData.map(d => d.stats.endsum);
+    const rc = {};
+    lottoData.forEach(d => { const r = d.stats.ratio.even_odd; rc[r] = (rc[r] || 0) + 1; });
+    const topR = Object.entries(rc).sort((a, b) => b[1] - a[1])[0][0];
+    document.getElementById('s-avgsum').textContent = Math.round(sums.reduce((a, b) => a + b) / sums.length);
+    document.getElementById('s-ratio').textContent = topR;
+    document.getElementById('s-count').textContent = lottoData.length + '회';
+    document.getElementById('s-endsum').textContent = Math.round(ends.reduce((a, b) => a + b) / ends.length);
+    const freq = {};
+    lottoData.forEach(d => d.nums.forEach(n => freq[n] = (freq[n] || 0) + 1));
+    const sorted = Object.entries(freq).sort((a, b) => b[1] - a[1]).slice(0, 10);
+    const maxF = sorted[0][1];
+    const barsEl = document.getElementById('freq-bars');
+    barsEl.innerHTML = '';
+    sorted.forEach(([num, cnt]) => {
+        const row = document.createElement('div');
+        row.className = 'freq-row';
+        const ball = document.createElement('div');
+        ball.className = `freq-mini-ball ${bCls(+num)}`;
+        ball.textContent = num;
+        const bg = document.createElement('div');
+        bg.className = 'freq-bar-bg';
+        const fill = document.createElement('div');
+        fill.className = 'freq-bar-fill';
+        fill.style.background = bHex(+num);
+        bg.appendChild(fill);
+        const ce = document.createElement('div');
+        ce.className = 'freq-cnt';
+        ce.textContent = cnt + '회';
+        row.append(ball, bg, ce);
+        barsEl.appendChild(row);
+        requestAnimationFrame(() => { fill.style.width = Math.round(cnt / maxF * 100) + '%'; });
+    });
+    const histEl = document.getElementById('history-list');
+    histEl.innerHTML = '';
+    lottoData.slice(0, 8).forEach(d => {
+        const fmt = d.date.replace(/(\d{4})(\d{2})(\d{2})/, '$1.$2.$3');
+        const row = document.createElement('div');
+        row.className = 'history-row';
+        row.innerHTML = `<div class="history-meta"><span class="round-badge">${d.no}회</span><span class="round-date">${fmt}</span></div>`;
+        const br = document.createElement('div');
+        br.className = 'mini-balls';
+        d.nums.forEach(n => br.appendChild(mkBall(n, 'mini-ball')));
+        const sep = document.createElement('div');
+        sep.className = 'bonus-dot'; sep.textContent = '+';
+        br.appendChild(sep);
+        const bon = document.createElement('div');
+        bon.className = `mini-ball ${bCls(d.bonus)} bonus-ball`;
+        bon.textContent = d.bonus;
+        br.appendChild(bon);
+        row.appendChild(br);
+        const tags = document.createElement('div');
+        tags.className = 'h-tags';
+        tags.innerHTML = `<span class="h-tag">합 ${d.stats.sum}</span><span class="h-tag">끝수 ${d.stats.endsum}</span><span class="h-tag">${d.stats.ratio.even_odd} 홀짝</span><span class="h-tag">${d.stats.ratio.low_high} 고저</span>`;
+        row.appendChild(tags);
+        histEl.appendChild(row);
+    });
+}
+
+/* ── Init ── */
+async function init() {
+    try {
+        const res = await fetch('./lotto.json');
+        lottoData = await res.json();
+    } catch {
+        lottoData = [
+            { no: 1223, date: '20260509', nums: [16, 18, 20, 32, 33, 39], bonus: 26, stats: { sum: 158, endsum: 28, ratio: { even_odd: '4:2', low_high: '3:3' } } },
+            { no: 1222, date: '20260502', nums: [4, 11, 17, 22, 32, 41], bonus: 34, stats: { sum: 127, endsum: 17, ratio: { even_odd: '3:3', low_high: '4:2' } } },
+            { no: 1221, date: '20260425', nums: [6, 13, 18, 28, 30, 36], bonus: 9, stats: { sum: 131, endsum: 31, ratio: { even_odd: '5:1', low_high: '3:3' } } },
+            { no: 1220, date: '20260418', nums: [2, 7, 14, 25, 38, 42], bonus: 19, stats: { sum: 128, endsum: 18, ratio: { even_odd: '3:3', low_high: '3:3' } } },
+            { no: 1219, date: '20260411', nums: [9, 12, 21, 29, 35, 44], bonus: 3, stats: { sum: 150, endsum: 20, ratio: { even_odd: '2:4', low_high: '2:4' } } },
+            { no: 1218, date: '20260404', nums: [1, 8, 15, 27, 33, 40], bonus: 22, stats: { sum: 124, endsum: 14, ratio: { even_odd: '3:3', low_high: '4:2' } } },
+            { no: 1217, date: '20260328', nums: [5, 11, 19, 24, 36, 43], bonus: 30, stats: { sum: 138, endsum: 28, ratio: { even_odd: '3:3', low_high: '3:3' } } },
+            { no: 1216, date: '20260321', nums: [3, 10, 17, 28, 31, 45], bonus: 16, stats: { sum: 134, endsum: 24, ratio: { even_odd: '2:4', low_high: '3:3' } } },
+            { no: 1215, date: '20260314', nums: [7, 13, 22, 26, 37, 41], bonus: 5, stats: { sum: 146, endsum: 26, ratio: { even_odd: '3:3', low_high: '3:3' } } },
+            { no: 1214, date: '20260307', nums: [2, 9, 18, 23, 34, 42], bonus: 28, stats: { sum: 128, endsum: 18, ratio: { even_odd: '4:2', low_high: '4:2' } } },
+        ];
+    }
+    freqMap = {};
+    lottoData.forEach(d => d.nums.forEach(n => { freqMap[n] = (freqMap[n] || 0) + 1; }));
+    if (lottoData.length) avgSum = Math.round(lottoData.reduce((a, b) => a + b.stats.sum, 0) / lottoData.length);
+    generateAll();
+    buildStats();
+    refreshBadges();
+}
+
+init();
