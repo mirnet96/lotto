@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════════
-   LOTTO+ — app.js
+   app.js  —  LOTTO+
    ══════════════════════════════════════════════════ */
 
 const LS_KEY = 'lotto_my_history_v1';
@@ -29,14 +29,14 @@ function refreshBadges() {
 /* ── Tabs ── */
 function switchTab(name) {
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    ['tn-', 'bn-'].forEach(p =>
-        document.querySelectorAll(`[id^="${p}"]`).forEach(b => b.classList.remove('active'))
+    ['tn-', 'bn-'].forEach(prefix =>
+        document.querySelectorAll(`[id^="${prefix}"]`).forEach(b => b.classList.remove('active'))
     );
     document.getElementById('page-' + name).classList.add('active');
-    const tn = document.getElementById('tn-' + name);
-    const bn = document.getElementById('bn-' + name);
-    if (tn) tn.classList.add('active');
-    if (bn) bn.classList.add('active');
+    ['tn-', 'bn-'].forEach(prefix => {
+        const el = document.getElementById(prefix + name);
+        if (el) el.classList.add('active');
+    });
     if (name === 'myhistory') renderMyHistory();
     if (name !== 'qr') stopCamera();
 }
@@ -56,10 +56,21 @@ function bHex(n) {
     if (n <= 40) return '#757575';
     return '#43A047';
 }
+
+/* size: 'ball' | 'mini-ball' | 'freq-mini-ball' */
 function mkBall(n, size = 'ball', delay = 0) {
     const d = document.createElement('div');
-    d.className = `${size} ${bCls(n)}`;
+    /* Tailwind 유틸리티 + 커스텀 클래스 조합 */
+    const baseMap = {
+        'ball':           'relative overflow-hidden rounded-full flex items-center justify-center font-bold text-white flex-shrink-0',
+        'mini-ball':      'relative overflow-hidden rounded-full flex items-center justify-center font-bold text-white flex-shrink-0 w-[30px] h-[30px] text-[11px]',
+        'freq-mini-ball': 'relative overflow-hidden rounded-full flex items-center justify-center font-bold text-white flex-shrink-0 w-7 h-7 text-[11px]',
+    };
+    d.className = `${size} ${bCls(n)} ${baseMap[size] || ''}`;
     if (size === 'ball') {
+        d.style.width  = 'var(--ball-size)';
+        d.style.height = 'var(--ball-size)';
+        d.style.fontSize = 'var(--ball-font)';
         d.classList.add('anim');
         if (delay) d.style.animationDelay = delay + 'ms';
     }
@@ -87,8 +98,10 @@ function applySet(nums, cardEl, btnEl) {
     setHistory(arr);
     cardEl.classList.add('saved');
     btnEl.classList.add('done');
-    btnEl.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>저장됨`;
-    toast('✅ 번호가 저장되었습니다');
+    btnEl.innerHTML = `<span class="material-symbols-rounded text-[14px]">check</span><span>저장됨</span>`;
+    btnEl.classList.replace('text-slate-400', 'text-green-600');
+    btnEl.classList.add('border-green-200', 'bg-green-50', 'pointer-events-none');
+    toast('번호가 저장되었습니다');
 }
 
 /* ── 번호 생성 알고리즘 ── */
@@ -142,15 +155,12 @@ function isValid(arr) {
 }
 
 function weightedRandom(pool) {
-    if (Object.keys(freqMap).length === 0)
+    if (!Object.keys(freqMap).length)
         return pool[Math.floor(Math.random() * pool.length)];
-    const weights = pool.map(n => (freqMap[n] || 1));
+    const weights = pool.map(n => freqMap[n] || 1);
     const total = weights.reduce((a, b) => a + b, 0);
     let r = Math.random() * total;
-    for (let i = 0; i < pool.length; i++) {
-        r -= weights[i];
-        if (r <= 0) return pool[i];
-    }
+    for (let i = 0; i < pool.length; i++) { r -= weights[i]; if (r <= 0) return pool[i]; }
     return pool[pool.length - 1];
 }
 
@@ -160,11 +170,8 @@ function smartNums(excludeNums = []) {
     let best = null, bestScore = -1;
     for (let t = 0; t < 500; t++) {
         const s = new Set();
-        const localPool = [...pool];
-        while (s.size < 6 && localPool.length > 0) {
-            const pick = weightedRandom(localPool.filter(n => !s.has(n)));
-            s.add(pick);
-        }
+        while (s.size < 6 && pool.length > s.size)
+            s.add(weightedRandom(pool.filter(n => !s.has(n))));
         if (s.size < 6) continue;
         const arr = [...s].sort((a, b) => a - b);
         if (!isValid(arr)) continue;
@@ -187,9 +194,9 @@ function smartNums(excludeNums = []) {
 }
 
 function getQualityBadge(score) {
-    if (score >= 160) return { label: 'S급', cls: 'S' };
-    if (score >= 140) return { label: 'A급', cls: 'A' };
-    return { label: 'B급', cls: 'B' };
+    if (score >= 160) return { label: 'S급', cls: 'bg-amber-50 text-amber-700 border border-amber-200' };
+    if (score >= 140) return { label: 'A급', cls: 'bg-green-50 text-green-700 border border-green-200' };
+    return { label: 'B급', cls: 'bg-blue-50 text-blue-700 border border-blue-200' };
 }
 
 /* ── Generate ── */
@@ -198,38 +205,52 @@ function generateAll(excludeNums = []) {
     btn.classList.add('spinning');
     const wrap = document.getElementById('sets-container');
     wrap.innerHTML = '';
+
     Array.from({ length: 5 }).forEach((_, i) => {
         const { nums, score } = smartNums(excludeNums);
+
+        /* 카드 */
         const card = document.createElement('div');
-        card.className = 'set-card';
+        card.className = 'set-card relative flex items-center gap-1.5 bg-white border border-slate-200 rounded-2xl px-2.5 py-3 mb-2.5 shadow-sm transition-colors duration-200';
+
+        /* 등급 뱃지 */
         if (score > 0) {
             const qb = getQualityBadge(score);
             const badge = document.createElement('div');
-            badge.className = `quality-badge ${qb.cls}`;
+            badge.className = `absolute top-1.5 right-2 text-[9px] font-bold px-1.5 py-0.5 rounded-full leading-none ${qb.cls}`;
             badge.textContent = qb.label;
             card.appendChild(badge);
         }
+
+        /* 레이블 */
         const lbl = document.createElement('div');
-        lbl.className = 'set-label';
+        lbl.className = 'font-display text-[17px] text-slate-400 min-w-[18px] text-center flex-shrink-0';
         lbl.textContent = 'ABCDE'[i];
 
+        /* 공 행 */
         const row = document.createElement('div');
-        row.className = 'balls-row';
+        row.className = 'flex flex-1 min-w-0 items-center';
+        row.style.gap = 'clamp(3px, 1vw, 6px)';
         nums.forEach((n, j) => row.appendChild(mkBall(n, 'ball', i * 65 + j * 42)));
 
+        /* 메타 */
         const meta = document.createElement('div');
-        meta.className = 'set-meta';
+        meta.className = 'flex flex-col gap-1.5 items-end flex-shrink-0 pt-4';
+
         const sumEl = document.createElement('div');
-        sumEl.className = 'set-sum';
+        sumEl.className = 'text-[10px] text-slate-400 bg-slate-50 border border-slate-200 px-1.5 py-0.5 rounded-full whitespace-nowrap';
         sumEl.textContent = '합 ' + nums.reduce((a, b) => a + b, 0);
+
         const applyBtn = document.createElement('button');
-        applyBtn.className = 'apply-btn';
-        applyBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>`;
+        applyBtn.className = 'flex items-center gap-1 px-2 py-1 rounded-full border border-slate-200 bg-slate-50 text-[11px] font-medium text-slate-400 cursor-pointer whitespace-nowrap transition-all duration-150 hover:bg-green-50 hover:border-green-200 hover:text-green-600';
+        applyBtn.innerHTML = `<span class="material-symbols-rounded text-[14px]">bookmark</span>`;
         applyBtn.onclick = () => applySet(nums, card, applyBtn);
+
         meta.append(sumEl, applyBtn);
         card.append(lbl, row, meta);
         wrap.appendChild(card);
     });
+
     setTimeout(() => btn.classList.remove('spinning'), 550);
 }
 
@@ -237,7 +258,7 @@ function generateAll(excludeNums = []) {
    QR 카메라 + 스캔 (html5-qrcode)
    ══════════════════════════════════════════════════ */
 let html5QrCode = null;
-let camActive = false;
+let camActive   = false;
 let scannedNums = [];
 
 async function toggleCamera() {
@@ -245,12 +266,12 @@ async function toggleCamera() {
 }
 
 async function startCamera() {
-    const statusEl = document.getElementById('cam-status');
-    const btn = document.getElementById('cam-toggle-btn');
+    const statusEl    = document.getElementById('cam-status');
+    const btn         = document.getElementById('cam-toggle-btn');
     const placeholder = document.getElementById('qr-placeholder');
-    const readerEl = document.getElementById('reader');
+    const readerEl    = document.getElementById('reader');
     statusEl.textContent = '카메라 준비 중...';
-    statusEl.className = '';
+    statusEl.className = 'text-center text-[13px] text-slate-400 mb-3 min-h-[20px]';
     try {
         if (!html5QrCode) html5QrCode = new Html5Qrcode('reader');
         await html5QrCode.start(
@@ -260,15 +281,15 @@ async function startCamera() {
         );
         camActive = true;
         placeholder.style.display = 'none';
-        readerEl.style.display = 'block';
-        statusEl.textContent = '������ 스캔 중... QR코드를 사각형 안에 맞춰주세요';
-        statusEl.className = 'ok';
-        btn.className = 'cam-btn stop';
-        btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>카메라 중지`;
+        readerEl.style.display    = 'block';
+        statusEl.textContent = 'QR코드를 사각형 안에 맞춰주세요';
+        statusEl.className = 'text-center text-[13px] text-green-600 mb-3 min-h-[20px]';
+        btn.className = 'cam-btn w-full flex items-center justify-center gap-2 py-3.5 rounded-xl border border-red-200 bg-red-50 text-[15px] font-bold text-red-500 cursor-pointer mb-3 transition-all';
+        btn.innerHTML = `<span class="material-symbols-rounded">stop_circle</span><span>카메라 중지</span>`;
     } catch (err) {
         console.error(err);
-        statusEl.textContent = '⚠️ 카메라를 시작할 수 없습니다. 권한을 확인해 주세요.';
-        statusEl.className = 'error';
+        statusEl.textContent = '카메라를 시작할 수 없습니다. 권한을 확인해 주세요.';
+        statusEl.className = 'text-center text-[13px] text-red-500 mb-3 min-h-[20px]';
     }
 }
 
@@ -276,15 +297,15 @@ async function stopCamera() {
     if (!html5QrCode) return;
     try {
         if (camActive) { await html5QrCode.stop(); camActive = false; }
-        const btn = document.getElementById('cam-toggle-btn');
-        const statusEl = document.getElementById('cam-status');
+        const btn         = document.getElementById('cam-toggle-btn');
+        const statusEl    = document.getElementById('cam-status');
         const placeholder = document.getElementById('qr-placeholder');
-        const readerEl = document.getElementById('reader');
-        readerEl.style.display = 'none';
+        const readerEl    = document.getElementById('reader');
+        readerEl.style.display    = 'none';
         placeholder.style.display = 'flex';
         statusEl.textContent = '';
-        btn.className = 'cam-btn start';
-        btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>카메라 시작하기`;
+        btn.className = 'cam-btn w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-blue-600 text-[15px] font-bold text-white cursor-pointer mb-3 shadow-md shadow-blue-200 transition-all hover:bg-blue-700';
+        btn.innerHTML = `<span class="material-symbols-rounded">photo_camera</span><span>카메라 시작하기</span>`;
     } catch (err) { console.error('카메라 중지 실패', err); }
 }
 
@@ -292,7 +313,7 @@ function handleQRResult(data) {
     if (navigator.vibrate) navigator.vibrate(100);
     stopCamera();
     const urlParts = data.split('v=');
-    if (urlParts.length < 2) { showQRError('⚠️ 올바른 로또 QR 형식이 아닙니다.'); return; }
+    if (urlParts.length < 2) { showQRError('올바른 로또 QR 형식이 아닙니다.'); return; }
     const qrRawNumbers = urlParts[1].split('q');
     let allNums = [];
     for (let i = 1; i < qrRawNumbers.length; i++) {
@@ -302,35 +323,35 @@ function handleQRResult(data) {
             if (num >= 1 && num <= 45) allNums.push(num);
         }
     }
-    if (allNums.length === 0) { showQRError('⚠️ 유효한 번호를 찾지 못했습니다.'); return; }
+    if (!allNums.length) { showQRError('유효한 번호를 찾지 못했습니다.'); return; }
     scannedNums = [...new Set(allNums)].sort((a, b) => a - b);
-    const panel = document.getElementById('qr-result-panel');
+    const panel    = document.getElementById('qr-result-panel');
     const numsWrap = document.getElementById('qr-res-nums');
     const statusEl = document.getElementById('cam-status');
     numsWrap.innerHTML = '';
     scannedNums.forEach(n => numsWrap.appendChild(mkBall(n, 'mini-ball')));
-    panel.classList.add('show');
-    statusEl.textContent = `✅ ${scannedNums.length}개 번호 스캔 완료`;
-    statusEl.className = 'ok';
-    toast(`������ ${scannedNums.length}개 번호 인식됨!`);
+    panel.classList.remove('hidden');
+    statusEl.textContent = `${scannedNums.length}개 번호 스캔 완료`;
+    statusEl.className = 'text-center text-[13px] text-green-600 mb-3 min-h-[20px]';
+    toast(`${scannedNums.length}개 번호 인식됨`);
 }
 
 function showQRError(msg) {
     const statusEl = document.getElementById('cam-status');
     statusEl.textContent = msg;
-    statusEl.className = 'error';
+    statusEl.className = 'text-center text-[13px] text-red-500 mb-3 min-h-[20px]';
 }
 
 function applyQRExclude() {
     if (!scannedNums.length) return;
     switchTab('home');
     generateAll(scannedNums);
-    toast(`������ 스캔된 번호 제외 후 생성 완료!`);
+    toast('스캔된 번호 제외 후 생성 완료');
 }
 
 function resetQR() {
     scannedNums = [];
-    document.getElementById('qr-result-panel').classList.remove('show');
+    document.getElementById('qr-result-panel').classList.add('hidden');
     document.getElementById('cam-status').textContent = '';
     startCamera();
 }
@@ -338,42 +359,53 @@ function resetQR() {
 /* ── My History ── */
 function renderMyHistory() {
     const wrap = document.getElementById('my-wrap');
-    const arr = getHistory();
+    const arr  = getHistory();
     wrap.innerHTML = '';
     if (!arr.length) {
-        wrap.innerHTML = `<div class="my-empty">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-            <p>저장된 번호가 없어요</p>
-            <small>홈에서 마음에 드는 번호를 저장해 보세요</small>
-        </div>`;
+        wrap.innerHTML = `
+            <div class="flex flex-col items-center gap-3 py-14 text-center">
+                <span class="material-symbols-rounded text-5xl text-slate-200">article</span>
+                <p class="text-[14px] text-slate-400">저장된 번호가 없어요</p>
+                <small class="text-[12px] text-slate-300">홈에서 마음에 드는 번호를 저장해 보세요</small>
+            </div>`;
         return;
     }
     const bar = document.createElement('div');
-    bar.className = 'my-count-bar';
-    bar.innerHTML = `<span>총 <strong>${arr.length}세트</strong> 저장됨</span>`;
+    bar.className = 'flex justify-between items-center text-[13px] text-slate-400 mb-3';
+    bar.innerHTML = `<span>총 <strong class="text-blue-600">${arr.length}세트</strong> 저장됨</span>`;
     wrap.appendChild(bar);
+
     arr.forEach(item => {
         const card = document.createElement('div');
-        card.className = 'my-item';
+        card.className = 'bg-white border border-slate-200 rounded-2xl p-4 mb-2.5 shadow-sm';
         card.id = 'mi-' + item.id;
+
         const hdr = document.createElement('div');
-        hdr.className = 'my-item-header';
-        hdr.innerHTML = `<span class="my-item-date">������ ${item.date}</span><span class="my-item-sum">합 ${item.nums.reduce((a, b) => a + b, 0)}</span>`;
+        hdr.className = 'flex justify-between items-center mb-2.5';
+        hdr.innerHTML = `
+            <span class="flex items-center gap-1 text-[12px] text-slate-400">
+                <span class="material-symbols-rounded text-[15px]">calendar_today</span>${item.date}
+            </span>
+            <span class="text-[11px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-medium">합 ${item.nums.reduce((a, b) => a + b, 0)}</span>`;
+
         const nums = document.createElement('div');
-        nums.className = 'my-item-nums';
+        nums.className = 'flex flex-wrap gap-1.5 mb-2.5';
         item.nums.forEach(n => nums.appendChild(mkBall(n, 'mini-ball')));
+
         const acts = document.createElement('div');
-        acts.className = 'my-item-actions';
+        acts.className = 'flex justify-end';
         const db = document.createElement('button');
-        db.className = 'del-btn';
-        db.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>삭제`;
+        db.className = 'flex items-center gap-1 px-2.5 py-1 rounded-full border border-red-200 bg-red-50 text-[11px] text-red-500 cursor-pointer transition-colors hover:bg-red-100';
+        db.innerHTML = `<span class="material-symbols-rounded text-[14px]">delete</span>삭제`;
         db.onclick = () => deleteItem(item.id);
         acts.appendChild(db);
+
         card.append(hdr, nums, acts);
         wrap.appendChild(card);
     });
+
     const cb = document.createElement('button');
-    cb.className = 'clear-all-btn';
+    cb.className = 'w-full mt-1.5 py-3 border border-red-200 rounded-xl text-[13px] text-red-500 cursor-pointer transition-colors hover:bg-red-50';
     cb.textContent = '전체 삭제';
     cb.onclick = () => {
         if (confirm('저장된 번호를 모두 삭제할까요?')) { setHistory([]); renderMyHistory(); }
@@ -384,7 +416,7 @@ function renderMyHistory() {
 function deleteItem(id) {
     const el = document.getElementById('mi-' + id);
     if (!el) return;
-    el.style.opacity = '0';
+    el.style.opacity   = '0';
     el.style.transform = 'translateX(20px)';
     setTimeout(() => { setHistory(getHistory().filter(x => x.id !== id)); renderMyHistory(); }, 200);
 }
@@ -398,56 +430,70 @@ function buildStats() {
     lottoData.forEach(d => { const r = d.stats.ratio.even_odd; rc[r] = (rc[r] || 0) + 1; });
     const topR = Object.entries(rc).sort((a, b) => b[1] - a[1])[0][0];
     document.getElementById('s-avgsum').textContent = Math.round(sums.reduce((a, b) => a + b) / sums.length);
-    document.getElementById('s-ratio').textContent = topR;
-    document.getElementById('s-count').textContent = lottoData.length + '회';
+    document.getElementById('s-ratio').textContent  = topR;
+    document.getElementById('s-count').textContent  = lottoData.length + '회';
     document.getElementById('s-endsum').textContent = Math.round(ends.reduce((a, b) => a + b) / ends.length);
+
+    /* 빈도 바 */
     const freq = {};
     lottoData.forEach(d => d.nums.forEach(n => freq[n] = (freq[n] || 0) + 1));
     const sorted = Object.entries(freq).sort((a, b) => b[1] - a[1]).slice(0, 10);
-    const maxF = sorted[0][1];
+    const maxF   = sorted[0][1];
     const barsEl = document.getElementById('freq-bars');
     barsEl.innerHTML = '';
     sorted.forEach(([num, cnt]) => {
-        const row = document.createElement('div');
-        row.className = 'freq-row';
+        const row  = document.createElement('div');
+        row.className = 'flex items-center gap-2.5 mb-2';
         const ball = document.createElement('div');
         ball.className = `freq-mini-ball ${bCls(+num)}`;
         ball.textContent = num;
-        const bg = document.createElement('div');
-        bg.className = 'freq-bar-bg';
+        const bg   = document.createElement('div');
+        bg.className = 'flex-1 h-2 bg-slate-100 rounded-full overflow-hidden';
         const fill = document.createElement('div');
         fill.className = 'freq-bar-fill';
         fill.style.background = bHex(+num);
         bg.appendChild(fill);
-        const ce = document.createElement('div');
-        ce.className = 'freq-cnt';
+        const ce  = document.createElement('div');
+        ce.className = 'text-[12px] text-slate-400 min-w-[28px] text-right';
         ce.textContent = cnt + '회';
         row.append(ball, bg, ce);
         barsEl.appendChild(row);
         requestAnimationFrame(() => { fill.style.width = Math.round(cnt / maxF * 100) + '%'; });
     });
+
+    /* 최근 회차 */
     const histEl = document.getElementById('history-list');
     histEl.innerHTML = '';
     lottoData.slice(0, 8).forEach(d => {
         const fmt = d.date.replace(/(\d{4})(\d{2})(\d{2})/, '$1.$2.$3');
         const row = document.createElement('div');
-        row.className = 'history-row';
-        row.innerHTML = `<div class="history-meta"><span class="round-badge">${d.no}회</span><span class="round-date">${fmt}</span></div>`;
+        row.className = 'border-b border-slate-100 py-2.5 last:border-b-0 last:pb-0';
+
+        const meta = document.createElement('div');
+        meta.className = 'flex justify-between items-center mb-2';
+        meta.innerHTML = `<span class="font-display text-[15px] text-blue-600 tracking-wider">${d.no}회</span><span class="text-[11px] text-slate-400">${fmt}</span>`;
+
         const br = document.createElement('div');
-        br.className = 'mini-balls';
+        br.className = 'flex flex-wrap gap-1.5 items-center';
         d.nums.forEach(n => br.appendChild(mkBall(n, 'mini-ball')));
         const sep = document.createElement('div');
-        sep.className = 'bonus-dot'; sep.textContent = '+';
+        sep.className = 'text-slate-300 text-base px-0.5';
+        sep.textContent = '+';
         br.appendChild(sep);
         const bon = document.createElement('div');
-        bon.className = `mini-ball ${bCls(d.bonus)} bonus-ball`;
+        bon.className = `mini-ball ${bCls(d.bonus)} opacity-50`;
         bon.textContent = d.bonus;
         br.appendChild(bon);
-        row.appendChild(br);
+
         const tags = document.createElement('div');
-        tags.className = 'h-tags';
-        tags.innerHTML = `<span class="h-tag">합 ${d.stats.sum}</span><span class="h-tag">끝수 ${d.stats.endsum}</span><span class="h-tag">${d.stats.ratio.even_odd} 홀짝</span><span class="h-tag">${d.stats.ratio.low_high} 고저</span>`;
-        row.appendChild(tags);
+        tags.className = 'flex flex-wrap gap-1.5 mt-1.5';
+        tags.innerHTML = `
+            <span class="text-[11px] text-slate-400 bg-slate-50 border border-slate-200 px-2 py-0.5 rounded-full">합 ${d.stats.sum}</span>
+            <span class="text-[11px] text-slate-400 bg-slate-50 border border-slate-200 px-2 py-0.5 rounded-full">끝수 ${d.stats.endsum}</span>
+            <span class="text-[11px] text-slate-400 bg-slate-50 border border-slate-200 px-2 py-0.5 rounded-full">${d.stats.ratio.even_odd} 홀짝</span>
+            <span class="text-[11px] text-slate-400 bg-slate-50 border border-slate-200 px-2 py-0.5 rounded-full">${d.stats.ratio.low_high} 고저</span>`;
+
+        row.append(meta, br, tags);
         histEl.appendChild(row);
     });
 }
@@ -459,21 +505,22 @@ async function init() {
         lottoData = await res.json();
     } catch {
         lottoData = [
-            { no: 1223, date: '20260509', nums: [16, 18, 20, 32, 33, 39], bonus: 26, stats: { sum: 158, endsum: 28, ratio: { even_odd: '4:2', low_high: '3:3' } } },
-            { no: 1222, date: '20260502', nums: [4, 11, 17, 22, 32, 41], bonus: 34, stats: { sum: 127, endsum: 17, ratio: { even_odd: '3:3', low_high: '4:2' } } },
-            { no: 1221, date: '20260425', nums: [6, 13, 18, 28, 30, 36], bonus: 9, stats: { sum: 131, endsum: 31, ratio: { even_odd: '5:1', low_high: '3:3' } } },
-            { no: 1220, date: '20260418', nums: [2, 7, 14, 25, 38, 42], bonus: 19, stats: { sum: 128, endsum: 18, ratio: { even_odd: '3:3', low_high: '3:3' } } },
-            { no: 1219, date: '20260411', nums: [9, 12, 21, 29, 35, 44], bonus: 3, stats: { sum: 150, endsum: 20, ratio: { even_odd: '2:4', low_high: '2:4' } } },
-            { no: 1218, date: '20260404', nums: [1, 8, 15, 27, 33, 40], bonus: 22, stats: { sum: 124, endsum: 14, ratio: { even_odd: '3:3', low_high: '4:2' } } },
-            { no: 1217, date: '20260328', nums: [5, 11, 19, 24, 36, 43], bonus: 30, stats: { sum: 138, endsum: 28, ratio: { even_odd: '3:3', low_high: '3:3' } } },
-            { no: 1216, date: '20260321', nums: [3, 10, 17, 28, 31, 45], bonus: 16, stats: { sum: 134, endsum: 24, ratio: { even_odd: '2:4', low_high: '3:3' } } },
-            { no: 1215, date: '20260314', nums: [7, 13, 22, 26, 37, 41], bonus: 5, stats: { sum: 146, endsum: 26, ratio: { even_odd: '3:3', low_high: '3:3' } } },
-            { no: 1214, date: '20260307', nums: [2, 9, 18, 23, 34, 42], bonus: 28, stats: { sum: 128, endsum: 18, ratio: { even_odd: '4:2', low_high: '4:2' } } },
+            { no:1223, date:'20260509', nums:[16,18,20,32,33,39], bonus:26, stats:{ sum:158, endsum:28, ratio:{ even_odd:'4:2', low_high:'3:3' } } },
+            { no:1222, date:'20260502', nums:[4,11,17,22,32,41],  bonus:34, stats:{ sum:127, endsum:17, ratio:{ even_odd:'3:3', low_high:'4:2' } } },
+            { no:1221, date:'20260425', nums:[6,13,18,28,30,36],  bonus:9,  stats:{ sum:131, endsum:31, ratio:{ even_odd:'5:1', low_high:'3:3' } } },
+            { no:1220, date:'20260418', nums:[2,7,14,25,38,42],   bonus:19, stats:{ sum:128, endsum:18, ratio:{ even_odd:'3:3', low_high:'3:3' } } },
+            { no:1219, date:'20260411', nums:[9,12,21,29,35,44],  bonus:3,  stats:{ sum:150, endsum:20, ratio:{ even_odd:'2:4', low_high:'2:4' } } },
+            { no:1218, date:'20260404', nums:[1,8,15,27,33,40],   bonus:22, stats:{ sum:124, endsum:14, ratio:{ even_odd:'3:3', low_high:'4:2' } } },
+            { no:1217, date:'20260328', nums:[5,11,19,24,36,43],  bonus:30, stats:{ sum:138, endsum:28, ratio:{ even_odd:'3:3', low_high:'3:3' } } },
+            { no:1216, date:'20260321', nums:[3,10,17,28,31,45],  bonus:16, stats:{ sum:134, endsum:24, ratio:{ even_odd:'2:4', low_high:'3:3' } } },
+            { no:1215, date:'20260314', nums:[7,13,22,26,37,41],  bonus:5,  stats:{ sum:146, endsum:26, ratio:{ even_odd:'3:3', low_high:'3:3' } } },
+            { no:1214, date:'20260307', nums:[2,9,18,23,34,42],   bonus:28, stats:{ sum:128, endsum:18, ratio:{ even_odd:'4:2', low_high:'4:2' } } },
         ];
     }
     freqMap = {};
     lottoData.forEach(d => d.nums.forEach(n => { freqMap[n] = (freqMap[n] || 0) + 1; }));
-    if (lottoData.length) avgSum = Math.round(lottoData.reduce((a, b) => a + b.stats.sum, 0) / lottoData.length);
+    if (lottoData.length)
+        avgSum = Math.round(lottoData.reduce((a, b) => a + b.stats.sum, 0) / lottoData.length);
     generateAll();
     buildStats();
     refreshBadges();
