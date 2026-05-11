@@ -3,146 +3,772 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lotto Analytics & Generator</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+
+    <!-- ── SEO Meta ── -->
+    <title>로또 번호 생성기 | 통계 기반 AI 추천 - LOTTO+</title>
+    <meta name="description" content="최신 로또 당첨 통계를 분석해 스마트하게 번호를 추천해 드립니다. 홀짝 비율, 번호 합계, 출현 빈도를 반영한 AI 기반 로또 번호 생성기.">
+    <meta name="keywords" content="로또, 로또번호생성, 로또추천, 로또통계, 로또645, 번호생성기, 당첨번호분석">
+    <meta name="author" content="LOTTO+">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://yourdomain.com/">
+
+    <!-- ── Open Graph (SNS 공유) ── -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="로또 번호 생성기 | 통계 기반 AI 추천 - LOTTO+">
+    <meta property="og:description" content="최신 로또 당첨 통계를 분석해 스마트하게 번호를 추천해 드립니다. 홀짝 비율, 합계, 출현 빈도 반영.">
+    <meta property="og:url" content="https://yourdomain.com/">
+    <meta property="og:site_name" content="LOTTO+">
+    <meta property="og:image" content="https://yourdomain.com/og-image.png">
+    <meta property="og:locale" content="ko_KR">
+
+    <!-- ── Twitter Card ── -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="로또 번호 생성기 | 통계 기반 AI 추천">
+    <meta name="twitter:description" content="최신 로또 당첨 통계를 분석해 스마트하게 번호를 추천해 드립니다.">
+    <meta name="twitter:image" content="https://yourdomain.com/og-image.png">
+
+    <!-- ── PWA / Mobile ── -->
+    <meta name="theme-color" content="#1976D2">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="LOTTO+">
+
+    <!-- ── Structured Data (JSON-LD) ── -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "LOTTO+ 로또 번호 생성기",
+      "description": "최신 로또 당첨 통계를 분석해 스마트하게 번호를 추천하는 무료 서비스",
+      "url": "https://yourdomain.com/",
+      "applicationCategory": "UtilitiesApplication",
+      "operatingSystem": "Any",
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "KRW" },
+      "inLanguage": "ko"
+    }
+    </script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Bebas+Neue&display=swap" rel="stylesheet">
+
     <style>
-        [x-cloak] { display: none !important; }
-        .ball { @apply w-10 h-10 rounded-full flex items-center justify-center text-white font-bold shadow-md; }
-        .ball-yellow { background-color: #fbc02d; }
-        .ball-blue { background-color: #1976d2; }
-        .ball-red { background-color: #e53935; }
-        .ball-gray { background-color: #757575; }
-        .ball-green { background-color: #43a047; }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --yellow: #FBC02D; --blue: #1976D2; --red: #E53935;
+            --gray: #757575; --green: #43A047;
+            --bg: #F4F6FB; --surface: #FFFFFF; --border: #E8ECF4;
+            --text: #1A1D27; --muted: #7A8099;
+            --accent: #1976D2; --accent-light: #E8F1FC;
+            --success: #43A047; --success-light: #E8F5E9;
+            --nav-h: 64px;
+            --shadow: 0 2px 12px rgba(25,50,120,0.08);
+        }
+
+        html, body { height: 100%; font-family: 'Noto Sans KR', sans-serif; background: var(--bg); color: var(--text); overflow-x: hidden; }
+        #app { display: flex; flex-direction: column; min-height: 100vh; }
+
+        /* PC Top Nav */
+        #top-nav {
+            background: var(--surface); border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 24px; height: 60px; position: sticky; top: 0; z-index: 100;
+            box-shadow: var(--shadow);
+        }
+        #top-nav .brand {
+            font-family: 'Bebas Neue', sans-serif; font-size: 22px;
+            letter-spacing: 2px; color: var(--accent);
+            display: flex; align-items: center; gap: 8px;
+        }
+        #top-nav .brand .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--yellow); }
+        #top-nav .tabs { display: flex; gap: 4px; }
+        #top-nav .tab-btn {
+            display: flex; align-items: center; gap: 6px; padding: 8px 14px;
+            border: none; background: transparent; font-family: 'Noto Sans KR', sans-serif;
+            font-size: 14px; color: var(--muted); cursor: pointer; border-radius: 8px;
+            transition: all 0.15s; white-space: nowrap; position: relative;
+        }
+        #top-nav .tab-btn svg { width: 17px; height: 17px; }
+        #top-nav .tab-btn:hover { background: var(--accent-light); color: var(--accent); }
+        #top-nav .tab-btn.active { background: var(--accent-light); color: var(--accent); font-weight: 700; }
+
+        /* Mobile Bottom Nav */
+        #bottom-nav {
+            display: none; position: fixed; bottom: 0; left: 0; right: 0;
+            background: var(--surface); border-top: 1px solid var(--border);
+            height: var(--nav-h); z-index: 100;
+            box-shadow: 0 -4px 20px rgba(25,50,120,0.08);
+        }
+        #bottom-nav .nav-inner { display: flex; height: 100%; }
+        #bottom-nav .tab-btn {
+            flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            gap: 3px; border: none; background: transparent;
+            font-family: 'Noto Sans KR', sans-serif; font-size: 10px;
+            color: var(--muted); cursor: pointer; transition: color 0.15s;
+            padding: 0; position: relative;
+        }
+        #bottom-nav .tab-btn svg { width: 22px; height: 22px; }
+        #bottom-nav .tab-btn.active { color: var(--accent); }
+        #bottom-nav .tab-btn.active svg { filter: drop-shadow(0 0 4px rgba(25,118,210,0.35)); }
+
+        .nav-badge {
+            position: absolute; top: 7px; right: calc(50% - 20px);
+            background: var(--red); color: white; font-size: 9px; font-weight: 700;
+            min-width: 15px; height: 15px; border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            padding: 0 3px; line-height: 1; pointer-events: none;
+        }
+        .nav-badge.hidden { display: none; }
+
+        @media (max-width: 640px) {
+            #top-nav { display: none; }
+            #bottom-nav { display: block; }
+            #content { padding-bottom: calc(var(--nav-h) + 16px); }
+        }
+
+        /* Content */
+        #content { flex: 1; max-width: 560px; margin: 0 auto; width: 100%; padding: 24px 16px; }
+        .page { display: none; animation: fadeIn 0.25s ease; }
+        .page.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+        .page-header { margin-bottom: 20px; }
+        .page-header h1, .page-header h2 {
+            font-family: 'Bebas Neue', sans-serif; font-size: 28px;
+            letter-spacing: 2px; color: var(--text);
+        }
+        .page-header p { font-size: 13px; color: var(--muted); margin-top: 2px; }
+
+        /* Set Cards */
+        .set-card {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 14px; padding: 12px 12px 12px 14px;
+            margin-bottom: 10px; display: flex; align-items: center; gap: 8px;
+            box-shadow: var(--shadow); overflow: hidden; position: relative;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .set-card::before {
+            content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+            width: 4px; background: var(--accent); border-radius: 14px 0 0 14px;
+            transition: background 0.2s;
+        }
+        .set-card.saved { border-color: #A5D6A7; box-shadow: 0 0 0 2px rgba(67,160,71,0.12); }
+        .set-card.saved::before { background: var(--success); }
+
+        .set-label {
+            font-family: 'Bebas Neue', sans-serif; font-size: 17px;
+            color: var(--muted); min-width: 18px; text-align: center; flex-shrink: 0;
+        }
+        .balls-row { display: flex; gap: 5px; flex: 1; flex-wrap: nowrap; align-items: center; overflow: hidden; }
+        .set-meta { display: flex; flex-direction: column; gap: 5px; align-items: flex-end; flex-shrink: 0; }
+        .set-sum {
+            font-size: 10px; color: var(--muted); white-space: nowrap;
+            background: var(--bg); padding: 2px 7px; border-radius: 20px;
+            border: 1px solid var(--border);
+        }
+
+        /* Apply Button */
+        .apply-btn {
+            display: flex; align-items: center; gap: 3px;
+            padding: 5px 9px; border-radius: 20px; border: 1px solid var(--border);
+            background: var(--bg); font-family: 'Noto Sans KR', sans-serif;
+            font-size: 11px; font-weight: 500; color: var(--muted);
+            cursor: pointer; white-space: nowrap; transition: all 0.15s;
+        }
+        .apply-btn:hover { background: var(--success-light); border-color: #A5D6A7; color: var(--success); }
+        .apply-btn.done { background: var(--success-light); border-color: #A5D6A7; color: var(--success); pointer-events: none; }
+        .apply-btn svg { width: 12px; height: 12px; }
+
+        /* Balls */
+        .ball {
+            width: 37px; height: 37px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 12px; font-weight: 700; color: white;
+            flex-shrink: 0; position: relative; overflow: hidden;
+            cursor: default; user-select: none;
+        }
+        .ball::after {
+            content: ''; position: absolute; top: 6px; left: 8px;
+            width: 9px; height: 5px; background: rgba(255,255,255,0.38);
+            border-radius: 50%; transform: rotate(-35deg);
+        }
+        .ball.anim { animation: ballBounce 0.5s cubic-bezier(.36,1.6,.26,.9) both; }
+        @keyframes ballBounce {
+            0%   { transform: translateY(-50px) scale(0.5); opacity: 0; }
+            60%  { transform: translateY(5px) scale(1.08); opacity: 1; }
+            80%  { transform: translateY(-3px) scale(0.97); }
+            100% { transform: none; opacity: 1; }
+        }
+        .b-y { background: var(--yellow); }
+        .b-b { background: var(--blue); }
+        .b-r { background: var(--red); }
+        .b-g { background: var(--gray); }
+        .b-gr { background: var(--green); }
+
+        /* Gen Button */
+        .gen-btn {
+            width: 100%; margin-top: 20px; background: var(--accent); color: white;
+            border: none; border-radius: 12px; padding: 16px;
+            font-family: 'Noto Sans KR', sans-serif; font-size: 15px; font-weight: 700;
+            cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
+            box-shadow: 0 4px 16px rgba(25,118,210,0.3);
+            transition: transform 0.12s, box-shadow 0.12s, background 0.15s;
+        }
+        .gen-btn:hover { background: #1565C0; box-shadow: 0 6px 20px rgba(25,118,210,0.4); }
+        .gen-btn:active { transform: scale(0.97); }
+        .gen-btn svg { width: 20px; height: 20px; }
+        .gen-btn.spinning svg { animation: spin 0.5s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Toast */
+        #toast {
+            position: fixed; bottom: calc(var(--nav-h) + 16px); left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: #1A1D27; color: white; font-size: 13px; font-weight: 500;
+            padding: 10px 20px; border-radius: 24px; z-index: 200;
+            opacity: 0; transition: opacity 0.2s, transform 0.2s; pointer-events: none;
+            white-space: nowrap;
+        }
+        #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+        @media (min-width: 641px) { #toast { bottom: 24px; } }
+
+        /* Stats */
+        .stat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px; }
+        .stat-card {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 12px; padding: 14px 16px; box-shadow: var(--shadow);
+        }
+        .stat-card .s-label { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+        .stat-card .s-val { font-family: 'Bebas Neue', sans-serif; font-size: 26px; letter-spacing: 1px; color: var(--accent); }
+        .stat-card .s-val.red { color: var(--red); }
+        .stat-card .s-val.green { color: var(--success); }
+
+        .section-card {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 14px; padding: 16px; margin-bottom: 16px; box-shadow: var(--shadow);
+        }
+        .section-card h3 { font-size: 14px; font-weight: 700; margin-bottom: 14px; color: var(--text); }
+
+        .freq-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+        .freq-mini-ball {
+            width: 28px; height: 28px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 11px; font-weight: 700; color: white; flex-shrink: 0;
+            position: relative; overflow: hidden;
+        }
+        .freq-mini-ball::after {
+            content: ''; position: absolute; top: 4px; left: 6px;
+            width: 7px; height: 4px; background: rgba(255,255,255,0.38);
+            border-radius: 50%; transform: rotate(-35deg);
+        }
+        .freq-bar-bg { flex: 1; height: 8px; background: var(--bg); border-radius: 4px; overflow: hidden; }
+        .freq-bar-fill { height: 100%; border-radius: 4px; width: 0; transition: width 0.9s cubic-bezier(.25,.8,.25,1); }
+        .freq-cnt { font-size: 12px; color: var(--muted); min-width: 28px; text-align: right; }
+
+        .history-row { border-bottom: 1px solid var(--border); padding: 10px 0; }
+        .history-row:last-child { border-bottom: none; padding-bottom: 0; }
+        .history-meta { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .round-badge { font-family: 'Bebas Neue', sans-serif; font-size: 15px; color: var(--accent); letter-spacing: 1px; }
+        .round-date { font-size: 11px; color: var(--muted); }
+        .mini-balls { display: flex; gap: 5px; align-items: center; flex-wrap: wrap; }
+        .mini-ball {
+            width: 30px; height: 30px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 11px; font-weight: 700; color: white;
+            position: relative; overflow: hidden;
+        }
+        .mini-ball::after {
+            content: ''; position: absolute; top: 4px; left: 6px;
+            width: 7px; height: 4px; background: rgba(255,255,255,0.38);
+            border-radius: 50%; transform: rotate(-35deg);
+        }
+        .bonus-dot { font-size: 16px; color: var(--border); padding: 0 2px; }
+        .bonus-ball { opacity: 0.6; }
+        .h-tags { display: flex; gap: 5px; margin-top: 7px; flex-wrap: wrap; }
+        .h-tag {
+            font-size: 11px; color: var(--muted); background: var(--bg);
+            padding: 2px 8px; border-radius: 20px; border: 1px solid var(--border);
+        }
+
+        /* QR */
+        .qr-box {
+            border: 2px dashed var(--border); border-radius: 16px; padding: 48px 24px;
+            text-align: center; display: flex; flex-direction: column;
+            align-items: center; gap: 12px; margin-bottom: 16px;
+        }
+        .qr-box svg { width: 60px; height: 60px; opacity: 0.2; }
+        .qr-box p { font-size: 14px; color: var(--muted); }
+        .info-card {
+            background: var(--accent-light); border: 1px solid #B3D1F5;
+            border-radius: 12px; padding: 14px 16px; font-size: 13px; color: #1565C0;
+            display: flex; gap: 10px; align-items: flex-start;
+        }
+        .info-card svg { width: 18px; height: 18px; flex-shrink: 0; margin-top: 1px; }
+
+        /* My History */
+        .my-empty {
+            text-align: center; padding: 52px 24px;
+            display: flex; flex-direction: column; align-items: center; gap: 12px;
+        }
+        .my-empty svg { width: 56px; height: 56px; opacity: 0.18; }
+        .my-empty p { font-size: 14px; color: var(--muted); }
+        .my-empty small { font-size: 12px; color: #C5CCE0; }
+
+        .my-count-bar {
+            font-size: 13px; color: var(--muted);
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 14px;
+        }
+        .my-count-bar strong { color: var(--accent); }
+
+        .my-item {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 14px; padding: 14px 16px; margin-bottom: 10px;
+            box-shadow: var(--shadow); transition: opacity 0.2s, transform 0.2s;
+        }
+        .my-item-header {
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;
+        }
+        .my-item-date { font-size: 12px; color: var(--muted); }
+        .my-item-sum {
+            font-size: 11px; background: var(--accent-light); color: var(--accent);
+            padding: 2px 8px; border-radius: 20px; font-weight: 500;
+        }
+        .my-item-nums { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 10px; }
+        .my-item-actions { display: flex; justify-content: flex-end; }
+        .del-btn {
+            display: flex; align-items: center; gap: 4px; padding: 5px 10px;
+            border-radius: 20px; border: 1px solid #FFCDD2; background: #FFF5F5;
+            font-family: 'Noto Sans KR', sans-serif; font-size: 11px; color: var(--red);
+            cursor: pointer; transition: background 0.15s;
+        }
+        .del-btn:hover { background: #FFCDD2; }
+        .del-btn svg { width: 13px; height: 13px; }
+
+        .clear-all-btn {
+            width: 100%; margin-top: 6px; padding: 12px;
+            border: 1px solid #FFCDD2; border-radius: 10px;
+            background: transparent; font-family: 'Noto Sans KR', sans-serif;
+            font-size: 13px; color: var(--red); cursor: pointer; transition: background 0.15s;
+        }
+        .clear-all-btn:hover { background: #FFF5F5; }
+
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
     </style>
 </head>
-<body class="bg-gray-50" x-data="lottoApp()" x-init="init()">
+<body>
+<div id="app">
 
-    <!-- 상단 탭 메뉴 -->
-    <nav class="fixed bottom-0 w-full bg-white border-t border-gray-200 flex justify-around py-3 z-50">
-        <button @click="tab = 'home'" :class="tab === 'home' ? 'text-blue-600' : 'text-gray-400'" class="flex flex-col items-center">
-            <span class="material-symbols-outlined">home</span>
-            <span class="text-xs">홈</span>
-        </button>
-        <button @click="tab = 'qr'" :class="tab === 'qr' ? 'text-blue-600' : 'text-gray-400'" class="flex flex-col items-center">
-            <span class="material-symbols-outlined">qr_code_scanner</span>
-            <span class="text-xs">QR스캔</span>
-        </button>
-        <button @click="tab = 'stats'" :class="tab === 'stats' ? 'text-blue-600' : 'text-gray-400'" class="flex flex-col items-center">
-            <span class="material-symbols-outlined">analytics</span>
-            <span class="text-xs">통계</span>
-        </button>
+    <!-- PC Top Nav -->
+    <nav id="top-nav" aria-label="주 메뉴">
+        <div class="brand"><div class="dot"></div>LOTTO+</div>
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('home')" id="tn-home">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12L12 3l9 9"/><path d="M9 21V12h6v9"/></svg>홈
+            </button>
+            <button class="tab-btn" onclick="switchTab('qr')" id="tn-qr">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="3" height="3"/></svg>QR 스캔
+            </button>
+            <button class="tab-btn" onclick="switchTab('stats')" id="tn-stats">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>통계
+            </button>
+            <button class="tab-btn" onclick="switchTab('myhistory')" id="tn-myhistory" style="position:relative">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>내 번호
+                <span class="nav-badge hidden" id="pc-badge"></span>
+            </button>
+        </div>
     </nav>
 
-    <!-- 메인 컨텐츠 -->
-    <main class="p-4 mb-20">
-        
-        <!-- 1. 홈: 번호 생성기 -->
-        <section x-show="tab === 'home'" x-cloak>
-            <h2 class="text-xl font-bold mb-4">행운의 번호 생성 (5세트)</h2>
-            <div class="space-y-3">
-                <template x-for="(set, index) in generatedSets" :key="index">
-                    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex gap-2 overflow-x-auto">
-                        <template x-for="num in set" :key="num">
-                            <div :class="getBallColor(num)" class="ball" x-text="num"></div>
-                        </template>
-                    </div>
-                </template>
+    <!-- Content -->
+    <main id="content">
+
+        <!-- Home -->
+        <section class="page active" id="page-home">
+            <div class="page-header">
+                <h1>행운의 번호 생성</h1>
+                <p>통계 기반 5세트 — 마음에 드는 번호를 저장 버튼으로 보관하세요 ✨</p>
             </div>
-            <button @click="generateLottoSets()" class="w-full mt-6 bg-blue-600 text-white py-4 rounded-xl font-bold shadow-lg active:scale-95 transition">
-                통계 기반 번호 생성하기
+            <div id="sets-container"></div>
+            <button class="gen-btn" onclick="generateAll()" id="genBtn">
+                <svg id="genIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                번호 새로 생성하기
             </button>
         </section>
 
-        <!-- 2. QR: 필터링 생성 -->
-        <section x-show="tab === 'qr'" x-cloak>
-            <h2 class="text-xl font-bold mb-2">QR 번호 제외 생성</h2>
-            <p class="text-sm text-gray-500 mb-4">구입한 번호를 스캔하면, 그 번호들을 제외하고 조합합니다.</p>
-            <div class="bg-dashed border-2 border-dashed border-gray-300 rounded-xl p-10 text-center mb-4">
-                <span class="material-symbols-outlined text-5xl text-gray-300">photo_camera</span>
-                <p class="text-gray-400 mt-2">카메라 권한이 필요합니다</p>
+        <!-- QR -->
+        <section class="page" id="page-qr">
+            <div class="page-header">
+                <h2>QR 번호 제외 생성</h2>
+                <p>구입한 번호를 스캔해 완전히 다른 조합을 만들어요</p>
             </div>
-            <div class="bg-blue-50 p-4 rounded-lg text-sm text-blue-700">
-                ������ <strong>제외 수 기능:</strong> 이미 구매한 번호와 겹치지 않는 "완전 새로운 조합"을 제안합니다.
+            <div class="qr-box">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                <p>카메라 권한이 필요합니다</p>
+                <small style="font-size:12px;color:#C5CCE0">로또 QR코드를 화면에 맞춰주세요</small>
+            </div>
+            <div class="info-card">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                <span><strong>제외 수 기능:</strong> 이미 구매한 번호와 겹치지 않는 "완전 새로운 조합"을 제안합니다.</span>
             </div>
         </section>
 
-        <!-- 3. 통계: 데이터 시각화 -->
-        <section x-show="tab === 'stats'" x-cloak>
-            <h2 class="text-xl font-bold mb-4">로또 통계 대시보드</h2>
-            <div class="grid grid-cols-2 gap-4">
-                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-                    <p class="text-xs text-gray-500">평균 합계</p>
-                    <p class="text-2xl font-bold text-blue-600" x-text="stats.avgSum"></p>
-                </div>
-                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-                    <p class="text-xs text-gray-500">최다 출현 홀짝</p>
-                    <p class="text-2xl font-bold text-red-500" x-text="stats.topRatio"></p>
-                </div>
+        <!-- Stats -->
+        <section class="page" id="page-stats">
+            <div class="page-header">
+                <h2>통계 대시보드</h2>
+                <p>최근 회차 데이터를 바탕으로 분석합니다</p>
             </div>
-            
-            <div class="mt-6 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-                <h3 class="font-bold mb-3">최근 회차 분석</h3>
-                <div class="space-y-2">
-                    <template x-for="item in lottoData.slice(0, 5)" :key="item.no">
-                        <div class="flex justify-between items-center text-sm border-b pb-2">
-                            <span x-text="item.no + '회'"></span>
-                            <span class="font-mono text-gray-600" x-text="item.nums.join(', ')"></span>
-                            <span class="bg-gray-100 px-2 py-1 rounded text-xs" x-text="'합:' + item.stats.sum"></span>
-                        </div>
-                    </template>
-                </div>
+            <div class="stat-grid">
+                <div class="stat-card"><div class="s-label">평균 합계</div><div class="s-val" id="s-avgsum">—</div></div>
+                <div class="stat-card"><div class="s-label">최다 홀짝 비율</div><div class="s-val red" id="s-ratio">—</div></div>
+                <div class="stat-card"><div class="s-label">분석 회차</div><div class="s-val green" id="s-count">—</div></div>
+                <div class="stat-card"><div class="s-label">평균 끝수합</div><div class="s-val" id="s-endsum">—</div></div>
             </div>
+            <div class="section-card">
+                <h3>������ 최다 출현 번호 TOP 10</h3>
+                <div id="freq-bars"></div>
+            </div>
+            <div class="section-card">
+                <h3>������ 최근 회차 기록</h3>
+                <div id="history-list"></div>
+            </div>
+        </section>
+
+        <!-- My History -->
+        <section class="page" id="page-myhistory">
+            <div class="page-header">
+                <h2>내 번호 이력</h2>
+                <p>저장한 번호를 날짜별로 확인하세요</p>
+            </div>
+            <div id="my-wrap"></div>
         </section>
 
     </main>
 
-    <script>
-        function lottoApp() {
-            return {
-                tab: 'home',
-                lottoData: [],
-                generatedSets: [],
-                stats: { avgSum: 0, topRatio: '3:3' },
+    <!-- Mobile Bottom Nav -->
+    <nav id="bottom-nav" aria-label="하단 메뉴">
+        <div class="nav-inner">
+            <button class="tab-btn active" onclick="switchTab('home')" id="bn-home">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12L12 3l9 9"/><path d="M9 21V12h6v9"/></svg>홈
+            </button>
+            <button class="tab-btn" onclick="switchTab('qr')" id="bn-qr">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="3" height="3"/></svg>QR
+            </button>
+            <button class="tab-btn" onclick="switchTab('stats')" id="bn-stats">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>통계
+            </button>
+            <button class="tab-btn" onclick="switchTab('myhistory')" id="bn-myhistory">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                내 번호
+                <span class="nav-badge hidden" id="mob-badge"></span>
+            </button>
+        </div>
+    </nav>
+</div>
 
-                async init() {
-                    const res = await fetch('./lotto.json');
-                    this.lottoData = await res.json();
-                    this.calculateStats();
-                    this.generateLottoSets();
-                },
+<div id="toast"></div>
 
-                calculateStats() {
-                    const totalSum = this.lottoData.reduce((acc, curr) => acc + curr.stats.sum, 0);
-                    this.stats.avgSum = Math.round(totalSum / this.lottoData.length);
-                },
+<script>
+const LS_KEY = 'lotto_my_history_v1';
+let lottoData = [];
+let avgSum = 137;
 
-                generateLottoSets() {
-                    this.generatedSets = [];
-                    for(let i=0; i<5; i++) {
-                        this.generatedSets.push(this.createSmartNumbers());
-                    }
-                },
+// ── localStorage ──
+function getHistory() {
+    try { return JSON.parse(localStorage.getItem(LS_KEY) || '[]'); }
+    catch { return []; }
+}
+function setHistory(arr) {
+    localStorage.setItem(LS_KEY, JSON.stringify(arr));
+    refreshBadges();
+}
+function refreshBadges() {
+    const n = getHistory().length;
+    ['pc-badge','mob-badge'].forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (n > 0) { el.textContent = n > 99 ? '99+' : n; el.classList.remove('hidden'); }
+        else el.classList.add('hidden');
+    });
+}
 
-                createSmartNumbers() {
-                    // 통계 기반 규칙 (예: 합계가 평균 +- 20 범위 내에 들어오도록)
-                    let set = new Set();
-                    while(set.size < 6) {
-                        set.add(Math.floor(Math.random() * 45) + 1);
-                    }
-                    return Array.from(set).sort((a, b) => a - b);
-                },
+// ── Tabs ──
+function switchTab(name) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    ['tn-','bn-'].forEach(p =>
+        document.querySelectorAll(`[id^="${p}"]`).forEach(b => b.classList.remove('active'))
+    );
+    document.getElementById('page-' + name).classList.add('active');
+    const tn = document.getElementById('tn-' + name);
+    const bn = document.getElementById('bn-' + name);
+    if (tn) tn.classList.add('active');
+    if (bn) bn.classList.add('active');
+    if (name === 'myhistory') renderMyHistory();
+}
 
-                getBallColor(num) {
-                    if (num <= 10) return 'ball-yellow';
-                    if (num <= 20) return 'ball-blue';
-                    if (num <= 30) return 'ball-red';
-                    if (num <= 40) return 'ball-gray';
-                    return 'ball-green';
-                }
-            }
+// ── Balls ──
+function bCls(n) {
+    if (n <= 10) return 'b-y';
+    if (n <= 20) return 'b-b';
+    if (n <= 30) return 'b-r';
+    if (n <= 40) return 'b-g';
+    return 'b-gr';
+}
+function bHex(n) {
+    if (n <= 10) return '#FBC02D';
+    if (n <= 20) return '#1976D2';
+    if (n <= 30) return '#E53935';
+    if (n <= 40) return '#757575';
+    return '#43A047';
+}
+function mkBall(n, size='ball', delay=0) {
+    const d = document.createElement('div');
+    d.className = `${size} ${bCls(n)}`;
+    if (size === 'ball') { d.classList.add('anim'); if (delay) d.style.animationDelay = delay + 'ms'; }
+    d.textContent = n;
+    return d;
+}
+
+// ── Toast ──
+let toastTimer;
+function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2400);
+}
+
+// ── Apply / save one set ──
+function applySet(nums, cardEl, btnEl) {
+    const arr = getHistory();
+    const now = new Date();
+    const pad = n => String(n).padStart(2,'0');
+    const dateStr = `${now.getFullYear()}.${pad(now.getMonth()+1)}.${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+    arr.unshift({ id: Date.now(), date: dateStr, nums });
+    setHistory(arr);
+
+    cardEl.classList.add('saved');
+    btnEl.classList.add('done');
+    btnEl.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>저장됨`;
+    toast('✅ 번호가 저장되었습니다');
+}
+
+// ── Generate ──
+function smartNums() {
+    for (let t = 0; t < 300; t++) {
+        const s = new Set();
+        while (s.size < 6) s.add(Math.floor(Math.random()*45)+1);
+        const arr = [...s].sort((a,b)=>a-b);
+        const sum = arr.reduce((a,b)=>a+b,0);
+        if (sum >= avgSum-22 && sum <= avgSum+22) return arr;
+    }
+    const s = new Set();
+    while (s.size < 6) s.add(Math.floor(Math.random()*45)+1);
+    return [...s].sort((a,b)=>a-b);
+}
+
+function generateAll() {
+    const btn = document.getElementById('genBtn');
+    btn.classList.add('spinning');
+    const wrap = document.getElementById('sets-container');
+    wrap.innerHTML = '';
+
+    Array.from({length:5}, smartNums).forEach((nums, i) => {
+        const card = document.createElement('div');
+        card.className = 'set-card';
+
+        const lbl = document.createElement('div');
+        lbl.className = 'set-label';
+        lbl.textContent = 'ABCDE'[i];
+
+        const row = document.createElement('div');
+        row.className = 'balls-row';
+        nums.forEach((n,j) => row.appendChild(mkBall(n,'ball', i*65+j*42)));
+
+        const meta = document.createElement('div');
+        meta.className = 'set-meta';
+
+        const sumEl = document.createElement('div');
+        sumEl.className = 'set-sum';
+        sumEl.textContent = '합 ' + nums.reduce((a,b)=>a+b,0);
+
+        const applyBtn = document.createElement('button');
+        applyBtn.className = 'apply-btn';
+        applyBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>저장`;
+        applyBtn.onclick = () => applySet(nums, card, applyBtn);
+
+        meta.append(sumEl, applyBtn);
+        card.append(lbl, row, meta);
+        wrap.appendChild(card);
+    });
+
+    setTimeout(() => btn.classList.remove('spinning'), 550);
+}
+
+// ── My History ──
+function renderMyHistory() {
+    const wrap = document.getElementById('my-wrap');
+    const arr = getHistory();
+    wrap.innerHTML = '';
+
+    if (!arr.length) {
+        wrap.innerHTML = `<div class="my-empty">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            <p>저장된 번호가 없어요</p>
+            <small>홈에서 마음에 드는 번호를 저장해 보세요</small>
+        </div>`;
+        return;
+    }
+
+    const bar = document.createElement('div');
+    bar.className = 'my-count-bar';
+    bar.innerHTML = `<span>총 <strong>${arr.length}세트</strong> 저장됨</span>`;
+    wrap.appendChild(bar);
+
+    arr.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'my-item';
+        card.id = 'mi-' + item.id;
+
+        const hdr = document.createElement('div');
+        hdr.className = 'my-item-header';
+        hdr.innerHTML = `<span class="my-item-date">������ ${item.date}</span><span class="my-item-sum">합 ${item.nums.reduce((a,b)=>a+b,0)}</span>`;
+
+        const nums = document.createElement('div');
+        nums.className = 'my-item-nums';
+        item.nums.forEach(n => nums.appendChild(mkBall(n,'mini-ball')));
+
+        const acts = document.createElement('div');
+        acts.className = 'my-item-actions';
+        const db = document.createElement('button');
+        db.className = 'del-btn';
+        db.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>삭제`;
+        db.onclick = () => deleteItem(item.id);
+        acts.appendChild(db);
+
+        card.append(hdr, nums, acts);
+        wrap.appendChild(card);
+    });
+
+    const cb = document.createElement('button');
+    cb.className = 'clear-all-btn';
+    cb.textContent = '전체 삭제';
+    cb.onclick = () => {
+        if (confirm('저장된 번호를 모두 삭제할까요?')) {
+            setHistory([]);
+            renderMyHistory();
         }
-    </script>
+    };
+    wrap.appendChild(cb);
+}
+
+function deleteItem(id) {
+    const el = document.getElementById('mi-' + id);
+    if (!el) return;
+    el.style.opacity = '0';
+    el.style.transform = 'translateX(20px)';
+    setTimeout(() => {
+        setHistory(getHistory().filter(x => x.id !== id));
+        renderMyHistory();
+    }, 200);
+}
+
+// ── Stats ──
+function buildStats() {
+    if (!lottoData.length) return;
+    const sums = lottoData.map(d => d.stats.sum);
+    const ends = lottoData.map(d => d.stats.endsum);
+    const rc = {};
+    lottoData.forEach(d => { const r = d.stats.ratio.even_odd; rc[r]=(rc[r]||0)+1; });
+    const topR = Object.entries(rc).sort((a,b)=>b[1]-a[1])[0][0];
+
+    document.getElementById('s-avgsum').textContent = Math.round(sums.reduce((a,b)=>a+b)/sums.length);
+    document.getElementById('s-ratio').textContent = topR;
+    document.getElementById('s-count').textContent = lottoData.length + '회';
+    document.getElementById('s-endsum').textContent = Math.round(ends.reduce((a,b)=>a+b)/ends.length);
+
+    const freq = {};
+    lottoData.forEach(d => d.nums.forEach(n => freq[n]=(freq[n]||0)+1));
+    const sorted = Object.entries(freq).sort((a,b)=>b[1]-a[1]).slice(0,10);
+    const maxF = sorted[0][1];
+
+    const barsEl = document.getElementById('freq-bars');
+    barsEl.innerHTML = '';
+    sorted.forEach(([num,cnt]) => {
+        const row = document.createElement('div');
+        row.className = 'freq-row';
+        const ball = document.createElement('div');
+        ball.className = `freq-mini-ball ${bCls(+num)}`;
+        ball.textContent = num;
+        const bg = document.createElement('div');
+        bg.className = 'freq-bar-bg';
+        const fill = document.createElement('div');
+        fill.className = 'freq-bar-fill';
+        fill.style.background = bHex(+num);
+        bg.appendChild(fill);
+        const ce = document.createElement('div');
+        ce.className = 'freq-cnt';
+        ce.textContent = cnt + '회';
+        row.append(ball, bg, ce);
+        barsEl.appendChild(row);
+        requestAnimationFrame(() => { fill.style.width = Math.round(cnt/maxF*100) + '%'; });
+    });
+
+    const histEl = document.getElementById('history-list');
+    histEl.innerHTML = '';
+    lottoData.slice(0,8).forEach(d => {
+        const fmt = d.date.replace(/(\d{4})(\d{2})(\d{2})/,'$1.$2.$3');
+        const row = document.createElement('div');
+        row.className = 'history-row';
+        row.innerHTML = `<div class="history-meta"><span class="round-badge">${d.no}회</span><span class="round-date">${fmt}</span></div>`;
+        const br = document.createElement('div');
+        br.className = 'mini-balls';
+        d.nums.forEach(n => br.appendChild(mkBall(n,'mini-ball')));
+        const sep = document.createElement('div');
+        sep.className = 'bonus-dot'; sep.textContent = '+';
+        br.appendChild(sep);
+        const bon = document.createElement('div');
+        bon.className = `mini-ball ${bCls(d.bonus)} bonus-ball`;
+        bon.textContent = d.bonus;
+        br.appendChild(bon);
+        row.appendChild(br);
+        const tags = document.createElement('div');
+        tags.className = 'h-tags';
+        tags.innerHTML = `<span class="h-tag">합 ${d.stats.sum}</span><span class="h-tag">끝수 ${d.stats.endsum}</span><span class="h-tag">${d.stats.ratio.even_odd} 홀짝</span><span class="h-tag">${d.stats.ratio.low_high} 고저</span>`;
+        row.appendChild(tags);
+        histEl.appendChild(row);
+    });
+}
+
+// ── Init ──
+async function init() {
+    try {
+        const res = await fetch('./lotto.json');
+        lottoData = await res.json();
+    } catch {
+        lottoData = [
+            {no:1223,date:"20260509",nums:[16,18,20,32,33,39],bonus:26,stats:{sum:158,endsum:28,ratio:{even_odd:"4:2",low_high:"3:3"}}},
+            {no:1222,date:"20260502",nums:[4,11,17,22,32,41],bonus:34,stats:{sum:127,endsum:17,ratio:{even_odd:"3:3",low_high:"4:2"}}},
+            {no:1221,date:"20260425",nums:[6,13,18,28,30,36],bonus:9,stats:{sum:131,endsum:31,ratio:{even_odd:"5:1",low_high:"3:3"}}},
+            {no:1220,date:"20260418",nums:[2,7,14,25,38,42],bonus:19,stats:{sum:128,endsum:18,ratio:{even_odd:"3:3",low_high:"3:3"}}},
+            {no:1219,date:"20260411",nums:[9,12,21,29,35,44],bonus:3,stats:{sum:150,endsum:20,ratio:{even_odd:"2:4",low_high:"2:4"}}},
+            {no:1218,date:"20260404",nums:[1,8,15,27,33,40],bonus:22,stats:{sum:124,endsum:14,ratio:{even_odd:"3:3",low_high:"4:2"}}},
+            {no:1217,date:"20260328",nums:[5,11,19,24,36,43],bonus:30,stats:{sum:138,endsum:28,ratio:{even_odd:"3:3",low_high:"3:3"}}},
+            {no:1216,date:"20260321",nums:[3,10,17,28,31,45],bonus:16,stats:{sum:134,endsum:24,ratio:{even_odd:"2:4",low_high:"3:3"}}},
+            {no:1215,date:"20260314",nums:[7,13,22,26,37,41],bonus:5,stats:{sum:146,endsum:26,ratio:{even_odd:"3:3",low_high:"3:3"}}},
+            {no:1214,date:"20260307",nums:[2,9,18,23,34,42],bonus:28,stats:{sum:128,endsum:18,ratio:{even_odd:"4:2",low_high:"4:2"}}},
+        ];
+    }
+    if (lottoData.length) avgSum = Math.round(lottoData.reduce((a,b)=>a+b.stats.sum,0)/lottoData.length);
+    generateAll();
+    buildStats();
+    refreshBadges();
+}
+
+init();
+</script>
 </body>
 </html>
