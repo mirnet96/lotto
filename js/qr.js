@@ -1,13 +1,15 @@
 /* ══════════════════════════════════════════════════
-    js/qr.js — 디버그 버전 (S25+ QR 파싱 문제 확인용)
-    스캔된 raw 데이터를 화면에 표시해서 원인 파악
+    js/qr.js — html5-qrcode 단독 버전
+    
+    변경 내역:
+    - BarcodeDetector 제거 (S25+ 크롬에서 QR 감지 실패 확인)
+    - html5-qrcode 단독 사용으로 S8+/S25+ 통일
+    - 카카오 인앱 브라우저 → 크롬으로 열기 유도
+    - start() 첫 번째 인자에 constraints 직접 전달 (핵심 수정)
    ══════════════════════════════════════════════════ */
 
 let camActive    = false;
 let scannedNums  = [];
-let _stream      = null;
-let _rafId       = null;
-let _detector    = null;
 let _html5QrCode = null;
 
 /* ─── 공통 유틸 ─── */
@@ -37,6 +39,7 @@ function _setBtnStop() {
 function _setBtnStart() {
     const btn = document.getElementById('cam-toggle-btn');
     if (!btn) return;
+    btn.onclick = toggleCamera;
     btn.className = 'cam-btn w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-blue-600 text-[15px] font-bold text-white cursor-pointer mb-3 shadow-md shadow-blue-200 transition-all hover:bg-blue-700';
     btn.innerHTML = '<span class="material-symbols-rounded">photo_camera</span><span>카메라 시작하기</span>';
 }
@@ -58,70 +61,7 @@ async function toggleCamera() {
 }
 
 /* ══════════════════════════════════════════════════
-    방법 A: BarcodeDetector (크롬 네이티브, S25+ 최적)
-   ══════════════════════════════════════════════════ */
-async function _startNative() {
-    _detector = new BarcodeDetector({ formats: ['qr_code'] });
-
-    _stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-            facingMode: { ideal: 'environment' },
-            width:  { ideal: 1280 },
-            height: { ideal: 720 }
-        },
-        audio: false
-    });
-
-    const readerEl = document.getElementById('reader');
-    readerEl.innerHTML = '';
-
-    const video = document.createElement('video');
-    video.setAttribute('playsinline', '');
-    video.setAttribute('autoplay', '');
-    video.setAttribute('muted', '');
-    video.style.cssText = 'width:100%;display:block;';
-    video.srcObject = _stream;
-    readerEl.appendChild(video);
-
-    await video.play();
-
-    const canvas = document.createElement('canvas');
-    const ctx    = canvas.getContext('2d');
-
-    const scan = async () => {
-        if (!camActive) return;
-        if (video.readyState === video.HAVE_ENOUGH_DATA) {
-            canvas.width  = video.videoWidth;
-            canvas.height = video.videoHeight;
-            ctx.drawImage(video, 0, 0);
-            try {
-                const barcodes = await _detector.detect(canvas);
-                if (barcodes.length > 0) {
-                    handleQRResult(barcodes[0].rawValue);
-                    return;
-                }
-            } catch (_) {}
-        }
-        _rafId = requestAnimationFrame(scan);
-    };
-    _rafId = requestAnimationFrame(scan);
-}
-
-/* ══════════════════════════════════════════════════
-    방법 B: html5-qrcode 폴백
-   ══════════════════════════════════════════════════ */
-async function _startHtml5Qrcode() {
-    _resetReaderEl();
-    _html5QrCode = new Html5Qrcode('reader');
-    await _html5QrCode.start(
-        { facingMode: 'environment' },
-        { fps: 10, qrbox: { width: 250, height: 250 } },
-        (text) => handleQRResult(text)
-    );
-}
-
-/* ══════════════════════════════════════════════════
-    startCamera 진입점
+    startCamera
    ══════════════════════════════════════════════════ */
 async function startCamera() {
     _setStatus('카메라 연결 중...');
@@ -130,7 +70,7 @@ async function startCamera() {
 
     const placeholder = document.getElementById('qr-placeholder');
 
-    // 카카오 인앱 브라우저 → 외부 크롬 유도
+    /* ── 카카오 인앱 브라우저 감지 → 크롬으로 유도 ── */
     if (_isKakaoInApp()) {
         _setStatus('카카오 브라우저에서는 카메라가 제한됩니다.', 'red');
         const btn = document.getElementById('cam-toggle-btn');
@@ -142,55 +82,51 @@ async function startCamera() {
         return;
     }
 
-    // 권한 먼저 명시적으로 요청
+    /* ── html5-qrcode 시작 ── */
     try {
-        const testStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-        testStream.getTracks().forEach(t => t.stop());
-    } catch (err) {
-        if (err.name === 'NotAllowedError') {
-            _setStatus('카메라 권한이 거부되었습니다. 브라우저 설정 > 사이트 설정 > 카메라에서 허용해주세요.', 'red');
-        } else if (err.name === 'NotFoundError') {
-            _setStatus('카메라를 찾을 수 없습니다.', 'red');
-        } else {
-            _setStatus('카메라 오류: ' + (err.message || err.name), 'red');
-        }
-        return;
-    }
+        _html5QrCode = new Html5Qrcode('reader');
 
-    // 스캐너 시작
-    try {
-        const useNative = ('BarcodeDetector' in window);
-        _setStatus(useNative ? '네이티브 스캐너 시작 중...' : 'QR 스캐너 시작 중...');
-
-        if (useNative) {
-            await _startNative();
-        } else {
-            await _startHtml5Qrcode();
-        }
+        // ★ 핵심: constraints를 첫 번째 인자로 직접 전달
+        //    두 번째 config에 videoConstraints를 넣으면 무시됨
+        await _html5QrCode.start(
+            {
+                facingMode: { ideal: 'environment' },
+                width:  { min: 320, ideal: 640, max: 1280 },
+                height: { min: 240, ideal: 480, max: 720  }
+            },
+            {
+                fps: 10,
+                qrbox: { width: 250, height: 250 },
+                disableFlip: false,
+                formatsToSupport: [ Html5QrcodeSupportedFormats.QR_CODE ]
+            },
+            (decodedText) => handleQRResult(decodedText)
+        );
 
         camActive = true;
         if (placeholder) placeholder.style.display = 'none';
-        _setStatus('QR코드를 카메라에 맞춰주세요', 'green');
+        document.getElementById('reader').style.display = 'block';
+
+        _setStatus('QR코드를 화면 중앙에 맞춰주세요', 'green');
         _setBtnStop();
 
     } catch (err) {
         console.error('카메라 시작 오류:', err);
         camActive = false;
-        _setStatus('카메라 시작 실패: ' + (err.message || err.name), 'red');
+
+        if (err.name === 'NotAllowedError') {
+            _setStatus('카메라 권한이 거부되었습니다. 브라우저 설정 > 사이트 설정 > 카메라에서 허용해주세요.', 'red');
+        } else if (err.name === 'NotFoundError') {
+            _setStatus('카메라를 찾을 수 없습니다.', 'red');
+        } else {
+            _setStatus('카메라 시작 실패: ' + (err.message || err.name), 'red');
+        }
     }
 }
 
 /* ─── stopCamera ─── */
 async function stopCamera(silent = false) {
     camActive = false;
-
-    if (_rafId) { cancelAnimationFrame(_rafId); _rafId = null; }
-
-    if (_stream) {
-        _stream.getTracks().forEach(t => t.stop());
-        _stream = null;
-    }
-    _detector = null;
 
     if (_html5QrCode) {
         try { await _html5QrCode.stop(); } catch (_) {}
@@ -209,29 +145,16 @@ async function stopCamera(silent = false) {
     }
 }
 
-/* ══════════════════════════════════════════════════
-    QR 결과 처리 — 디버그 모드
-    스캔된 rawValue를 화면 + alert 로 표시
-   ══════════════════════════════════════════════════ */
+/* ─── QR 결과 처리 ─── */
 function handleQRResult(data) {
     if (!camActive) return;
     if (navigator.vibrate) navigator.vibrate(100);
 
     stopCamera();
 
-    // ★ 디버그: 스캔된 raw 데이터를 화면에 표시
-    const statusEl = document.getElementById('cam-status');
-    if (statusEl) {
-        statusEl.textContent = '[RAW] ' + data;
-        statusEl.className = 'text-center text-[13px] text-purple-500 mb-3 min-h-[20px] break-all';
-    }
-
-    // ★ 디버그: alert 로도 표시 → 확인 후 아래 두 줄 제거
-    alert('스캔 데이터:\n' + data);
-
     try {
         const urlParts = data.split('v=');
-        if (urlParts.length < 2) throw new Error('v= 없음: ' + data);
+        if (urlParts.length < 2) throw new Error('로또 QR 형식이 아닙니다.');
 
         const qrRawNumbers = urlParts[1].split('q');
         const allNums = [];
@@ -244,7 +167,7 @@ function handleQRResult(data) {
             }
         }
 
-        if (allNums.length === 0) throw new Error('번호 파싱 실패: ' + urlParts[1]);
+        if (allNums.length === 0) throw new Error('번호를 읽을 수 없습니다.');
 
         scannedNums = [...new Set(allNums)].sort((a, b) => a - b);
 
@@ -261,9 +184,7 @@ function handleQRResult(data) {
         if (typeof toast === 'function') toast(scannedNums.length + '개 번호 인식');
 
     } catch (e) {
-        // ★ 디버그: 파싱 에러 상세 표시
-        alert('파싱 오류:\n' + e.message);
-        _setStatus('파싱 오류: ' + e.message, 'red');
+        _setStatus(e.message, 'red');
     }
 }
 
