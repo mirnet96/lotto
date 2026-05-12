@@ -41,14 +41,9 @@
     }
     </script>
 
-    <!-- Google Fonts: Noto Sans KR + Bebas Neue -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Bebas+Neue&display=swap" rel="stylesheet">
-
-    <!-- Google Material Symbols Rounded -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block">
-
-    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -74,27 +69,19 @@
             }
         }
     </script>
-
-    <!-- html5-qrcode -->
     <script src="https://unpkg.com/html5-qrcode"></script>
-
-    <!-- 커스텀 CSS (애니메이션, 의사요소 등 Tailwind 불가 항목) -->
     <link rel="stylesheet" href="./style.css">
 </head>
 
 <body class="bg-slate-50 text-slate-800 min-h-screen overflow-x-hidden">
 <div id="app" class="flex flex-col min-h-screen">
 
-    <!-- ══════════════════════════════════════
-         PC 상단 네비게이션 (641px+)
-    ══════════════════════════════════════ -->
-    <header id="top-nav" class="hidden bg-white border-b border-slate-200 shadow-card sticky top-0 z-50 px-6 h-[60px] flex items-center justify-between">
-        <!-- 브랜드 -->
+    <!-- PC 상단 네비게이션 (641px+) : hidden 제거 → style.css 미디어쿼리로 제어 -->
+    <header id="top-nav" class="bg-white border-b border-slate-200 shadow-card sticky top-0 z-50 px-6 h-[60px] flex items-center justify-between">
         <div class="flex items-center gap-2 font-display text-[22px] tracking-[2px] text-blue-600">
             <span class="w-2 h-2 rounded-full bg-yellow-400 inline-block"></span>
             LOTTO+
         </div>
-        <!-- 탭 -->
         <nav class="flex gap-1">
             <button id="tn-home" class="tab-btn active flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[14px] text-slate-400 hover:bg-blue-50 hover:text-blue-600 transition-all" onclick="switchTab('home')">
                 <span class="material-symbols-rounded text-[17px]">home</span>홈
@@ -112,12 +99,9 @@
         </nav>
     </header>
 
-    <!-- ══════════════════════════════════════
-         콘텐츠 영역
-    ══════════════════════════════════════ -->
     <main id="content" class="flex-1 max-w-[560px] mx-auto w-full px-4 py-6">
 
-        <!-- ── 홈 ── -->
+        <!-- 홈 -->
         <section class="page active" id="page-home">
             <div class="mb-5">
                 <h1 class="font-display text-[28px] tracking-[2px] text-slate-800">행운의 번호 생성</h1>
@@ -134,14 +118,13 @@
             </button>
         </section>
 
-        <!-- ── QR ── -->
+        <!-- QR -->
         <section class="page" id="page-qr">
             <div class="mb-5">
                 <h2 class="font-display text-[20px] tracking-[2px] text-slate-800">QR 번호 제외 생성</h2>
                 <p class="text-[13px] text-slate-400 mt-0.5">구입한 번호를 스캔해 완전히 다른 조합을 만들어요</p>
             </div>
 
-            <!-- 스캔 결과 패널 -->
             <div id="qr-result-panel" class="hidden bg-green-50 border border-green-200 rounded-xl p-4 mb-3.5">
                 <div class="flex items-center gap-1 text-[12px] text-green-600 font-bold mb-2">
                     <span class="material-symbols-rounded text-[16px]">check_circle</span>
@@ -158,7 +141,6 @@
                 </div>
             </div>
 
-            <!-- 카메라 영역 -->
             <div class="rounded-2xl overflow-hidden bg-black mb-4 relative min-h-[200px]">
                 <div id="reader"></div>
                 <div id="qr-placeholder" class="flex flex-col items-center gap-3 py-12 text-center">
@@ -178,21 +160,19 @@
                 <span>카메라 시작하기</span>
             </button>
 
-            <!-- 안내 -->
             <div class="flex gap-2.5 items-start bg-blue-50 border border-blue-200 rounded-xl p-4 text-[13px] text-blue-700">
                 <span class="material-symbols-rounded text-[18px] flex-shrink-0 mt-0.5">info</span>
                 <span><strong>제외 수 기능:</strong> 로또 QR코드를 스캔하면 해당 번호를 제외한 새 세트를 자동 생성합니다.</span>
             </div>
         </section>
 
-        <!-- ── 통계 ── -->
+        <!-- 통계 -->
         <section class="page" id="page-stats">
             <div class="mb-5">
                 <h2 class="font-display text-[28px] tracking-[2px] text-slate-800">통계 대시보드</h2>
                 <p class="text-[13px] text-slate-400 mt-0.5">최근 회차 데이터를 바탕으로 분석합니다</p>
             </div>
 
-            <!-- 요약 카드 4개 -->
             <div class="grid grid-cols-2 gap-2.5 mb-5">
                 <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-card">
                     <div class="flex items-center gap-1 text-[12px] text-slate-400 mb-1.5">
@@ -220,7 +200,6 @@
                 </div>
             </div>
 
-            <!-- 출현 빈도 -->
             <div class="bg-white border border-slate-200 rounded-2xl p-4 mb-4 shadow-card">
                 <h3 class="flex items-center gap-1.5 text-[14px] font-bold mb-3.5">
                     <span class="material-symbols-rounded text-[18px] text-orange-500">local_fire_department</span>
@@ -229,7 +208,6 @@
                 <div id="freq-bars"></div>
             </div>
 
-            <!-- 최근 회차 -->
             <div class="bg-white border border-slate-200 rounded-2xl p-4 mb-4 shadow-card">
                 <h3 class="flex items-center gap-1.5 text-[14px] font-bold mb-3.5">
                     <span class="material-symbols-rounded text-[18px] text-blue-500">format_list_bulleted</span>
@@ -239,7 +217,7 @@
             </div>
         </section>
 
-        <!-- ── 내 번호 ── -->
+        <!-- 내 번호 -->
         <section class="page" id="page-myhistory">
             <div class="mb-5">
                 <h2 class="font-display text-[28px] tracking-[2px] text-slate-800">내 번호 이력</h2>
@@ -250,10 +228,8 @@
 
     </main>
 
-    <!-- ══════════════════════════════════════
-         모바일 하단 네비게이션 (≤640px)
-    ══════════════════════════════════════ -->
-    <nav id="bottom-nav" class="hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-50 shadow-[0_-4px_20px_rgba(25,50,120,0.08)]" style="height:var(--nav-h);" aria-label="하단 메뉴">
+    <!-- 모바일 하단 네비게이션 (≤640px) -->
+    <nav id="bottom-nav" class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-50 shadow-[0_-4px_20px_rgba(25,50,120,0.08)]" style="height:var(--nav-h);" aria-label="하단 메뉴">
         <div class="flex h-full">
             <button id="bn-home"
                 class="tab-btn active flex-1 flex flex-col items-center justify-center gap-0.5 border-none bg-transparent text-[10px] text-slate-400 cursor-pointer transition-colors relative"
@@ -280,24 +256,33 @@
         </div>
     </nav>
 
-</div><!-- /#app -->
-
-<!-- 토스트 -->
-<div id="toast" class="bg-slate-800 text-white text-[13px] font-medium px-5 py-2.5 rounded-full">
 </div>
 
-<!-- 앱 로직 -->
-<script src="./app.js"></script>
+<div id="toast" class="bg-slate-800 text-white text-[13px] font-medium px-5 py-2.5 rounded-full"></div>
 
-<!-- 탭 active 스타일 (Tailwind 동적 클래스 보완) -->
+<!-- 1. 전역 상태 -->
+<script src="./js/state.js"></script>
+<!-- 2. localStorage -->
+<script src="./js/storage.js"></script>
+<!-- 3. 공통 UI (ball · toast · tab · badge) -->
+<script src="./js/ui.js"></script>
+<!-- 4. 번호 생성 알고리즘 + 카드 렌더링 -->
+<script src="./js/generator.js"></script>
+<!-- 5. QR 카메라 스캔 -->
+<script src="./js/qr.js"></script>
+<!-- 6. 내 번호 이력 -->
+<script src="./js/history.js"></script>
+<!-- 7. 통계 대시보드 -->
+<script src="./js/stats.js"></script>
+<!-- 8. 초기화 진입점 -->
+<script src="./js/init.js"></script>
+
 <style>
-    /* PC 탭 active */
     #top-nav .tab-btn.active {
         background-color: #EEF4FD;
         color: #1976D2;
         font-weight: 700;
     }
-    /* 모바일 탭 active */
     #bottom-nav .tab-btn.active {
         color: #1976D2;
     }

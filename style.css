@@ -1,7 +1,5 @@
 /* ══════════════════════════════════════════════════
    style.css  —  LOTTO+
-   Tailwind CDN 유틸리티 보완 전용
-   (색상, 애니메이션, 의사요소 등 Tailwind로 표현 불가한 것만)
    ══════════════════════════════════════════════════ */
 
 /* ── CSS 변수 ── */
@@ -20,7 +18,7 @@
     --ball-font:  clamp(10px, 2.8vw, 12px);
 }
 
-/* ── Google Material Symbols 아이콘 크기 기본값 ── */
+/* ── Google Material Symbols ── */
 .material-symbols-rounded {
     font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
     user-select: none;
@@ -36,6 +34,24 @@
 .b-r  { background: var(--red); }
 .b-g  { background: var(--gray); }
 .b-gr { background: var(--green); }
+
+/* ── mini-ball / freq-mini-ball 기본 구조
+      (mkBall의 baseMap 클래스가 Tailwind 퍼지로 빠질 수 있어 CSS로도 보장) ── */
+.mini-ball,
+.freq-mini-ball {
+    position: relative;
+    overflow: hidden;
+    border-radius: 9999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    color: #fff;
+    flex-shrink: 0;
+    line-height: 1;
+}
+.mini-ball      { width: 30px; height: 30px; font-size: 11px; }
+.freq-mini-ball { width: 28px; height: 28px; font-size: 11px; }
 
 /* ── 공 광택 하이라이트 ── */
 .ball::after,
@@ -72,7 +88,7 @@
 }
 .set-card.saved::before { background: var(--success); }
 
-/* ── 빈도 바 트랜지션 ── */
+/* ── 빈도 바 ── */
 .freq-bar-fill {
     height: 100%;
     border-radius: 4px;
@@ -123,7 +139,7 @@
 }
 #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-/* ── 반응형: 모바일 ── */
+/* ── 반응형 ── */
 @media (max-width: 640px) {
     #top-nav    { display: none !important; }
     #bottom-nav { display: block !important; }
