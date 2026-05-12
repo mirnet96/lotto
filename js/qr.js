@@ -1,11 +1,10 @@
 /* ══════════════════════════════════════════════════
-    js/qr.js — html5-qrcode 단독 버전
+    js/qr.js — html5-qrcode 2.3.4 호환 버전
     
     변경 내역:
-    - BarcodeDetector 제거 (S25+ 크롬에서 QR 감지 실패 확인)
-    - html5-qrcode 단독 사용으로 S8+/S25+ 통일
+    - formatsToSupport 옵션 제거 (2.3.4 호환)
+    - html5-qrcode 단독 사용
     - 카카오 인앱 브라우저 → 크롬으로 열기 유도
-    - start() 첫 번째 인자에 constraints 직접 전달 (핵심 수정)
    ══════════════════════════════════════════════════ */
 
 let camActive    = false;
@@ -34,14 +33,15 @@ function _setBtnStop() {
     if (!btn) return;
     btn.className = 'cam-btn w-full flex items-center justify-center gap-2 py-3.5 rounded-xl border border-red-200 bg-red-50 text-[15px] font-bold text-red-500 cursor-pointer mb-3 transition-all';
     btn.innerHTML = '<span class="material-symbols-rounded">stop_circle</span><span>카메라 중지</span>';
+    btn.onclick = toggleCamera;
 }
 
 function _setBtnStart() {
     const btn = document.getElementById('cam-toggle-btn');
     if (!btn) return;
-    btn.onclick = toggleCamera;
     btn.className = 'cam-btn w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-blue-600 text-[15px] font-bold text-white cursor-pointer mb-3 shadow-md shadow-blue-200 transition-all hover:bg-blue-700';
     btn.innerHTML = '<span class="material-symbols-rounded">photo_camera</span><span>카메라 시작하기</span>';
+    btn.onclick = toggleCamera;
 }
 
 /* ─── 카카오 인앱 브라우저 감지 ─── */
@@ -70,7 +70,7 @@ async function startCamera() {
 
     const placeholder = document.getElementById('qr-placeholder');
 
-    /* ── 카카오 인앱 브라우저 감지 → 크롬으로 유도 ── */
+    /* ── 카카오 인앱 브라우저 → 크롬으로 유도 ── */
     if (_isKakaoInApp()) {
         _setStatus('카카오 브라우저에서는 카메라가 제한됩니다.', 'red');
         const btn = document.getElementById('cam-toggle-btn');
@@ -86,8 +86,6 @@ async function startCamera() {
     try {
         _html5QrCode = new Html5Qrcode('reader');
 
-        // ★ 핵심: constraints를 첫 번째 인자로 직접 전달
-        //    두 번째 config에 videoConstraints를 넣으면 무시됨
         await _html5QrCode.start(
             {
                 facingMode: { ideal: 'environment' },
@@ -97,8 +95,8 @@ async function startCamera() {
             {
                 fps: 10,
                 qrbox: { width: 250, height: 250 },
-                disableFlip: false,
-                formatsToSupport: [ Html5QrcodeSupportedFormats.QR_CODE ]
+                disableFlip: false
+                // ★ formatsToSupport 제거 (2.3.4 미지원)
             },
             (decodedText) => handleQRResult(decodedText)
         );
