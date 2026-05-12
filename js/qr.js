@@ -1,12 +1,6 @@
 /* ══════════════════════════════════════════════════
-    js/qr.js — BarcodeDetector 우선 + html5-qrcode 폴백
-    S25+ Chrome / 카카오 인앱 브라우저 완전 대응
-
-    수정 내역:
-    1. BarcodeDetector 네이티브 API 우선 사용 (S25+ Chrome 최적)
-    2. getUserMedia 권한 요청을 먼저 명시적으로 호출
-    3. 카카오 인앱 브라우저 감지 → 외부 크롬으로 유도
-    4. 에러 유형별 메시지 처리
+    js/qr.js — 디버그 버전 (S25+ QR 파싱 문제 확인용)
+    스캔된 raw 데이터를 화면에 표시해서 원인 파악
    ══════════════════════════════════════════════════ */
 
 let camActive    = false;
@@ -54,7 +48,6 @@ function _isKakaoInApp() {
 
 function _openExternal() {
     const url = location.href;
-    // 안드로이드: Intent 스킴으로 크롬 강제 실행
     location.href = 'intent://' + url.replace(/https?:\/\//, '')
         + '#Intent;scheme=https;package=com.android.chrome;end';
 }
@@ -98,12 +91,9 @@ async function _startNative() {
     const scan = async () => {
         if (!camActive) return;
         if (video.readyState === video.HAVE_ENOUGH_DATA) {
-
-            // ★ 핵심: 640x480으로 강제 축소해서 detect에 넘김
-            canvas.width  = 640;
-            canvas.height = 480;
-            ctx.drawImage(video, 0, 0, 640, 480);
-
+            canvas.width  = video.videoWidth;
+            canvas.height = video.videoHeight;
+            ctx.drawImage(video, 0, 0);
             try {
                 const barcodes = await _detector.detect(canvas);
                 if (barcodes.length > 0) {
@@ -114,13 +104,11 @@ async function _startNative() {
         }
         _rafId = requestAnimationFrame(scan);
     };
-
-
     _rafId = requestAnimationFrame(scan);
 }
 
 /* ══════════════════════════════════════════════════
-    방법 B: html5-qrcode 폴백 (BarcodeDetector 미지원 시)
+    방법 B: html5-qrcode 폴백
    ══════════════════════════════════════════════════ */
 async function _startHtml5Qrcode() {
     _resetReaderEl();
@@ -142,10 +130,9 @@ async function startCamera() {
 
     const placeholder = document.getElementById('qr-placeholder');
 
-    // ── 카카오 인앱 브라우저 감지 → 외부 크롬으로 유도 ──
+    // 카카오 인앱 브라우저 → 외부 크롬 유도
     if (_isKakaoInApp()) {
         _setStatus('카카오 브라우저에서는 카메라가 제한됩니다.', 'red');
-
         const btn = document.getElementById('cam-toggle-btn');
         if (btn) {
             btn.className = 'cam-btn w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-orange-500 text-[15px] font-bold text-white cursor-pointer mb-3 shadow-md transition-all hover:bg-orange-600';
@@ -155,7 +142,7 @@ async function startCamera() {
         return;
     }
 
-    // ── getUserMedia 권한 먼저 명시적으로 요청 ──
+    // 권한 먼저 명시적으로 요청
     try {
         const testStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
         testStream.getTracks().forEach(t => t.stop());
@@ -170,7 +157,7 @@ async function startCamera() {
         return;
     }
 
-    // ── 스캐너 시작 ──
+    // 스캐너 시작
     try {
         const useNative = ('BarcodeDetector' in window);
         _setStatus(useNative ? '네이티브 스캐너 시작 중...' : 'QR 스캐너 시작 중...');
@@ -183,7 +170,6 @@ async function startCamera() {
 
         camActive = true;
         if (placeholder) placeholder.style.display = 'none';
-
         _setStatus('QR코드를 카메라에 맞춰주세요', 'green');
         _setBtnStop();
 
@@ -223,16 +209,29 @@ async function stopCamera(silent = false) {
     }
 }
 
-/* ─── QR 결과 처리 ─── */
+/* ══════════════════════════════════════════════════
+    QR 결과 처리 — 디버그 모드
+    스캔된 rawValue를 화면 + alert 로 표시
+   ══════════════════════════════════════════════════ */
 function handleQRResult(data) {
     if (!camActive) return;
     if (navigator.vibrate) navigator.vibrate(100);
 
     stopCamera();
 
+    // ★ 디버그: 스캔된 raw 데이터를 화면에 표시
+    const statusEl = document.getElementById('cam-status');
+    if (statusEl) {
+        statusEl.textContent = '[RAW] ' + data;
+        statusEl.className = 'text-center text-[13px] text-purple-500 mb-3 min-h-[20px] break-all';
+    }
+
+    // ★ 디버그: alert 로도 표시 → 확인 후 아래 두 줄 제거
+    alert('스캔 데이터:\n' + data);
+
     try {
         const urlParts = data.split('v=');
-        if (urlParts.length < 2) throw new Error('형식 불일치');
+        if (urlParts.length < 2) throw new Error('v= 없음: ' + data);
 
         const qrRawNumbers = urlParts[1].split('q');
         const allNums = [];
@@ -244,6 +243,8 @@ function handleQRResult(data) {
                 if (num >= 1 && num <= 45) allNums.push(num);
             }
         }
+
+        if (allNums.length === 0) throw new Error('번호 파싱 실패: ' + urlParts[1]);
 
         scannedNums = [...new Set(allNums)].sort((a, b) => a - b);
 
@@ -260,7 +261,9 @@ function handleQRResult(data) {
         if (typeof toast === 'function') toast(scannedNums.length + '개 번호 인식');
 
     } catch (e) {
-        _setStatus('로또 QR 형식이 아닙니다.', 'red');
+        // ★ 디버그: 파싱 에러 상세 표시
+        alert('파싱 오류:\n' + e.message);
+        _setStatus('파싱 오류: ' + e.message, 'red');
     }
 }
 
