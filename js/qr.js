@@ -98,9 +98,12 @@ async function _startNative() {
     const scan = async () => {
         if (!camActive) return;
         if (video.readyState === video.HAVE_ENOUGH_DATA) {
-            canvas.width  = video.videoWidth;
-            canvas.height = video.videoHeight;
-            ctx.drawImage(video, 0, 0);
+
+            // ★ 핵심: 640x480으로 강제 축소해서 detect에 넘김
+            canvas.width  = 640;
+            canvas.height = 480;
+            ctx.drawImage(video, 0, 0, 640, 480);
+
             try {
                 const barcodes = await _detector.detect(canvas);
                 if (barcodes.length > 0) {
@@ -111,6 +114,8 @@ async function _startNative() {
         }
         _rafId = requestAnimationFrame(scan);
     };
+
+
     _rafId = requestAnimationFrame(scan);
 }
 
