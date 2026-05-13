@@ -1,18 +1,16 @@
 /* ══════════════════════════════════════════════════
-    js/qr.js — jsQR + getUserMedia 직접 구현
+    js/qr.js — 카메라 ID 방식 (S25+ 호환)
     
-    html5-qrcode 라이브러리 완전 제거
-    jsQR(순수 JS 디코더) + canvas 직접 처리
-    S25+ 고해상도 카메라 완전 대응
+    핵심 변경:
+    - Html5Qrcode.getCameras() 로 후면 카메라 ID를 먼저 얻어서
+      start(cameraId, config, ...) 형식으로 호출
+    - facingMode 객체 방식 완전 제거 (2.3.4 버그 우회)
+    - 카카오 인앱 브라우저 → 크롬으로 유도
    ══════════════════════════════════════════════════ */
 
-let camActive   = false;
-let scannedNums = [];
-let _stream     = null;
-let _rafId      = null;
-let _video      = null;
-let _canvas     = null;
-let _ctx        = null;
+let camActive    = false;
+let scannedNums  = [];
+let _html5QrCode = null;
 
 /* ─── 공통 유틸 ─── */
 function _resetReaderEl() {
@@ -20,7 +18,7 @@ function _resetReaderEl() {
     if (!old) return;
     const fresh = document.createElement('div');
     fresh.id = 'reader';
-    fresh.style.cssText = 'width:100%;background:#000;position:relative;';
+    fresh.style.cssText = 'width:100%;background:#000;';
     old.parentNode.replaceChild(fresh, old);
 }
 
@@ -64,7 +62,7 @@ async function toggleCamera() {
 }
 
 /* ══════════════════════════════════════════════════
-    startCamera
+    startCamera — 카메라 ID 방식
    ══════════════════════════════════════════════════ */
 async function startCamera() {
     _setStatus('카메라 연결 중...');
@@ -86,42 +84,42 @@ async function startCamera() {
     }
 
     try {
-        /* ── 1. getUserMedia로 카메라 스트림 획득 ── */
-        _stream = await navigator.mediaDevices.getUserMedia({
-            video: {
-                facingMode: { ideal: 'environment' },
-                width:  { ideal: 640 },
-                height: { ideal: 480 }
+        /* ── 1. 카메라 목록 조회 ── */
+        const cameras = await Html5Qrcode.getCameras();
+        if (!cameras || cameras.length === 0) {
+            _setStatus('카메라를 찾을 수 없습니다.', 'red');
+            return;
+        }
+
+        // 후면 카메라 우선 선택 (label에 'back' 또는 '후면' 포함)
+        let cameraId = cameras[cameras.length - 1].id; // 기본: 마지막 카메라 (보통 후면)
+        for (const cam of cameras) {
+            const label = (cam.label || '').toLowerCase();
+            if (label.includes('back') || label.includes('rear') || label.includes('후면') || label.includes('environment')) {
+                cameraId = cam.id;
+                break;
+            }
+        }
+
+        /* ── 2. 스캐너 시작 (cameraId 방식) ── */
+        _html5QrCode = new Html5Qrcode('reader');
+
+        await _html5QrCode.start(
+            cameraId,
+            {
+                fps: 10,
+                qrbox: { width: 250, height: 250 },
+                disableFlip: false
             },
-            audio: false
-        });
-
-        /* ── 2. video 엘리먼트 생성 ── */
-        const readerEl = document.getElementById('reader');
-        readerEl.innerHTML = '';
-
-        _video = document.createElement('video');
-        _video.setAttribute('playsinline', '');
-        _video.setAttribute('autoplay', '');
-        _video.setAttribute('muted', '');
-        _video.style.cssText = 'width:100%;display:block;';
-        _video.srcObject = _stream;
-        readerEl.appendChild(_video);
-
-        /* ── 3. canvas 준비 (화면에 표시 안 함) ── */
-        _canvas = document.createElement('canvas');
-        _ctx    = _canvas.getContext('2d', { willReadFrequently: true });
-
-        await _video.play();
+            (decodedText) => handleQRResult(decodedText)
+        );
 
         camActive = true;
         if (placeholder) placeholder.style.display = 'none';
+        document.getElementById('reader').style.display = 'block';
 
         _setStatus('QR코드를 화면 중앙에 맞춰주세요', 'green');
         _setBtnStop();
-
-        /* ── 4. jsQR 스캔 루프 시작 ── */
-        _scanLoop();
 
     } catch (err) {
         console.error('카메라 시작 오류:', err);
@@ -137,48 +135,15 @@ async function startCamera() {
     }
 }
 
-/* ══════════════════════════════════════════════════
-    jsQR 스캔 루프
-    canvas를 640x480으로 고정해서 jsQR에 전달
-    → S25+ 고해상도 문제 완전 차단
-   ══════════════════════════════════════════════════ */
-function _scanLoop() {
-    if (!camActive || !_video || !_canvas || !_ctx) return;
-
-    if (_video.readyState === _video.HAVE_ENOUGH_DATA) {
-        // 항상 640x480으로 축소해서 디코딩 (해상도 무관하게 안정적)
-        _canvas.width  = 640;
-        _canvas.height = 480;
-        _ctx.drawImage(_video, 0, 0, 640, 480);
-
-        const imageData = _ctx.getImageData(0, 0, 640, 480);
-        const code = jsQR(imageData.data, imageData.width, imageData.height, {
-            inversionAttempts: 'dontInvert'
-        });
-
-        if (code) {
-            handleQRResult(code.data);
-            return; // 성공 시 루프 종료
-        }
-    }
-
-    _rafId = requestAnimationFrame(_scanLoop);
-}
-
 /* ─── stopCamera ─── */
 async function stopCamera(silent = false) {
     camActive = false;
 
-    if (_rafId) { cancelAnimationFrame(_rafId); _rafId = null; }
-
-    if (_stream) {
-        _stream.getTracks().forEach(t => t.stop());
-        _stream = null;
+    if (_html5QrCode) {
+        try { await _html5QrCode.stop(); } catch (_) {}
+        try { await _html5QrCode.clear(); } catch (_) {}
+        _html5QrCode = null;
     }
-
-    _video  = null;
-    _canvas = null;
-    _ctx    = null;
 
     if (!silent) {
         _resetReaderEl();
