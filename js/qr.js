@@ -146,7 +146,10 @@ function _scanLoop() {
     if (!camActive || !_video || !_canvas || !_ctx) return;
 
     if (_video.readyState === _video.HAVE_ENOUGH_DATA) {
-        // 항상 640x480으로 축소해서 디코딩 (해상도 무관하게 안정적)
+
+        // ★ 디버그: 실제 해상도 표시
+        _setStatus(`카메라 해상도: ${_video.videoWidth} x ${_video.videoHeight}`, 'purple');
+
         _canvas.width  = 640;
         _canvas.height = 480;
         _ctx.drawImage(_video, 0, 0, 640, 480);
@@ -158,12 +161,13 @@ function _scanLoop() {
 
         if (code) {
             handleQRResult(code.data);
-            return; // 성공 시 루프 종료
+            return;
         }
     }
 
     _rafId = requestAnimationFrame(_scanLoop);
 }
+
 
 /* ─── stopCamera ─── */
 async function stopCamera(silent = false) {
