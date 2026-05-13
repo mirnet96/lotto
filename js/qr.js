@@ -1,10 +1,10 @@
 /* ══════════════════════════════════════════════════
     js/qr.js — jsQR + getUserMedia 직접 구현
     
-    핵심 수정:
-    - canvas를 고정 해상도 대신 video 실제 비율에 맞게 축소
-    - S25+처럼 480x640(세로) 으로 열리는 기기 대응
-    - 긴 쪽을 640으로 맞추고 비율 유지
+    수정 사항:
+    - handleQRResult의 camActive 체크 제거 (경쟁조건)
+    - _scanLoop 중복 실행 방지 플래그 추가
+    - 두 번째 카메라 시작 시 안정성 개선
    ══════════════════════════════════════════════════ */
 
 let camActive   = false;
@@ -14,6 +14,7 @@ let _rafId      = null;
 let _video      = null;
 let _canvas     = null;
 let _ctx        = null;
+let _scanning   = false; // 중복 실행 방지
 
 /* ─── 공통 유틸 ─── */
 function _resetReaderEl() {
@@ -87,7 +88,6 @@ async function startCamera() {
     }
 
     try {
-        /* ── getUserMedia ── */
         _stream = await navigator.mediaDevices.getUserMedia({
             video: {
                 facingMode: { ideal: 'environment' },
@@ -97,7 +97,6 @@ async function startCamera() {
             audio: false
         });
 
-        /* ── video 엘리먼트 생성 ── */
         const readerEl = document.getElementById('reader');
         readerEl.innerHTML = '';
 
@@ -115,12 +114,13 @@ async function startCamera() {
         await _video.play();
 
         camActive = true;
+        _scanning = false;
         if (placeholder) placeholder.style.display = 'none';
 
         _setStatus('QR코드를 화면 중앙에 맞춰주세요', 'green');
         _setBtnStop();
 
-        _scanLoop();
+        _rafId = requestAnimationFrame(_scanLoop);
 
     } catch (err) {
         console.error('카메라 시작 오류:', err);
@@ -138,41 +138,35 @@ async function startCamera() {
 
 /* ══════════════════════════════════════════════════
     jsQR 스캔 루프
-    
-    핵심: video 실제 비율을 유지하면서 긴 쪽을 640으로 축소
-    480x640(세로) → 480x640 그대로 유지 (비율 유지)
-    1280x720(가로) → 640x360 으로 축소
    ══════════════════════════════════════════════════ */
 function _scanLoop() {
     if (!camActive || !_video || !_canvas || !_ctx) return;
+    if (_scanning) return; // 이미 처리 중이면 스킵
 
     if (_video.readyState === _video.HAVE_ENOUGH_DATA) {
         const vw = _video.videoWidth;
         const vh = _video.videoHeight;
 
-        if (vw === 0 || vh === 0) {
-            _rafId = requestAnimationFrame(_scanLoop);
-            return;
-        }
+        if (vw > 0 && vh > 0) {
+            const maxSize = 640;
+            const scale   = maxSize / Math.max(vw, vh);
+            const cw      = Math.round(vw * scale);
+            const ch      = Math.round(vh * scale);
 
-        // 긴 쪽을 640에 맞춰 비율 유지 축소
-        const maxSize = 640;
-        const scale   = maxSize / Math.max(vw, vh);
-        const cw      = Math.round(vw * scale);
-        const ch      = Math.round(vh * scale);
+            _canvas.width  = cw;
+            _canvas.height = ch;
+            _ctx.drawImage(_video, 0, 0, cw, ch);
 
-        _canvas.width  = cw;
-        _canvas.height = ch;
-        _ctx.drawImage(_video, 0, 0, cw, ch);
+            const imageData = _ctx.getImageData(0, 0, cw, ch);
+            const code = jsQR(imageData.data, cw, ch, {
+                inversionAttempts: 'dontInvert'
+            });
 
-        const imageData = _ctx.getImageData(0, 0, cw, ch);
-        const code = jsQR(imageData.data, cw, ch, {
-            inversionAttempts: 'dontInvert'
-        });
-
-        if (code) {
-            handleQRResult(code.data);
-            return;
+            if (code && code.data) {
+                _scanning = true; // 중복 호출 방지
+                handleQRResult(code.data);
+                return;
+            }
         }
     }
 
@@ -182,6 +176,7 @@ function _scanLoop() {
 /* ─── stopCamera ─── */
 async function stopCamera(silent = false) {
     camActive = false;
+    _scanning = false;
 
     if (_rafId) { cancelAnimationFrame(_rafId); _rafId = null; }
 
@@ -207,7 +202,7 @@ async function stopCamera(silent = false) {
 
 /* ─── QR 결과 처리 ─── */
 function handleQRResult(data) {
-    if (!camActive) return;
+    // ★ camActive 체크 제거 (경쟁조건 방지)
     if (navigator.vibrate) navigator.vibrate(100);
 
     stopCamera();
