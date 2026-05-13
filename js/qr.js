@@ -1,9 +1,10 @@
 /* ══════════════════════════════════════════════════
     js/qr.js — jsQR + getUserMedia 직접 구현
     
-    html5-qrcode 라이브러리 완전 제거
-    jsQR(순수 JS 디코더) + canvas 직접 처리
-    S25+ 고해상도 카메라 완전 대응
+    핵심 수정:
+    - canvas를 고정 해상도 대신 video 실제 비율에 맞게 축소
+    - S25+처럼 480x640(세로) 으로 열리는 기기 대응
+    - 긴 쪽을 640으로 맞추고 비율 유지
    ══════════════════════════════════════════════════ */
 
 let camActive   = false;
@@ -86,7 +87,7 @@ async function startCamera() {
     }
 
     try {
-        /* ── 1. getUserMedia로 카메라 스트림 획득 ── */
+        /* ── getUserMedia ── */
         _stream = await navigator.mediaDevices.getUserMedia({
             video: {
                 facingMode: { ideal: 'environment' },
@@ -96,7 +97,7 @@ async function startCamera() {
             audio: false
         });
 
-        /* ── 2. video 엘리먼트 생성 ── */
+        /* ── video 엘리먼트 생성 ── */
         const readerEl = document.getElementById('reader');
         readerEl.innerHTML = '';
 
@@ -108,7 +109,6 @@ async function startCamera() {
         _video.srcObject = _stream;
         readerEl.appendChild(_video);
 
-        /* ── 3. canvas 준비 (화면에 표시 안 함) ── */
         _canvas = document.createElement('canvas');
         _ctx    = _canvas.getContext('2d', { willReadFrequently: true });
 
@@ -120,7 +120,6 @@ async function startCamera() {
         _setStatus('QR코드를 화면 중앙에 맞춰주세요', 'green');
         _setBtnStop();
 
-        /* ── 4. jsQR 스캔 루프 시작 ── */
         _scanLoop();
 
     } catch (err) {
@@ -139,23 +138,35 @@ async function startCamera() {
 
 /* ══════════════════════════════════════════════════
     jsQR 스캔 루프
-    canvas를 640x480으로 고정해서 jsQR에 전달
-    → S25+ 고해상도 문제 완전 차단
+    
+    핵심: video 실제 비율을 유지하면서 긴 쪽을 640으로 축소
+    480x640(세로) → 480x640 그대로 유지 (비율 유지)
+    1280x720(가로) → 640x360 으로 축소
    ══════════════════════════════════════════════════ */
 function _scanLoop() {
     if (!camActive || !_video || !_canvas || !_ctx) return;
 
     if (_video.readyState === _video.HAVE_ENOUGH_DATA) {
+        const vw = _video.videoWidth;
+        const vh = _video.videoHeight;
 
-        // ★ 디버그: 실제 해상도 표시
-        _setStatus(`카메라 해상도: ${_video.videoWidth} x ${_video.videoHeight}`, 'purple');
+        if (vw === 0 || vh === 0) {
+            _rafId = requestAnimationFrame(_scanLoop);
+            return;
+        }
 
-        _canvas.width  = 640;
-        _canvas.height = 480;
-        _ctx.drawImage(_video, 0, 0, 640, 480);
+        // 긴 쪽을 640에 맞춰 비율 유지 축소
+        const maxSize = 640;
+        const scale   = maxSize / Math.max(vw, vh);
+        const cw      = Math.round(vw * scale);
+        const ch      = Math.round(vh * scale);
 
-        const imageData = _ctx.getImageData(0, 0, 640, 480);
-        const code = jsQR(imageData.data, imageData.width, imageData.height, {
+        _canvas.width  = cw;
+        _canvas.height = ch;
+        _ctx.drawImage(_video, 0, 0, cw, ch);
+
+        const imageData = _ctx.getImageData(0, 0, cw, ch);
+        const code = jsQR(imageData.data, cw, ch, {
             inversionAttempts: 'dontInvert'
         });
 
@@ -167,7 +178,6 @@ function _scanLoop() {
 
     _rafId = requestAnimationFrame(_scanLoop);
 }
-
 
 /* ─── stopCamera ─── */
 async function stopCamera(silent = false) {
