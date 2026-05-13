@@ -1,10 +1,6 @@
 /* ══════════════════════════════════════════════════
     js/qr.js — jsQR + getUserMedia 직접 구현
-    
-    수정 사항:
-    - handleQRResult의 camActive 체크 제거 (경쟁조건)
-    - _scanLoop 중복 실행 방지 플래그 추가
-    - 두 번째 카메라 시작 시 안정성 개선
+    디버그: QR 감지 시 alert 표시
    ══════════════════════════════════════════════════ */
 
 let camActive   = false;
@@ -14,7 +10,7 @@ let _rafId      = null;
 let _video      = null;
 let _canvas     = null;
 let _ctx        = null;
-let _scanning   = false; // 중복 실행 방지
+let _detected   = false; // 중복 처리 방지 (단순 boolean)
 
 /* ─── 공통 유틸 ─── */
 function _resetReaderEl() {
@@ -72,6 +68,7 @@ async function startCamera() {
     _setStatus('카메라 연결 중...');
     await stopCamera(true);
     _resetReaderEl();
+    _detected = false;
 
     const placeholder = document.getElementById('qr-placeholder');
 
@@ -114,7 +111,6 @@ async function startCamera() {
         await _video.play();
 
         camActive = true;
-        _scanning = false;
         if (placeholder) placeholder.style.display = 'none';
 
         _setStatus('QR코드를 화면 중앙에 맞춰주세요', 'green');
@@ -140,8 +136,8 @@ async function startCamera() {
     jsQR 스캔 루프
    ══════════════════════════════════════════════════ */
 function _scanLoop() {
-    if (!camActive || !_video || !_canvas || !_ctx) return;
-    if (_scanning) return; // 이미 처리 중이면 스킵
+    if (_detected) return;
+    if (!_video || !_canvas || !_ctx) return;
 
     if (_video.readyState === _video.HAVE_ENOUGH_DATA) {
         const vw = _video.videoWidth;
@@ -163,7 +159,11 @@ function _scanLoop() {
             });
 
             if (code && code.data) {
-                _scanning = true; // 중복 호출 방지
+                _detected = true;
+                // ★ 진동: 짧게-멈춤-길게 패턴으로 구분
+                if (navigator.vibrate) navigator.vibrate([100, 50, 300]);
+                // ★ 디버그: raw 데이터 확인
+                alert('QR 감지!\nRAW: ' + code.data);
                 handleQRResult(code.data);
                 return;
             }
@@ -176,7 +176,6 @@ function _scanLoop() {
 /* ─── stopCamera ─── */
 async function stopCamera(silent = false) {
     camActive = false;
-    _scanning = false;
 
     if (_rafId) { cancelAnimationFrame(_rafId); _rafId = null; }
 
@@ -202,9 +201,6 @@ async function stopCamera(silent = false) {
 
 /* ─── QR 결과 처리 ─── */
 function handleQRResult(data) {
-    // ★ camActive 체크 제거 (경쟁조건 방지)
-    if (navigator.vibrate) navigator.vibrate(100);
-
     stopCamera();
 
     try {
@@ -252,6 +248,7 @@ function applyQRExclude() {
 
 function resetQR() {
     scannedNums = [];
+    _detected = false;
     document.getElementById('qr-result-panel').classList.add('hidden');
     startCamera();
 }
