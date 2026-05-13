@@ -1,10 +1,10 @@
 /* ══════════════════════════════════════════════════
-    js/qr.js — html5-qrcode 2.3.4 호환 버전
+    js/qr.js — html5-qrcode 2.3.4 정확한 API 형식
     
-    변경 내역:
-    - formatsToSupport 옵션 제거 (2.3.4 호환)
-    - html5-qrcode 단독 사용
-    - 카카오 인앱 브라우저 → 크롬으로 열기 유도
+    핵심 수정:
+    - start() 첫 번째 인자: { facingMode: "environment" } 만 사용
+    - width/height constraints는 videoConstraints로 config 안에 넣기
+    - formatsToSupport 제거
    ══════════════════════════════════════════════════ */
 
 let camActive    = false;
@@ -82,21 +82,23 @@ async function startCamera() {
         return;
     }
 
-    /* ── html5-qrcode 시작 ── */
+    /* ── html5-qrcode 2.3.4 정확한 API ── */
     try {
         _html5QrCode = new Html5Qrcode('reader');
 
+        // 2.3.4: 첫 번째 인자는 반드시 { facingMode } 만
+        // 해상도 제한은 videoConstraints 키로 config 안에 넣음
         await _html5QrCode.start(
-            {
-                facingMode: { ideal: 'environment' },
-                width:  { min: 320, ideal: 640, max: 1280 },
-                height: { min: 240, ideal: 480, max: 720  }
-            },
+            { facingMode: 'environment' },
             {
                 fps: 10,
                 qrbox: { width: 250, height: 250 },
-                disableFlip: false
-                // ★ formatsToSupport 제거 (2.3.4 미지원)
+                disableFlip: false,
+                videoConstraints: {
+                    facingMode: { ideal: 'environment' },
+                    width:  { min: 320, ideal: 640, max: 1280 },
+                    height: { min: 240, ideal: 480, max: 720  }
+                }
             },
             (decodedText) => handleQRResult(decodedText)
         );
