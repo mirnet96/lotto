@@ -1,10 +1,11 @@
 /* ══════════════════════════════════════════════════
-    js/qr.js — html5-qrcode 2.3.4 정확한 API 형식
+    js/qr.js — 카메라 ID 방식 (S25+ 호환)
     
-    핵심 수정:
-    - start() 첫 번째 인자: { facingMode: "environment" } 만 사용
-    - width/height constraints는 videoConstraints로 config 안에 넣기
-    - formatsToSupport 제거
+    핵심 변경:
+    - Html5Qrcode.getCameras() 로 후면 카메라 ID를 먼저 얻어서
+      start(cameraId, config, ...) 형식으로 호출
+    - facingMode 객체 방식 완전 제거 (2.3.4 버그 우회)
+    - 카카오 인앱 브라우저 → 크롬으로 유도
    ══════════════════════════════════════════════════ */
 
 let camActive    = false;
@@ -61,7 +62,7 @@ async function toggleCamera() {
 }
 
 /* ══════════════════════════════════════════════════
-    startCamera
+    startCamera — 카메라 ID 방식
    ══════════════════════════════════════════════════ */
 async function startCamera() {
     _setStatus('카메라 연결 중...');
@@ -82,23 +83,33 @@ async function startCamera() {
         return;
     }
 
-    /* ── html5-qrcode 2.3.4 정확한 API ── */
     try {
+        /* ── 1. 카메라 목록 조회 ── */
+        const cameras = await Html5Qrcode.getCameras();
+        if (!cameras || cameras.length === 0) {
+            _setStatus('카메라를 찾을 수 없습니다.', 'red');
+            return;
+        }
+
+        // 후면 카메라 우선 선택 (label에 'back' 또는 '후면' 포함)
+        let cameraId = cameras[cameras.length - 1].id; // 기본: 마지막 카메라 (보통 후면)
+        for (const cam of cameras) {
+            const label = (cam.label || '').toLowerCase();
+            if (label.includes('back') || label.includes('rear') || label.includes('후면') || label.includes('environment')) {
+                cameraId = cam.id;
+                break;
+            }
+        }
+
+        /* ── 2. 스캐너 시작 (cameraId 방식) ── */
         _html5QrCode = new Html5Qrcode('reader');
 
-        // 2.3.4: 첫 번째 인자는 반드시 { facingMode } 만
-        // 해상도 제한은 videoConstraints 키로 config 안에 넣음
         await _html5QrCode.start(
-            { facingMode: 'environment' },
+            cameraId,
             {
                 fps: 10,
                 qrbox: { width: 250, height: 250 },
-                disableFlip: false,
-                videoConstraints: {
-                    facingMode: { ideal: 'environment' },
-                    width:  { min: 320, ideal: 640, max: 1280 },
-                    height: { min: 240, ideal: 480, max: 720  }
-                }
+                disableFlip: false
             },
             (decodedText) => handleQRResult(decodedText)
         );
