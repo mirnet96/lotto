@@ -1,16 +1,16 @@
 /* ══════════════════════════════════════════════════
-    js/qr.js — ZXing 라이브러리 사용
-    
-    ZXing: Google 제작 바코드 디코더
-    - jsQR 대비 인식률 대폭 향상
-    - 저조도, 기울어짐, 고해상도 모두 대응
-    - S8+ / S25+ 세로/가로 해상도 무관
+    js/qr.js — jsQR + getUserMedia 직접 구현
+    디버그: QR 감지 시 alert 표시
    ══════════════════════════════════════════════════ */
 
 let camActive   = false;
 let scannedNums = [];
-let _codeReader = null;
 let _stream     = null;
+let _rafId      = null;
+let _video      = null;
+let _canvas     = null;
+let _ctx        = null;
+let _detected   = false; // 중복 처리 방지 (단순 boolean)
 
 /* ─── 공통 유틸 ─── */
 function _resetReaderEl() {
@@ -62,12 +62,13 @@ async function toggleCamera() {
 }
 
 /* ══════════════════════════════════════════════════
-    startCamera — ZXing BrowserMultiFormatReader
+    startCamera
    ══════════════════════════════════════════════════ */
 async function startCamera() {
     _setStatus('카메라 연결 중...');
     await stopCamera(true);
     _resetReaderEl();
+    _detected = false;
 
     const placeholder = document.getElementById('qr-placeholder');
 
@@ -84,56 +85,38 @@ async function startCamera() {
     }
 
     try {
-        /* ── video 엘리먼트 생성 ── */
+        _stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+                facingMode: { ideal: 'environment' },
+                width:  { ideal: 640 },
+                height: { ideal: 480 }
+            },
+            audio: false
+        });
+
         const readerEl = document.getElementById('reader');
         readerEl.innerHTML = '';
 
-        const video = document.createElement('video');
-        video.id = 'qr-video';
-        video.setAttribute('playsinline', '');
-        video.style.cssText = 'width:100%;display:block;';
-        readerEl.appendChild(video);
+        _video = document.createElement('video');
+        _video.setAttribute('playsinline', '');
+        _video.setAttribute('autoplay', '');
+        _video.setAttribute('muted', '');
+        _video.style.cssText = 'width:100%;display:block;';
+        _video.srcObject = _stream;
+        readerEl.appendChild(_video);
 
-        /* ── ZXing 스캐너 초기화 ── */
-        const hints = new Map();
-        const formats = [ZXing.BarcodeFormat.QR_CODE];
-        hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, formats);
-        hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+        _canvas = document.createElement('canvas');
+        _ctx    = _canvas.getContext('2d', { willReadFrequently: true });
 
-        _codeReader = new ZXing.BrowserMultiFormatReader(hints);
-
-        /* ── 후면 카메라 선택 ── */
-        const devices = await _codeReader.listVideoInputDevices();
-        let deviceId = undefined;
-        if (devices && devices.length > 0) {
-            // 마지막 카메라가 보통 후면
-            deviceId = devices[devices.length - 1].deviceId;
-            for (const d of devices) {
-                const label = (d.label || '').toLowerCase();
-                if (label.includes('back') || label.includes('rear') || label.includes('후면') || label.includes('environment')) {
-                    deviceId = d.deviceId;
-                    break;
-                }
-            }
-        }
+        await _video.play();
 
         camActive = true;
         if (placeholder) placeholder.style.display = 'none';
+
         _setStatus('QR코드를 화면 중앙에 맞춰주세요', 'green');
         _setBtnStop();
 
-        /* ── 스캔 시작 ── */
-        await _codeReader.decodeFromVideoDevice(
-            deviceId,
-            'qr-video',
-            (result, err) => {
-                if (result && camActive) {
-                    if (navigator.vibrate) navigator.vibrate([100, 50, 300]);
-                    handleQRResult(result.getText());
-                }
-                // err는 인식 안 됐을 때 매 프레임 발생하므로 무시
-            }
-        );
+        _rafId = requestAnimationFrame(_scanLoop);
 
     } catch (err) {
         console.error('카메라 시작 오류:', err);
@@ -149,19 +132,61 @@ async function startCamera() {
     }
 }
 
+/* ══════════════════════════════════════════════════
+    jsQR 스캔 루프
+   ══════════════════════════════════════════════════ */
+function _scanLoop() {
+    if (_detected) return;
+    if (!_video || !_canvas || !_ctx) return;
+
+    if (_video.readyState === _video.HAVE_ENOUGH_DATA) {
+        const vw = _video.videoWidth;
+        const vh = _video.videoHeight;
+
+        if (vw > 0 && vh > 0) {
+            const maxSize = 640;
+            const scale   = maxSize / Math.max(vw, vh);
+            const cw      = Math.round(vw * scale);
+            const ch      = Math.round(vh * scale);
+
+            _canvas.width  = cw;
+            _canvas.height = ch;
+            _ctx.drawImage(_video, 0, 0, cw, ch);
+
+            const imageData = _ctx.getImageData(0, 0, cw, ch);
+            const code = jsQR(imageData.data, cw, ch, {
+                inversionAttempts: 'dontInvert'
+            });
+
+            if (code && code.data) {
+                _detected = true;
+                // ★ 진동: 짧게-멈춤-길게 패턴으로 구분
+                if (navigator.vibrate) navigator.vibrate([100, 50, 300]);
+                // ★ 디버그: raw 데이터 확인
+                alert('QR 감지!\nRAW: ' + code.data);
+                handleQRResult(code.data);
+                return;
+            }
+        }
+    }
+
+    _rafId = requestAnimationFrame(_scanLoop);
+}
+
 /* ─── stopCamera ─── */
 async function stopCamera(silent = false) {
     camActive = false;
 
-    if (_codeReader) {
-        try { _codeReader.reset(); } catch (_) {}
-        _codeReader = null;
-    }
+    if (_rafId) { cancelAnimationFrame(_rafId); _rafId = null; }
 
     if (_stream) {
         _stream.getTracks().forEach(t => t.stop());
         _stream = null;
     }
+
+    _video  = null;
+    _canvas = null;
+    _ctx    = null;
 
     if (!silent) {
         _resetReaderEl();
@@ -176,8 +201,6 @@ async function stopCamera(silent = false) {
 
 /* ─── QR 결과 처리 ─── */
 function handleQRResult(data) {
-    if (!camActive) return;
-    camActive = false; // 중복 처리 방지
     stopCamera();
 
     try {
@@ -225,6 +248,7 @@ function applyQRExclude() {
 
 function resetQR() {
     scannedNums = [];
+    _detected = false;
     document.getElementById('qr-result-panel').classList.add('hidden');
     startCamera();
 }
