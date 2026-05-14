@@ -1,5 +1,6 @@
 /* ══════════════════════════════════════════════════
-    js/qr.js — html5-qrcode 2.3.4 + 카메라 디버그
+    js/qr.js — html5-qrcode 2.3.4
+    S25+ 멀티카메라: camera2 번호 가장 작은 후면 선택
    ══════════════════════════════════════════════════ */
 
 let camActive    = false;
@@ -40,8 +41,13 @@ function _setBtnStart() {
 }
 
 /* ─── 카카오 인앱 브라우저 감지 ─── */
+// S25+ 크롬 UA에도 kakaotalk이 포함될 수 있어서
+// 카카오 인앱브라우저 전용 키워드로 정확히 감지
 function _isKakaoInApp() {
-    return /kakaotalk/i.test(navigator.userAgent);
+    const ua = navigator.userAgent;
+    // KAKAOTALK 앱 내 WebView는 'KAKAOTALK' 대문자 포함
+    // 삼성 크롬은 포함 안 함
+    return /KAKAOTALK/i.test(ua) && !/Chrome\/[0-9]/.test(ua);
 }
 
 function _openExternal() {
@@ -52,33 +58,53 @@ function _openExternal() {
 
 /* ══════════════════════════════════════════════════
     후면 기본 카메라 선택
+    
+    S25+ 카메라 구조:
+    - "camera2 N, facing back" 에서 N이 가장 작은 것 = 기본 1x
+    - "camera2 0, facing back" → 기본 후면
+    - "camera2 2, facing back" → 광각 또는 망원
+    
+    선택 우선순위:
+    1. "facing back" + camera2 번호가 가장 작은 것
+    2. "back"/"rear" 키워드 포함된 것
+    3. 전면 제외 첫 번째
    ══════════════════════════════════════════════════ */
 function _selectCamera(cameras) {
     if (!cameras || cameras.length === 0) return null;
 
-    const excludeKeywords = ['wide', 'ultra', 'tele', 'zoom', 'macro', '광각', '망원', '접사'];
-    const backKeywords    = ['back', 'rear', '후면', 'environment'];
-
-    // 1순위: 후면 키워드 있고 광각/망원 없는 것
-    for (const c of cameras) {
+    const backCams = cameras.filter(c => {
         const label = (c.label || '').toLowerCase();
-        if (backKeywords.some(k => label.includes(k)) &&
-            !excludeKeywords.some(k => label.includes(k))) {
-            return c.id;
+        return label.includes('facing back') || label.includes('back') ||
+               label.includes('rear') || label.includes('후면');
+    });
+
+    if (backCams.length === 0) {
+        // 후면 없으면 전면 제외 첫 번째
+        const nonFront = cameras.find(c => {
+            const label = (c.label || '').toLowerCase();
+            return !label.includes('front') && !label.includes('전면') && !label.includes('user');
+        });
+        return nonFront ? nonFront.id : cameras[0].id;
+    }
+
+    if (backCams.length === 1) return backCams[0].id;
+
+    // 후면이 여러 개면 → camera2 N 에서 N이 가장 작은 것 선택
+    let bestCam  = backCams[0];
+    let bestNum  = Infinity;
+
+    for (const c of backCams) {
+        const match = (c.label || '').match(/camera2\s+(\d+)/i);
+        if (match) {
+            const num = parseInt(match[1], 10);
+            if (num < bestNum) {
+                bestNum = num;
+                bestCam = c;
+            }
         }
     }
 
-    // 2순위: 전면/광각/망원 제외한 첫 번째
-    for (const c of cameras) {
-        const label = (c.label || '').toLowerCase();
-        if (!label.includes('front') && !label.includes('전면') && !label.includes('user') &&
-            !excludeKeywords.some(k => label.includes(k))) {
-            return c.id;
-        }
-    }
-
-    // 3순위: 마지막 카메라
-    return cameras[cameras.length - 1].id;
+    return bestCam.id;
 }
 
 /* ─── 토글 ─── */
@@ -109,12 +135,8 @@ async function startCamera() {
     }
 
     try {
-        /* ── ★ 디버그: 카메라 목록 alert ── */
-        const cameras = await Html5Qrcode.getCameras();
-        alert('카메라 수: ' + cameras.length + '\n' + cameras.map((c, i) => i + ': ' + c.label).join('\n'));
-
+        const cameras  = await Html5Qrcode.getCameras();
         const cameraId = _selectCamera(cameras);
-        alert('선택된 ID: ' + cameraId);
 
         if (!cameraId) {
             _setStatus('카메라를 찾을 수 없습니다.', 'red');
@@ -122,7 +144,7 @@ async function startCamera() {
         }
 
         const selected = cameras.find(c => c.id === cameraId);
-        _setStatus('카메라: ' + (selected ? selected.label.substring(0, 25) : cameraId), 'slate');
+        _setStatus('카메라: ' + (selected ? selected.label.substring(0, 30) : ''), 'slate');
 
         _html5QrCode = new Html5Qrcode('reader');
 
