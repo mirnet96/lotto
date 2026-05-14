@@ -1,10 +1,8 @@
 /* ══════════════════════════════════════════════════
-    js/qr.js — ZXing 라이브러리 사용
-    
-    ZXing: Google 제작 바코드 디코더
-    - jsQR 대비 인식률 대폭 향상
-    - 저조도, 기울어짐, 고해상도 모두 대응
-    - S8+ / S25+ 세로/가로 해상도 무관
+    js/qr.js — ZXing 라이브러리 최적화 버전
+    - S25+, iPhone 등 최신 기기 다중 렌즈 대응
+    - 고해상도 초점 문제 해결 (Continuous Focus)
+    - 로또 QR 전용 파싱 로직 강화
    ══════════════════════════════════════════════════ */
 
 let camActive   = false;
@@ -18,7 +16,8 @@ function _resetReaderEl() {
     if (!old) return;
     const fresh = document.createElement('div');
     fresh.id = 'reader';
-    fresh.style.cssText = 'width:100%;background:#000;position:relative;';
+    // 최신폰 대응: 비디오가 일그러지지 않도록 relative 유지 및 최소 높이 설정
+    fresh.style.cssText = 'width:100%;background:#000;position:relative;overflow:hidden;border-radius:12px;aspect-ratio: 1 / 1;';
     old.parentNode.replaceChild(fresh, old);
 }
 
@@ -26,7 +25,14 @@ function _setStatus(msg, color = 'slate') {
     const el = document.getElementById('cam-status');
     if (!el) return;
     el.textContent = msg;
-    el.className = `text-center text-[13px] text-${color}-500 mb-3 min-h-[20px]`;
+    // 테일윈드 색상 클래스 대응
+    const colorMap = {
+        'slate': 'text-slate-500',
+        'red': 'text-red-500',
+        'green': 'text-green-500',
+        'blue': 'text-blue-500'
+    };
+    el.className = `text-center text-[13px] ${colorMap[color] || 'text-slate-500'} mb-3 min-h-[20px] font-medium`;
 }
 
 function _setBtnStop() {
@@ -45,7 +51,7 @@ function _setBtnStart() {
     btn.onclick = toggleCamera;
 }
 
-/* ─── 카카오 인앱 브라우저 감지 ─── */
+/* ─── 브라우저 감지 ─── */
 function _isKakaoInApp() {
     return /kakaotalk/i.test(navigator.userAgent);
 }
@@ -62,16 +68,15 @@ async function toggleCamera() {
 }
 
 /* ══════════════════════════════════════════════════
-    startCamera — ZXing BrowserMultiFormatReader
+    startCamera — 최신 기기(S25+) 최적화 로직
    ══════════════════════════════════════════════════ */
 async function startCamera() {
-    _setStatus('카메라 연결 중...');
+    _setStatus('카메라 준비 중...', 'blue');
     await stopCamera(true);
     _resetReaderEl();
 
     const placeholder = document.getElementById('qr-placeholder');
 
-    /* ── 카카오 인앱 브라우저 → 크롬으로 유도 ── */
     if (_isKakaoInApp()) {
         _setStatus('카카오 브라우저에서는 카메라가 제한됩니다.', 'red');
         const btn = document.getElementById('cam-toggle-btn');
@@ -84,67 +89,69 @@ async function startCamera() {
     }
 
     try {
-        /* ── video 엘리먼트 생성 ── */
         const readerEl = document.getElementById('reader');
-        readerEl.innerHTML = '';
-
         const video = document.createElement('video');
         video.id = 'qr-video';
         video.setAttribute('playsinline', '');
-        video.style.cssText = 'width:100%;display:block;';
+        video.style.cssText = 'width:100%;height:100%;object-fit:cover;';
         readerEl.appendChild(video);
 
-        /* ── ZXing 스캐너 초기화 ── */
+        /* ── ZXing 힌트 설정 (QR 전용 및 정밀 스캔) ── */
         const hints = new Map();
-        const formats = [ZXing.BarcodeFormat.QR_CODE];
-        hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, formats);
+        hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [ZXing.BarcodeFormat.QR_CODE]);
         hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
 
         _codeReader = new ZXing.BrowserMultiFormatReader(hints);
 
-        /* ── 후면 카메라 선택 ── */
+        /* ── 최신 기기(S25+) 광각 렌즈 타겟팅 ── */
         const devices = await _codeReader.listVideoInputDevices();
-        let deviceId = undefined;
+        let selectedDeviceId = undefined;
+
         if (devices && devices.length > 0) {
-            // 마지막 카메라가 보통 후면
-            deviceId = devices[devices.length - 1].deviceId;
-            for (const d of devices) {
-                const label = (d.label || '').toLowerCase();
-                if (label.includes('back') || label.includes('rear') || label.includes('후면') || label.includes('environment')) {
-                    deviceId = d.deviceId;
-                    break;
-                }
-            }
+            // S25+ 등 다중 렌즈 기기에서 'Main' 혹은 'Wide' 렌즈 찾기
+            const backCamera = devices.find(d => {
+                const label = d.label.toLowerCase();
+                return (label.includes('back') || label.includes('rear') || label.includes('wide')) && !label.includes('ultra');
+            });
+            selectedDeviceId = backCamera ? backCamera.deviceId : devices[devices.length - 1].deviceId;
         }
+
+        /* ── 비디오 제약 조건 (초점 및 해상도) ── */
+        const constraints = {
+            video: {
+                deviceId: selectedDeviceId,
+                width: { ideal: 1280 },
+                height: { ideal: 720 },
+                facingMode: 'environment',
+                focusMode: 'continuous' // 지속적 초점 모드
+            }
+        };
 
         camActive = true;
         if (placeholder) placeholder.style.display = 'none';
-        _setStatus('QR코드를 화면 중앙에 맞춰주세요', 'green');
+        _setStatus('QR코드를 박스 중앙에 맞춰주세요', 'green');
         _setBtnStop();
 
         /* ── 스캔 시작 ── */
-        await _codeReader.decodeFromVideoDevice(
-            deviceId,
+        await _codeReader.decodeFromConstraints(
+            constraints,
             'qr-video',
             (result, err) => {
                 if (result && camActive) {
-                    if (navigator.vibrate) navigator.vibrate([100, 50, 300]);
+                    if (navigator.vibrate) navigator.vibrate(200);
                     handleQRResult(result.getText());
                 }
-                // err는 인식 안 됐을 때 매 프레임 발생하므로 무시
+                // err는 매 프레임 발생하므로 무시
             }
         );
 
     } catch (err) {
-        console.error('카메라 시작 오류:', err);
+        console.error('Camera Error:', err);
         camActive = false;
-
         if (err.name === 'NotAllowedError') {
-            _setStatus('카메라 권한이 거부되었습니다. 브라우저 설정 > 사이트 설정 > 카메라에서 허용해주세요.', 'red');
-        } else if (err.name === 'NotFoundError') {
-            _setStatus('카메라를 찾을 수 없습니다.', 'red');
+            _setStatus('카메라 권한이 거부되었습니다.', 'red');
         } else {
-            _setStatus('카메라 시작 실패: ' + (err.message || err.name), 'red');
+            _setStatus('카메라를 시작할 수 없습니다.', 'red');
         }
     }
 }
@@ -158,87 +165,66 @@ async function stopCamera(silent = false) {
         _codeReader = null;
     }
 
-    if (_stream) {
-        _stream.getTracks().forEach(t => t.stop());
-        _stream = null;
-    }
-
     if (!silent) {
         _resetReaderEl();
         const placeholder = document.getElementById('qr-placeholder');
-        const reader      = document.getElementById('reader');
-        if (reader)      reader.style.display = 'none';
         if (placeholder) placeholder.style.display = 'flex';
         _setStatus('');
         _setBtnStart();
     }
 }
 
-/* ─── QR 결과 처리 ─── */
+/* ─── 로또 QR 결과 처리 (파싱 로직 강화) ─── */
 function handleQRResult(data) {
-    if (!camActive) return;
+    if (!camActive || !data.includes('v=')) return;
     
-    // 로또 URL 여부 확인
-    if (!data.includes('dhlottery.co.kr') || !data.includes('v=')) {
-        // 일반 QR일 경우 중복 실행 방지를 위해 잠시 대기 후 리턴하거나 경고
-        return; 
+    // 로또 QR 여부 1차 검증
+    if (!data.includes('dhlottery.co.kr')) {
+        _setStatus('동행복권 QR이 아닙니다.', 'red');
+        return;
     }
 
-    camActive = false; // 중복 처리 방지
+    camActive = false; 
     stopCamera();
 
     try {
-        const urlParts = data.split('v=')[1];
-        // q를 기준으로 자르면 [0]은 회차정보+첫게임, [1]부터는 다음 게임들
-        const games = urlParts.split('q');
-        const allNums = [];
+        const queryStr = data.split('v=')[1];
+        const games = queryStr.split('q');
+        let allNums = [];
 
-        games.forEach((gameStr, idx) => {
-            let pureNums = gameStr;
-            // 첫 번째 덩어리(idx 0)는 앞 4자리가 회차 정보이므로 제거
-            if (idx === 0) {
-                pureNums = gameStr.substring(4);
-            }
-
-            // 2자리씩 끊어서 번호 추출
-            for (let j = 0; j < pureNums.length; j += 2) {
-                const num = parseInt(pureNums.substring(j, j + 2), 10);
-                if (num >= 1 && num <= 45) {
-                    allNums.push(num);
-                }
+        games.forEach((game, idx) => {
+            // 첫 덩어리는 회차 4자리 포함 (예: 1123010203040506)
+            let numPart = (idx === 0) ? game.substring(4) : game;
+            
+            for (let i = 0; i < numPart.length; i += 2) {
+                const n = parseInt(numPart.substring(i, i + 2), 10);
+                if (n >= 1 && n <= 45) allNums.push(n);
             }
         });
 
-        if (allNums.length === 0) throw new Error('번호를 읽을 수 없습니다.');
+        if (allNums.length === 0) throw new Error('번호 추출 실패');
 
-        // 중복 제거 및 정렬
         scannedNums = [...new Set(allNums)].sort((a, b) => a - b);
 
-        // UI 업데이트
-        const panel = document.getElementById('qr-result-panel');
+        const panel    = document.getElementById('qr-result-panel');
         const numsWrap = document.getElementById('qr-res-nums');
 
         if (numsWrap) {
             numsWrap.innerHTML = '';
             scannedNums.forEach(n => {
-                if (typeof mkBall === 'function') {
-                    numsWrap.appendChild(mkBall(n, 'mini-ball'));
-                }
+                if (typeof mkBall === 'function') numsWrap.appendChild(mkBall(n, 'mini-ball'));
             });
         }
 
         panel.classList.remove('hidden');
-        _setStatus(scannedNums.length + '개 번호 스캔 완료', 'green');
-        if (typeof toast === 'function') toast(scannedNums.length + '개 번호 인식');
+        _setStatus(`${scannedNums.length}개 번호 스캔 완료`, 'green');
+        if (typeof toast === 'function') toast('번호가 인식되었습니다.');
 
     } catch (e) {
+        _setStatus('QR 코드 인식 오류', 'red');
         console.error(e);
-        _setStatus('로또 QR 형식이 아닙니다.', 'red');
-        // 실패 시 다시 카메라를 켜고 싶다면: 
-        // setTimeout(startCamera, 2000);
     }
 }
-
 
 /* ─── 외부 연동 ─── */
 function applyQRExclude() {
