@@ -1,8 +1,5 @@
 /* ══════════════════════════════════════════════════
-    js/qr.js — 원본 복귀 + S25+ 패치
-    
-    원본 코드 기반 (S8+ 검증됨)
-    S25+ 패치: getCameras()로 camera2 0 선택
+    js/qr.js — 원본 복귀 + S25+ 패치 + 재스캔 초기화 수정
    ══════════════════════════════════════════════════ */
 
 let html5QrCode = null;
@@ -35,7 +32,6 @@ async function _getBackCameraId() {
         if (backCams.length === 0) return null;
         if (backCams.length === 1) return backCams[0].id;
 
-        // 여러 후면 카메라 → camera2 N 에서 N 가장 작은 것
         let best    = backCams[0];
         let bestNum = Infinity;
         for (const c of backCams) {
@@ -56,24 +52,29 @@ async function startCamera() {
     const btn         = document.getElementById('cam-toggle-btn');
     const placeholder = document.getElementById('qr-placeholder');
 
+    /* ── 재스캔 시 이전 결과 완전 초기화 ── */
+    scannedNums = [];
+    document.getElementById('qr-result-panel').classList.add('hidden');
+    document.getElementById('qr-res-nums').innerHTML = '';
+
     statusEl.textContent = '카메라 연결 중...';
+    statusEl.className   = 'text-center text-[13px] text-slate-400 mb-3 min-h-[20px]';
 
     if (html5QrCode) {
         try { if (camActive) await html5QrCode.stop(); } catch (_) {}
         try { await html5QrCode.clear(); } catch (_) {}
         html5QrCode = null;
     }
+    camActive = false;
 
     _resetReaderEl();
 
     try {
         html5QrCode = new Html5Qrcode('reader');
 
-        /* ── 카메라 ID 시도 (S25+ 멀티카메라 대응) ── */
         const cameraId = await _getBackCameraId();
 
         if (cameraId) {
-            /* cameraId 방식 - S25+ */
             await html5QrCode.start(
                 cameraId,
                 {
@@ -84,7 +85,6 @@ async function startCamera() {
                 (decodedText) => handleQRResult(decodedText)
             );
         } else {
-            /* facingMode 방식 - S8+ 등 단일 카메라 */
             await html5QrCode.start(
                 { facingMode: 'environment' },
                 {
@@ -119,12 +119,13 @@ async function stopCamera() {
     const statusEl    = document.getElementById('cam-status');
     const placeholder = document.getElementById('qr-placeholder');
 
+    camActive = false;
+
     if (html5QrCode) {
-        try { if (camActive) await html5QrCode.stop(); } catch (e) {}
+        try { await html5QrCode.stop(); } catch (e) {}
         try { await html5QrCode.clear(); } catch (e) {}
         html5QrCode = null;
     }
-    camActive = false;
 
     _resetReaderEl();
     document.getElementById('reader').style.display = 'none';
@@ -171,7 +172,11 @@ function handleQRResult(data) {
         });
 
         panel.classList.remove('hidden');
-        document.getElementById('cam-status').textContent = scannedNums.length + '개 번호 스캔 완료';
+
+        const statusEl = document.getElementById('cam-status');
+        statusEl.textContent = scannedNums.length + '개 번호 스캔 완료';
+        statusEl.className   = 'text-center text-[13px] text-green-600 mb-3 min-h-[20px]';
+
         if (typeof toast === 'function') toast(scannedNums.length + '개 번호 인식');
 
     } catch (e) {
@@ -179,12 +184,6 @@ function handleQRResult(data) {
         statusEl.textContent = e.message;
         statusEl.className   = 'text-center text-[13px] text-red-500 mb-3 min-h-[20px]';
     }
-}
-
-function showQRError(msg) {
-    const statusEl = document.getElementById('cam-status');
-    statusEl.textContent = msg;
-    statusEl.className   = 'text-center text-[13px] text-red-500 mb-3 min-h-[20px]';
 }
 
 function applyQRExclude() {
@@ -196,5 +195,6 @@ function applyQRExclude() {
 function resetQR() {
     scannedNums = [];
     document.getElementById('qr-result-panel').classList.add('hidden');
+    document.getElementById('qr-res-nums').innerHTML = '';
     startCamera();
 }
