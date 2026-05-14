@@ -1,8 +1,5 @@
 /* ══════════════════════════════════════════════════
-    js/qr.js — html5-qrcode 2.3.4 + S25+ 멀티카메라 대응
-    
-    S8+: html5-qrcode getCameras() + cameraId 방식 (검증됨)
-    S25+: 멀티카메라 중 기본 1x 후면 카메라 정확히 선택
+    js/qr.js — html5-qrcode 2.3.4 + 카메라 디버그
    ══════════════════════════════════════════════════ */
 
 let camActive    = false;
@@ -55,26 +52,18 @@ function _openExternal() {
 
 /* ══════════════════════════════════════════════════
     후면 기본 카메라 선택
-    S25+ 멀티카메라 우선순위:
-    1. label에 광각/망원 키워드 없는 후면 카메라
-    2. 전면 제외한 첫 번째
-    3. 마지막 카메라 (단일 카메라 기기 대비)
    ══════════════════════════════════════════════════ */
 function _selectCamera(cameras) {
     if (!cameras || cameras.length === 0) return null;
 
-    console.log('=== 카메라 목록 ===');
-    cameras.forEach((c, i) => console.log(i, c.label, c.id));
-
     const excludeKeywords = ['wide', 'ultra', 'tele', 'zoom', 'macro', '광각', '망원', '접사'];
     const backKeywords    = ['back', 'rear', '후면', 'environment'];
 
-    // 1순위: 후면 키워드 있고 광각/망원 키워드 없는 것
+    // 1순위: 후면 키워드 있고 광각/망원 없는 것
     for (const c of cameras) {
         const label = (c.label || '').toLowerCase();
         if (backKeywords.some(k => label.includes(k)) &&
             !excludeKeywords.some(k => label.includes(k))) {
-            console.log('선택(1순위):', c.label);
             return c.id;
         }
     }
@@ -84,15 +73,12 @@ function _selectCamera(cameras) {
         const label = (c.label || '').toLowerCase();
         if (!label.includes('front') && !label.includes('전면') && !label.includes('user') &&
             !excludeKeywords.some(k => label.includes(k))) {
-            console.log('선택(2순위):', c.label);
             return c.id;
         }
     }
 
     // 3순위: 마지막 카메라
-    const last = cameras[cameras.length - 1];
-    console.log('선택(3순위/마지막):', last.label);
-    return last.id;
+    return cameras[cameras.length - 1].id;
 }
 
 /* ─── 토글 ─── */
@@ -123,23 +109,18 @@ async function startCamera() {
     }
 
     try {
-        /* ── 카메라 목록 조회 ── */
-        const cameras  = await Html5Qrcode.getCameras();
-
-alert('카메라 수: ' + cameras.length + '\n' + cameras.map((c,i) => i+': '+c.label).join('\n'));
-
-const cameraId = _selectCamera(cameras);
-alert('선택된 ID: ' + cameraId);
-
+        /* ── ★ 디버그: 카메라 목록 alert ── */
+        const cameras = await Html5Qrcode.getCameras();
+        alert('카메라 수: ' + cameras.length + '\n' + cameras.map((c, i) => i + ': ' + c.label).join('\n'));
 
         const cameraId = _selectCamera(cameras);
+        alert('선택된 ID: ' + cameraId);
 
         if (!cameraId) {
             _setStatus('카메라를 찾을 수 없습니다.', 'red');
             return;
         }
 
-        // 선택된 카메라 이름 표시 (디버그)
         const selected = cameras.find(c => c.id === cameraId);
         _setStatus('카메라: ' + (selected ? selected.label.substring(0, 25) : cameraId), 'slate');
 
