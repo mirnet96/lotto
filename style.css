@@ -154,3 +154,19 @@
 /* ── 스크롤바 ── */
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-thumb { background: #E8ECF4; border-radius: 2px; }
+
+
+}
+/* 스캔 영역 가이드 라인 */
+#reader::before {
+    content: "";
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 200px; height: 200px;
+    border: 2px solid #3b82f6; /* 파란색 가이드 */
+    border-radius: 12px;
+    box-shadow: 0 0 0 2000px rgba(0, 0, 0, 0.5); /* 주변 어둡게 */
+    z-index: 10;
+    pointer-events: none;
+}
