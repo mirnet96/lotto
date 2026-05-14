@@ -126,13 +126,10 @@ async function startCamera() {
         /* ── 카메라 목록 조회 ── */
         const cameras  = await Html5Qrcode.getCameras();
 
-// ★ 디버그: 카메라 목록을 상태바에 표시
-if (!cameras || cameras.length === 0) {
-    _setStatus('카메라 목록 없음 (0개)', 'red');
-    return;
-}
-_setStatus('카메라 ' + cameras.length + '개: ' + cameras.map(c => c.label.substring(0,10)).join(' / '), 'purple');
+alert('카메라 수: ' + cameras.length + '\n' + cameras.map((c,i) => i+': '+c.label).join('\n'));
 
+const cameraId = _selectCamera(cameras);
+alert('선택된 ID: ' + cameraId);
 
 
         const cameraId = _selectCamera(cameras);
