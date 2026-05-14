@@ -148,6 +148,8 @@ async function startCamera() {
 
         _html5QrCode = new Html5Qrcode('reader');
 
+        alert('선택카메라: ' + (selected ? selected.label : cameraId));
+
         await _html5QrCode.start(
             cameraId,
             {
