@@ -1,15 +1,13 @@
 /* ══════════════════════════════════════════════════
-    js/qr.js — ZXing + S25+ 멀티카메라 완전 대응
+    js/qr.js — html5-qrcode 2.3.4 + S25+ 멀티카메라 대응
     
-    S25+ 멀티카메라 문제:
-    - 광각(0.6x), 기본(1x), 망원(3x, 10x) 여러 개 존재
-    - 마지막 카메라 = 망원이라 QR 인식 불가
-    - "0" 또는 "back" 키워드로 기본 후면 카메라 선택
+    S8+: html5-qrcode getCameras() + cameraId 방식 (검증됨)
+    S25+: 멀티카메라 중 기본 1x 후면 카메라 정확히 선택
    ══════════════════════════════════════════════════ */
 
-let camActive   = false;
-let scannedNums = [];
-let _codeReader = null;
+let camActive    = false;
+let scannedNums  = [];
+let _html5QrCode = null;
 
 /* ─── 공통 유틸 ─── */
 function _resetReaderEl() {
@@ -56,52 +54,45 @@ function _openExternal() {
 }
 
 /* ══════════════════════════════════════════════════
-    후면 기본 카메라 선택 로직
+    후면 기본 카메라 선택
     S25+ 멀티카메라 우선순위:
-    1. label에 "back (0)" 또는 "camera2 0" 포함 → 기본 후면
-    2. label에 "back" 포함하되 "wide" "ultra" "tele" "zoom" 미포함
-    3. 위 조건 없으면 facingMode environment로 fallback
+    1. label에 광각/망원 키워드 없는 후면 카메라
+    2. 전면 제외한 첫 번째
+    3. 마지막 카메라 (단일 카메라 기기 대비)
    ══════════════════════════════════════════════════ */
-function _selectCamera(devices) {
-    if (!devices || devices.length === 0) return undefined;
+function _selectCamera(cameras) {
+    if (!cameras || cameras.length === 0) return null;
 
-    // 디버그: 카메라 목록 콘솔 출력
     console.log('=== 카메라 목록 ===');
-    devices.forEach((d, i) => console.log(i, d.label, d.deviceId));
+    cameras.forEach((c, i) => console.log(i, c.label, c.id));
 
-    const excludeKeywords = ['wide', 'ultra', 'tele', 'zoom', 'macro', '광각', '망원'];
+    const excludeKeywords = ['wide', 'ultra', 'tele', 'zoom', 'macro', '광각', '망원', '접사'];
+    const backKeywords    = ['back', 'rear', '후면', 'environment'];
 
-    // 1순위: "back (0)" 또는 "camera2 0, facing back" 패턴 → 기본 1x 후면
-    for (const d of devices) {
-        const label = (d.label || '').toLowerCase();
-        if (/back \(0\)|camera2 0|facing back.*,\s*0/.test(label)) {
-            console.log('선택(1순위):', d.label);
-            return d.deviceId;
-        }
-    }
-
-    // 2순위: "back" 포함 + 광각/망원 키워드 없는 것
-    for (const d of devices) {
-        const label = (d.label || '').toLowerCase();
-        if ((label.includes('back') || label.includes('rear') || label.includes('후면')) &&
+    // 1순위: 후면 키워드 있고 광각/망원 키워드 없는 것
+    for (const c of cameras) {
+        const label = (c.label || '').toLowerCase();
+        if (backKeywords.some(k => label.includes(k)) &&
             !excludeKeywords.some(k => label.includes(k))) {
-            console.log('선택(2순위):', d.label);
-            return d.deviceId;
+            console.log('선택(1순위):', c.label);
+            return c.id;
         }
     }
 
-    // 3순위: 전면 제외한 첫 번째
-    for (const d of devices) {
-        const label = (d.label || '').toLowerCase();
-        if (!label.includes('front') && !label.includes('전면') && !label.includes('user')) {
-            console.log('선택(3순위):', d.label);
-            return d.deviceId;
+    // 2순위: 전면/광각/망원 제외한 첫 번째
+    for (const c of cameras) {
+        const label = (c.label || '').toLowerCase();
+        if (!label.includes('front') && !label.includes('전면') && !label.includes('user') &&
+            !excludeKeywords.some(k => label.includes(k))) {
+            console.log('선택(2순위):', c.label);
+            return c.id;
         }
     }
 
-    // fallback: undefined → ZXing이 facingMode environment 자동 선택
-    console.log('선택: fallback (undefined)');
-    return undefined;
+    // 3순위: 마지막 카메라
+    const last = cameras[cameras.length - 1];
+    console.log('선택(3순위/마지막):', last.label);
+    return last.id;
 }
 
 /* ─── 토글 ─── */
@@ -132,49 +123,37 @@ async function startCamera() {
     }
 
     try {
-        /* ── video 엘리먼트 생성 ── */
-        const readerEl = document.getElementById('reader');
-        readerEl.innerHTML = '';
+        /* ── 카메라 목록 조회 ── */
+        const cameras  = await Html5Qrcode.getCameras();
+        const cameraId = _selectCamera(cameras);
 
-        const video = document.createElement('video');
-        video.id = 'qr-video';
-        video.setAttribute('playsinline', '');
-        video.style.cssText = 'width:100%;display:block;';
-        readerEl.appendChild(video);
+        if (!cameraId) {
+            _setStatus('카메라를 찾을 수 없습니다.', 'red');
+            return;
+        }
 
-        /* ── ZXing 초기화 ── */
-        const hints = new Map();
-        hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [ZXing.BarcodeFormat.QR_CODE]);
-        hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
-        _codeReader = new ZXing.BrowserMultiFormatReader(hints, 500); // 500ms 간격
+        // 선택된 카메라 이름 표시 (디버그)
+        const selected = cameras.find(c => c.id === cameraId);
+        _setStatus('카메라: ' + (selected ? selected.label.substring(0, 25) : cameraId), 'slate');
 
-        /* ── 카메라 목록 조회 후 기본 후면 선택 ── */
-        const devices  = await _codeReader.listVideoInputDevices();
-        const deviceId = _selectCamera(devices);
+        _html5QrCode = new Html5Qrcode('reader');
 
-        // 디버그: 선택된 카메라 상태 표시
-        const selectedLabel = deviceId
-            ? (devices.find(d => d.deviceId === deviceId) || {}).label || deviceId
-            : 'auto';
-        _setStatus('카메라: ' + selectedLabel.substring(0, 30), 'slate');
+        await _html5QrCode.start(
+            cameraId,
+            {
+                fps: 10,
+                qrbox: { width: 250, height: 250 },
+                disableFlip: false
+            },
+            (decodedText) => handleQRResult(decodedText)
+        );
 
         camActive = true;
         if (placeholder) placeholder.style.display = 'none';
-        _setBtnStop();
-
-        /* ── 스캔 시작 ── */
-        await _codeReader.decodeFromVideoDevice(
-            deviceId,
-            'qr-video',
-            (result, err) => {
-                if (result && camActive) {
-                    if (navigator.vibrate) navigator.vibrate([100, 50, 300]);
-                    handleQRResult(result.getText());
-                }
-            }
-        );
+        document.getElementById('reader').style.display = 'block';
 
         _setStatus('QR코드를 화면 중앙에 맞춰주세요', 'green');
+        _setBtnStop();
 
     } catch (err) {
         console.error('카메라 시작 오류:', err);
@@ -194,9 +173,10 @@ async function startCamera() {
 async function stopCamera(silent = false) {
     camActive = false;
 
-    if (_codeReader) {
-        try { _codeReader.reset(); } catch (_) {}
-        _codeReader = null;
+    if (_html5QrCode) {
+        try { await _html5QrCode.stop(); } catch (_) {}
+        try { await _html5QrCode.clear(); } catch (_) {}
+        _html5QrCode = null;
     }
 
     if (!silent) {
@@ -214,6 +194,7 @@ async function stopCamera(silent = false) {
 function handleQRResult(data) {
     if (!camActive) return;
     camActive = false;
+    if (navigator.vibrate) navigator.vibrate([100, 50, 300]);
     stopCamera();
 
     try {
