@@ -177,44 +177,68 @@ async function stopCamera(silent = false) {
 /* ─── QR 결과 처리 ─── */
 function handleQRResult(data) {
     if (!camActive) return;
+    
+    // 로또 URL 여부 확인
+    if (!data.includes('dhlottery.co.kr') || !data.includes('v=')) {
+        // 일반 QR일 경우 중복 실행 방지를 위해 잠시 대기 후 리턴하거나 경고
+        return; 
+    }
+
     camActive = false; // 중복 처리 방지
     stopCamera();
 
     try {
-        const urlParts = data.split('v=');
-        if (urlParts.length < 2) throw new Error('로또 QR 형식이 아닙니다.');
-
-        const qrRawNumbers = urlParts[1].split('q');
+        const urlParts = data.split('v=')[1];
+        // q를 기준으로 자르면 [0]은 회차정보+첫게임, [1]부터는 다음 게임들
+        const games = urlParts.split('q');
         const allNums = [];
 
-        for (let i = 1; i < qrRawNumbers.length; i++) {
-            const gameStr = qrRawNumbers[i];
-            for (let j = 0; j < gameStr.length; j += 2) {
-                const num = parseInt(gameStr.substring(j, j + 2), 10);
-                if (num >= 1 && num <= 45) allNums.push(num);
+        games.forEach((gameStr, idx) => {
+            let pureNums = gameStr;
+            // 첫 번째 덩어리(idx 0)는 앞 4자리가 회차 정보이므로 제거
+            if (idx === 0) {
+                pureNums = gameStr.substring(4);
             }
-        }
+
+            // 2자리씩 끊어서 번호 추출
+            for (let j = 0; j < pureNums.length; j += 2) {
+                const num = parseInt(pureNums.substring(j, j + 2), 10);
+                if (num >= 1 && num <= 45) {
+                    allNums.push(num);
+                }
+            }
+        });
 
         if (allNums.length === 0) throw new Error('번호를 읽을 수 없습니다.');
 
+        // 중복 제거 및 정렬
         scannedNums = [...new Set(allNums)].sort((a, b) => a - b);
 
-        const panel    = document.getElementById('qr-result-panel');
+        // UI 업데이트
+        const panel = document.getElementById('qr-result-panel');
         const numsWrap = document.getElementById('qr-res-nums');
 
-        numsWrap.innerHTML = '';
-        scannedNums.forEach(n => {
-            if (typeof mkBall === 'function') numsWrap.appendChild(mkBall(n, 'mini-ball'));
-        });
+        if (numsWrap) {
+            numsWrap.innerHTML = '';
+            scannedNums.forEach(n => {
+                if (typeof mkBall === 'function') {
+                    numsWrap.appendChild(mkBall(n, 'mini-ball'));
+                }
+            });
+        }
 
         panel.classList.remove('hidden');
         _setStatus(scannedNums.length + '개 번호 스캔 완료', 'green');
         if (typeof toast === 'function') toast(scannedNums.length + '개 번호 인식');
 
     } catch (e) {
-        _setStatus(e.message, 'red');
+        console.error(e);
+        _setStatus('로또 QR 형식이 아닙니다.', 'red');
+        // 실패 시 다시 카메라를 켜고 싶다면: 
+        // setTimeout(startCamera, 2000);
     }
 }
+
 
 /* ─── 외부 연동 ─── */
 function applyQRExclude() {
