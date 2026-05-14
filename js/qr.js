@@ -1,11 +1,21 @@
 /* ══════════════════════════════════════════════════
-    js/qr.js — html5-qrcode 2.3.4
-    S25+: camera2 0 (기본 1x 후면) 강제 선택
+    js/qr.js — 순수 getUserMedia + jsQR
+    
+    - html5-qrcode 완전 제거 (권한 중복, S25+ 호환 문제)
+    - getCameras() 제거 (권한 중복 요청 원인)
+    - getUserMedia 1회만 호출
+    - jsQR로 canvas 디코딩
+    - S25+ 세로(480x640) 대응: 비율 유지 축소
    ══════════════════════════════════════════════════ */
 
-let camActive    = false;
-let scannedNums  = [];
-let _html5QrCode = null;
+let camActive   = false;
+let scannedNums = [];
+let _stream     = null;
+let _rafId      = null;
+let _video      = null;
+let _canvas     = null;
+let _ctx        = null;
+let _detected   = false;
 
 /* ─── 공통 유틸 ─── */
 function _resetReaderEl() {
@@ -21,7 +31,7 @@ function _setStatus(msg, color = 'slate') {
     const el = document.getElementById('cam-status');
     if (!el) return;
     el.textContent = msg;
-    el.className = `text-center text-[13px] text-${color}-500 mb-3 min-h-[20px]`;
+    el.className = `text-center text-[13px] text-${color}-600 mb-3 min-h-[20px]`;
 }
 
 function _setBtnStop() {
@@ -52,66 +62,19 @@ function _openExternal() {
         + '#Intent;scheme=https;package=com.android.chrome;end';
 }
 
-/* ══════════════════════════════════════════════════
-    후면 카메라 선택
-    
-    우선순위:
-    1. "camera2 0, facing back" → S25+ 기본 1x 후면
-    2. "facing back" 중 camera2 번호 가장 작은 것
-    3. "back"/"rear" 포함된 것
-    4. 전면 제외 첫 번째
-   ══════════════════════════════════════════════════ */
-function _selectCamera(cameras) {
-    if (!cameras || cameras.length === 0) return null;
-
-    // 1순위: "camera2 0" + "back" → S25+ 기본 후면
-    for (const c of cameras) {
-        const label = (c.label || '').toLowerCase();
-        if (/camera2\s+0/.test(label) && label.includes('back')) {
-            return c.id;
-        }
-    }
-
-    // 2순위: "facing back" 중 camera2 번호 가장 작은 것
-    const backCams = cameras.filter(c =>
-        (c.label || '').toLowerCase().includes('back')
-    );
-
-    if (backCams.length > 0) {
-        let bestCam = backCams[0];
-        let bestNum = Infinity;
-        for (const c of backCams) {
-            const match = (c.label || '').match(/camera2\s+(\d+)/i);
-            if (match) {
-                const num = parseInt(match[1], 10);
-                if (num < bestNum) { bestNum = num; bestCam = c; }
-            }
-        }
-        return bestCam.id;
-    }
-
-    // 3순위: 전면 제외 첫 번째
-    const nonFront = cameras.find(c => {
-        const label = (c.label || '').toLowerCase();
-        return !label.includes('front') && !label.includes('전면') && !label.includes('user');
-    });
-    if (nonFront) return nonFront.id;
-
-    return cameras[0].id;
-}
-
 /* ─── 토글 ─── */
 async function toggleCamera() {
     camActive ? await stopCamera() : await startCamera();
 }
 
 /* ══════════════════════════════════════════════════
-    startCamera
+    startCamera — getUserMedia 단독, 권한 1회
    ══════════════════════════════════════════════════ */
 async function startCamera() {
     _setStatus('카메라 연결 중...');
     await stopCamera(true);
     _resetReaderEl();
+    _detected = false;
 
     const placeholder = document.getElementById('qr-placeholder');
 
@@ -120,7 +83,7 @@ async function startCamera() {
         _setStatus('카카오 브라우저에서는 카메라가 제한됩니다.', 'red');
         const btn = document.getElementById('cam-toggle-btn');
         if (btn) {
-            btn.className = 'cam-btn w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-orange-500 text-[15px] font-bold text-white cursor-pointer mb-3 shadow-md transition-all hover:bg-orange-600';
+            btn.className = 'cam-btn w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-orange-500 text-[15px] font-bold text-white cursor-pointer mb-3 shadow-md transition-all';
             btn.innerHTML = '<span class="material-symbols-rounded">open_in_new</span><span>크롬으로 열기</span>';
             btn.onclick = _openExternal;
         }
@@ -128,67 +91,115 @@ async function startCamera() {
     }
 
     try {
-        /* ── 권한 먼저 획득 (getCameras 전에 한 번만) ── */
-        const testStream = await navigator.mediaDevices.getUserMedia({ video: true });
-        testStream.getTracks().forEach(t => t.stop());
-
-        /* ── 카메라 목록 조회 ── */
-        const cameras  = await Html5Qrcode.getCameras();
-        const cameraId = _selectCamera(cameras);
-
-        if (!cameraId) {
-            _setStatus('카메라를 찾을 수 없습니다.', 'red');
-            return;
-        }
-
-        const selected = cameras.find(c => c.id === cameraId);
-
-        _html5QrCode = new Html5Qrcode('reader');
-
-        await _html5QrCode.start(
-            cameraId,
-            {
-                fps: 10,
-                qrbox: { width: 250, height: 250 },
-                disableFlip: false
+        /* ── getUserMedia 1회 호출 ── */
+        _stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+                facingMode: { ideal: 'environment' },
+                width:  { ideal: 1280 },
+                height: { ideal: 720 }
             },
-            (decodedText) => handleQRResult(decodedText)
-        );
+            audio: false
+        });
+
+        /* ── video 엘리먼트 ── */
+        const readerEl = document.getElementById('reader');
+        readerEl.innerHTML = '';
+
+        _video = document.createElement('video');
+        _video.setAttribute('playsinline', '');
+        _video.setAttribute('autoplay', '');
+        _video.setAttribute('muted', '');
+        _video.style.cssText = 'width:100%;display:block;';
+        _video.srcObject = _stream;
+        readerEl.appendChild(_video);
+
+        _canvas = document.createElement('canvas');
+        _ctx    = _canvas.getContext('2d', { willReadFrequently: true });
+
+        await _video.play();
+
+        /* ── 실제 해상도 확인 후 상태 표시 ── */
+        const vw = _video.videoWidth;
+        const vh = _video.videoHeight;
 
         camActive = true;
+        _detected = false;
         if (placeholder) placeholder.style.display = 'none';
-        document.getElementById('reader').style.display = 'block';
 
         _setBtnStop();
-        // 선택된 카메라 2초 표시 후 안내 메시지
-        _setStatus('������ ' + (selected ? selected.label : cameraId), 'purple');
-        setTimeout(() => {
-            if (camActive) _setStatus('QR코드를 화면 중앙에 맞춰주세요', 'green');
-        }, 2000);
+        _setStatus('스캔 중... (' + vw + 'x' + vh + ')', 'green');
+
+        _rafId = requestAnimationFrame(_scanLoop);
 
     } catch (err) {
-        console.error('카메라 시작 오류:', err);
+        console.error('카메라 오류:', err);
         camActive = false;
-
         if (err.name === 'NotAllowedError') {
-            _setStatus('카메라 권한이 거부되었습니다. 브라우저 설정 > 사이트 설정 > 카메라에서 허용해주세요.', 'red');
-        } else if (err.name === 'NotFoundError') {
-            _setStatus('카메라를 찾을 수 없습니다.', 'red');
+            _setStatus('카메라 권한이 거부되었습니다.', 'red');
         } else {
-            _setStatus('카메라 시작 실패: ' + (err.message || err.name), 'red');
+            _setStatus('카메라 오류: ' + (err.message || err.name), 'red');
         }
     }
+}
+
+/* ══════════════════════════════════════════════════
+    jsQR 스캔 루프
+    - 실제 video 비율 유지하며 최대 640px로 축소
+    - S25+(480x640 세로) / S8+(640x480 가로) 모두 대응
+   ══════════════════════════════════════════════════ */
+function _scanLoop() {
+    if (_detected || !camActive) return;
+    if (!_video || !_canvas || !_ctx) return;
+
+    if (_video.readyState === _video.HAVE_ENOUGH_DATA) {
+        const vw = _video.videoWidth;
+        const vh = _video.videoHeight;
+
+        if (vw > 0 && vh > 0) {
+            /* 긴 쪽을 640에 맞춰 비율 유지 축소 */
+            const scale = 640 / Math.max(vw, vh);
+            const cw    = Math.round(vw * scale);
+            const ch    = Math.round(vh * scale);
+
+            _canvas.width  = cw;
+            _canvas.height = ch;
+            _ctx.drawImage(_video, 0, 0, cw, ch);
+
+            const imageData = _ctx.getImageData(0, 0, cw, ch);
+
+            /* jsQR 디코딩 - 반전 포함 2회 시도 */
+            let code = jsQR(imageData.data, cw, ch, { inversionAttempts: 'dontInvert' });
+            if (!code) {
+                code = jsQR(imageData.data, cw, ch, { inversionAttempts: 'onlyInvert' });
+            }
+
+            if (code && code.data) {
+                _detected = true;
+                if (navigator.vibrate) navigator.vibrate([100, 50, 300]);
+                handleQRResult(code.data);
+                return;
+            }
+        }
+    }
+
+    _rafId = requestAnimationFrame(_scanLoop);
 }
 
 /* ─── stopCamera ─── */
 async function stopCamera(silent = false) {
     camActive = false;
+    _detected = false;
 
-    if (_html5QrCode) {
-        try { await _html5QrCode.stop(); } catch (_) {}
-        try { await _html5QrCode.clear(); } catch (_) {}
-        _html5QrCode = null;
+    if (_rafId) { cancelAnimationFrame(_rafId); _rafId = null; }
+
+    if (_stream) {
+        _stream.getTracks().forEach(t => t.stop());
+        _stream = null;
     }
+
+    _video  = null;
+    _canvas = null;
+    _ctx    = null;
 
     if (!silent) {
         _resetReaderEl();
@@ -203,9 +214,6 @@ async function stopCamera(silent = false) {
 
 /* ─── QR 결과 처리 ─── */
 function handleQRResult(data) {
-    if (!camActive) return;
-    camActive = false;
-    if (navigator.vibrate) navigator.vibrate([100, 50, 300]);
     stopCamera();
 
     try {
@@ -253,6 +261,7 @@ function applyQRExclude() {
 
 function resetQR() {
     scannedNums = [];
+    _detected = false;
     document.getElementById('qr-result-panel').classList.add('hidden');
     startCamera();
 }
