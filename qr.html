@@ -2,19 +2,25 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mobile QR Scanner</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>S25+ Optimized QR Scanner</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        /* 라이브러리 기본 UI를 숨기고 커스텀하기 위한 설정 */
         #qr-reader { border: none !important; }
-        #qr-reader img { display: none !important; } /* 파일 업로드 아이콘 숨김 */
+        #qr-reader video { 
+            object-fit: cover !important;
+            border-radius: 1.5rem;
+        }
+        #qr-reader img { display: none !important; }
+        .scanner-overlay {
+            box-shadow: 0 0 0 4000px rgba(0, 0, 0, 0.5);
+        }
     </style>
 </head>
-<body class="bg-slate-50 min-h-screen flex flex-col items-center justify-center p-6">
+<body class="bg-slate-50 min-h-[100dvh] flex flex-col items-center justify-center p-6 font-sans">
 
-    <!-- 안내 메시지 -->
+    <!-- 초기 시작 화면 -->
     <div id="welcome-ui" class="w-full max-w-md text-center">
         <div class="mb-6 bg-white p-8 rounded-3xl shadow-sm border border-slate-200">
             <div class="inline-flex items-center justify-center w-16 h-16 bg-indigo-100 text-indigo-600 rounded-full mb-4">
@@ -23,7 +29,7 @@
                 </svg>
             </div>
             <h1 class="text-2xl font-bold text-slate-800">QR 스캐너</h1>
-            <p class="text-slate-500 mt-2">아래 버튼을 누르면 카메라 권한을 요청하며<br>스캔을 시작합니다.</p>
+            <p class="text-slate-500 mt-2 text-sm">최신 기기에 최적화된 고성능 스캔 모드입니다.<br>렌즈에서 20~30cm 거리를 유지해 주세요.</p>
             
             <button id="start-btn" class="mt-8 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-2xl shadow-lg shadow-indigo-200 transition-all active:scale-95">
                 스캔 시작하기
@@ -31,28 +37,42 @@
         </div>
     </div>
 
-    <!-- 스캐너 영역 (초기엔 숨김) -->
+    <!-- 스캐너 영역 -->
     <div id="scanner-ui" class="hidden w-full max-w-md">
-        <div class="relative bg-black rounded-3xl overflow-hidden shadow-2xl aspect-square">
-            <div id="qr-reader" class="w-full"></div>
-            <!-- 커스텀 가이드 UI -->
-            <div class="absolute inset-0 border-[40px] border-black/40 pointer-events-none flex items-center justify-center">
-                <div class="w-64 h-64 border-2 border-white/80 rounded-xl"></div>
+        <div class="relative bg-black rounded-3xl overflow-hidden shadow-2xl aspect-square border-4 border-white">
+            <div id="qr-reader" class="w-full h-full"></div>
+            
+            <!-- 스캔 가이드 가림막 (Overlay) -->
+            <div class="absolute inset-0 pointer-events-none flex items-center justify-center">
+                <div class="w-64 h-64 border-2 border-indigo-400 rounded-2xl relative shadow-[0_0_0_999px_rgba(0,0,0,0.5)]">
+                    <!-- 모서리 포인트 -->
+                    <div class="absolute -top-1 -left-1 w-8 h-8 border-t-4 border-l-4 border-indigo-500 rounded-tl-lg"></div>
+                    <div class="absolute -top-1 -right-1 w-8 h-8 border-t-4 border-r-4 border-indigo-500 rounded-tr-lg"></div>
+                    <div class="absolute -bottom-1 -left-1 w-8 h-8 border-b-4 border-l-4 border-indigo-500 rounded-bl-lg"></div>
+                    <div class="absolute -bottom-1 -right-1 w-8 h-8 border-b-4 border-r-4 border-indigo-500 rounded-br-lg"></div>
+                    
+                    <!-- 스캔 라인 애니메이션 -->
+                    <div class="w-full h-0.5 bg-indigo-500/50 absolute top-0 animate-bounce mt-32"></div>
+                </div>
             </div>
         </div>
-        <button id="stop-btn" class="mt-6 w-full py-3 text-slate-500 font-medium">취소하고 돌아가기</button>
+        <button id="stop-btn" class="mt-8 w-full py-3 text-slate-500 font-semibold bg-white border border-slate-200 rounded-xl active:bg-slate-50">취소하고 돌아가기</button>
     </div>
 
     <!-- 결과창 -->
-    <div id="result-ui" class="hidden w-full max-w-md bg-white p-6 rounded-3xl shadow-xl border-2 border-green-500">
-        <div class="flex items-center space-x-2 text-green-600 mb-2">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-            </svg>
-            <span class="font-bold uppercase text-sm tracking-widest">Success</span>
+    <div id="result-ui" class="hidden w-full max-w-md bg-white p-6 rounded-3xl shadow-xl border-2 border-indigo-500 text-center">
+        <div class="flex flex-col items-center mb-4">
+            <div class="w-12 h-12 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                </svg>
+            </div>
+            <span class="font-bold text-indigo-600 uppercase text-xs tracking-tighter">Success!</span>
         </div>
-        <p id="qr-result" class="text-xl font-semibold text-slate-800 break-all"></p>
-        <button onclick="location.reload()" class="mt-6 w-full bg-slate-800 text-white py-3 rounded-xl font-bold">다시 시도</button>
+        <div class="bg-slate-50 p-5 rounded-2xl mb-6 shadow-inner">
+            <p id="qr-result" class="text-lg font-bold text-slate-800 break-all leading-relaxed"></p>
+        </div>
+        <button onclick="location.reload()" class="w-full bg-slate-900 text-white py-4 rounded-xl font-bold shadow-lg transition-transform active:scale-95">다시 스캔하기</button>
     </div>
 
     <script>
@@ -63,45 +83,68 @@
         const startBtn = document.getElementById('start-btn');
         const stopBtn = document.getElementById('stop-btn');
 
-        // 스캐너 인스턴스 (UI 없는 버전인 Html5Qrcode 사용)
-        const html5QrCode = new Html5Qrcode("qr-reader");
+        // 스캐너 인스턴스
+        let html5QrCode = new Html5Qrcode("qr-reader");
 
-        const qrConfig = { fps: 10, qrbox: { width: 250, height: 250 } };
+        // 스캔 성공 콜백
+        const onScanSuccess = (decodedText) => {
+            if (navigator.vibrate) navigator.vibrate([100, 50, 100]); // 진동 피드백
+            
+            html5QrCode.stop().then(() => {
+                scannerUI.classList.add('hidden');
+                resultUI.classList.remove('hidden');
+                resultText.innerText = decodedText;
+            }).catch(err => console.error("Scanner Stop Error", err));
+        };
 
-        // 스캔 시작 버튼 클릭 시
         startBtn.addEventListener('click', () => {
             welcomeUI.classList.add('hidden');
             scannerUI.classList.remove('hidden');
 
-            // 카메라 권한 요청 및 시작
-            html5QrCode.start(
-                { facingMode: "environment" }, // 후면 카메라 우선
-                qrConfig,
-                (decodedText) => {
-                    // 스캔 성공 시
-                    html5QrCode.stop().then(() => {
-                        scannerUI.classList.add('hidden');
-                        resultUI.classList.remove('hidden');
-                        resultText.innerText = decodedText;
-                        if (navigator.vibrate) navigator.vibrate(100);
-                    });
+            // S25+ 멀티 렌즈 대응을 위한 고성능 설정
+            const cameraConfig = {
+                facingMode: "environment",
+                // 고화질보다는 인식률이 좋은 해상도로 고정
+                width: { ideal: 1280 },
+                height: { ideal: 720 },
+                // 최신 기기 초점 고정 및 향상된 제약 조건
+                advanced: [
+                    { focusMode: "continuous" }, 
+                    { whiteBalanceMode: "continuous" },
+                    { exposureMode: "continuous" }
+                ]
+            };
+
+            const qrConfig = { 
+                fps: 20, // 초당 분석 횟수 상향
+                qrbox: (viewfinderWidth, viewfinderHeight) => {
+                    // 화면 가로세로 중 짧은 쪽의 70%를 스캔 영역으로 사용
+                    const minEdgeSize = Math.min(viewfinderWidth, viewfinderHeight);
+                    const qrboxSize = Math.floor(minEdgeSize * 0.7);
+                    return { width: qrboxSize, height: qrboxSize };
                 },
-                (errorMessage) => {
-                    // 스캔 중 에러 (무시)
-                }
+                aspectRatio: 1.0,
+                showTorchButtonIfSupported: true // 어두운 곳을 위한 플래시 버튼 활성화
+            };
+
+            html5QrCode.start(
+                cameraConfig, 
+                qrConfig, 
+                onScanSuccess
             ).catch(err => {
-                // 권한 거부 또는 카메라 없음
-                alert("카메라를 시작할 수 없습니다: " + err);
+                console.error("Camera Start Failed", err);
+                alert("카메라를 시작할 수 없습니다. 권한 설정을 확인해 주세요.");
                 location.reload();
             });
         });
 
-        // 중지 버튼 클릭 시
         stopBtn.addEventListener('click', () => {
-            html5QrCode.stop().then(() => {
+            if (html5QrCode.isScanning) {
+                html5QrCode.stop().then(() => location.reload());
+            } else {
                 location.reload();
-            });
+            }
         });
     </script>
 </body>
-</html>
+</html><F29>
