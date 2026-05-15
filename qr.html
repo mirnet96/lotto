@@ -12,31 +12,25 @@
         #qr-reader img { display: none !important; }
         .scan-line {
             position: absolute; width: 100%; height: 2px;
-            background: rgba(79, 70, 229, 0.6);
-            animation: scan 2s linear infinite;
+            background: rgba(79, 70, 229, 0.6); animation: scan 2s linear infinite;
         }
         @keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
     </style>
 </head>
-<body class="bg-slate-50 min-h-[100dvh] flex flex-col items-center justify-center p-6 font-sans">
+<body class="bg-slate-50 min-h-[100dvh] flex flex-col items-center justify-center p-6">
 
     <div id="welcome-ui" class="w-full max-w-md text-center">
-        <div class="mb-6 bg-white p-8 rounded-3xl shadow-sm border border-slate-200">
-            <div class="inline-flex items-center justify-center w-16 h-16 bg-indigo-100 text-indigo-600 rounded-full mb-4">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-            </div>
-            <h2 class="text-2xl font-bold text-slate-800">로또 QR 스캐너</h2>
-            <p class="text-slate-500 mt-2 text-sm">S25+ 멀티 렌즈 최적화 완료<br>카메라 시작 버튼을 눌러주세요.</p>
-            <button id="start-btn" class="mt-8 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-2xl shadow-lg transition-transform active:scale-95">
-                카메라 시작하기
+        <div class="bg-white p-8 rounded-3xl shadow-sm border border-slate-200">
+            <h2 class="text-2xl font-bold text-slate-800 mb-4">로또 QR 스캐너</h2>
+            <p class="text-slate-500 text-sm mb-8">모든 스마트폰 지원 모드</p>
+            <button id="start-btn" class="w-full bg-indigo-600 text-white font-bold py-4 rounded-2xl shadow-lg active:scale-95 transition-transform">
+                스캔 시작하기
             </button>
         </div>
     </div>
 
     <div id="scanner-ui" class="hidden w-full max-w-md">
-        <div class="relative bg-black rounded-3xl overflow-hidden shadow-2xl aspect-square border-4 border-white">
+        <div class="relative bg-black rounded-3xl overflow-hidden aspect-square border-4 border-white">
             <div id="qr-reader" class="w-full h-full"></div>
             <div class="absolute inset-0 pointer-events-none flex items-center justify-center">
                 <div class="w-64 h-64 border-2 border-indigo-400/30 rounded-2xl relative overflow-hidden shadow-[0_0_0_999px_rgba(0,0,0,0.5)]">
@@ -52,10 +46,8 @@
     </div>
 
     <div id="result-ui" class="hidden w-full max-w-md bg-white p-6 rounded-3xl shadow-xl border-2 border-indigo-500 text-center">
-        <div class="bg-slate-50 p-5 rounded-2xl mb-6 shadow-inner text-left">
-            <p id="qr-result" class="text-lg font-bold text-slate-800 break-all"></p>
-        </div>
-        <button onclick="location.reload()" class="w-full bg-slate-900 text-white py-4 rounded-xl font-bold">다시 스캔하기</button>
+        <div class="bg-slate-50 p-5 rounded-2xl mb-6 shadow-inner"><p id="qr-result" class="font-bold break-all"></p></div>
+        <button onclick="location.reload()" class="w-full bg-slate-900 text-white py-4 rounded-xl font-bold">다시 스캔</button>
     </div>
 
     <script>
@@ -66,71 +58,64 @@
         const startBtn = document.getElementById('start-btn');
         const stopBtn = document.getElementById('stop-btn');
 
-        let html5QrCode = new Html5Qrcode("qr-reader", false);
-
-        const onScanSuccess = (decodedText) => {
-            if (navigator.vibrate) navigator.vibrate(100);
-            html5QrCode.stop().then(() => {
-                scannerUI.classList.add('hidden');
-                resultUI.classList.remove('hidden');
-                resultText.innerText = decodedText;
-            });
-        };
+        let html5QrCode = new Html5Qrcode("qr-reader");
 
         startBtn.addEventListener('click', async () => {
             welcomeUI.classList.add('hidden');
             scannerUI.classList.remove('hidden');
 
+            const config = {
+                fps: 20,
+                qrbox: (vw, vh) => {
+                    const s = Math.min(vw, vh) * 0.7;
+                    return { width: s, height: s };
+                }
+            };
+
             try {
-                const devices = await Html5Qrcode.getCameras();
-                if (!devices || devices.length === 0) throw new Error("카메라를 찾을 수 없습니다.");
-
-                // 1. 후면 카메라만 추출 (S25+의 경우 2, 3번)
-                const backCameras = devices.filter(d => d.label.toLowerCase().includes('back'));
-                
-                const config = {
-                    fps: 20,
-                    qrbox: (vw, vh) => {
-                        const s = Math.min(vw, vh) * 0.7;
-                        return { width: s, height: s };
-                    },
-                    aspectRatio: 1.0
-                };
-
-                // 2. 후면 카메라들을 순회하며 실행 시도 (S25+ 멀티렌즈 핵심 로직)
-                let started = false;
-                
-                // 후면 카메라가 있다면 후면부터, 없다면 전체 리스트 순회
-                const targetDevices = backCameras.length > 0 ? backCameras : devices;
-
-                for (const device of targetDevices) {
-                    try {
-                        await html5QrCode.start(device.id, config, onScanSuccess);
-                        started = true;
-                        console.log(`카메라 시작 성공: ${device.label}`);
-                        break; // 성공하면 루프 탈출
-                    } catch (e) {
-                        console.warn(`${device.label} 시작 실패, 다음 렌즈 시도...`);
-                    }
-                }
-
-                // 3. 만약 ID 방식이 모두 실패하면 마지막으로 facingMode 시도
-                if (!started) {
-                    await html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess);
-                }
-
+                // 1단계: 가장 일반적인 facingMode로 즉시 실행 시도 (S8+ 등 대다수 기기 한 번에 통과)
+                await html5QrCode.start({ facingMode: "environment" }, config, (text) => {
+                    if (navigator.vibrate) navigator.vibrate(100);
+                    html5QrCode.stop().then(() => {
+                        scannerUI.classList.add('hidden');
+                        resultUI.classList.remove('hidden');
+                        resultText.innerText = text;
+                    });
+                });
             } catch (err) {
-                alert("카메라를 시작할 수 없습니다.\n\n해결 방법:\n1. '다른 브라우저로 열기'(삼성인터넷/크롬) 선택\n2. 주소가 https 인지 확인\n3. 카메라 권한 허용");
-                location.reload();
+                console.warn("일반 모드 실패, 멀티렌즈 탐색 모드로 전환...");
+                
+                try {
+                    // 2단계: 1단계 실패 시(S25+ 등)에만 카메라 목록을 불러와서 순회 시도
+                    const devices = await Html5Qrcode.getCameras();
+                    if (devices && devices.length > 0) {
+                        const backCameras = devices.filter(d => d.label.toLowerCase().includes('back'));
+                        const targets = backCameras.length > 0 ? backCameras : devices;
+                        
+                        let started = false;
+                        for (const device of targets) {
+                            try {
+                                await html5QrCode.start(device.id, config, (text) => {
+                                    html5QrCode.stop().then(() => {
+                                        scannerUI.classList.add('hidden');
+                                        resultUI.classList.remove('hidden');
+                                        resultText.innerText = text;
+                                    });
+                                });
+                                started = true; break;
+                            } catch (e) { continue; }
+                        }
+                        if (!started) throw new Error("모든 렌즈 실행 실패");
+                    }
+                } catch (finalErr) {
+                    alert("카메라를 시작할 수 없습니다. 권한 설정을 확인하세요.");
+                    location.reload();
+                }
             }
         });
 
         stopBtn.addEventListener('click', () => {
-            if (html5QrCode.isScanning) {
-                html5QrCode.stop().then(() => location.reload());
-            } else {
-                location.reload();
-            }
+            html5QrCode.isScanning ? html5QrCode.stop().then(() => location.reload()) : location.reload();
         });
     </script>
 </body>
