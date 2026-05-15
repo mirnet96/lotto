@@ -97,46 +97,57 @@
             }).catch(err => console.error("Scanner Stop Error", err));
         };
 
-        startBtn.addEventListener('click', () => {
-            welcomeUI.classList.add('hidden');
-            scannerUI.classList.remove('hidden');
+startBtn.addEventListener('click', async () => {
+    welcomeUI.classList.add('hidden');
+    scannerUI.classList.remove('hidden');
 
-            // S25+ 멀티 렌즈 대응을 위한 고성능 설정
-            const cameraConfig = {
-                facingMode: "environment",
-                // 고화질보다는 인식률이 좋은 해상도로 고정
-                width: { ideal: 1280 },
-                height: { ideal: 720 },
-                // 최신 기기 초점 고정 및 향상된 제약 조건
+    // 1. 기본 설정으로 단순화하여 시도
+    const cameraConfig = { 
+        facingMode: "environment" 
+    };
+
+    const qrConfig = { 
+        fps: 20, 
+        qrbox: (viewfinderWidth, viewfinderHeight) => {
+            const minEdgeSize = Math.min(viewfinderWidth, viewfinderHeight);
+            const qrboxSize = Math.floor(minEdgeSize * 0.7);
+            return { width: qrboxSize, height: qrboxSize };
+        },
+        aspectRatio: 1.0
+    };
+
+    try {
+        await html5QrCode.start(
+            cameraConfig, 
+            qrConfig, 
+            onScanSuccess
+        );
+        
+        // 2. 카메라가 성공적으로 시작된 후, 지원되는 경우에만 고급 설정 적용
+        const track = html5QrCode.getRunningTrack();
+        if (track && track.applyConstraints) {
+            track.applyConstraints({
                 advanced: [
-                    { focusMode: "continuous" }, 
-                    { whiteBalanceMode: "continuous" },
-                    { exposureMode: "continuous" }
+                    { focusMode: "continuous" },
+                    { whiteBalanceMode: "continuous" }
                 ]
-            };
+            }).catch(e => console.warn("고급 설정을 적용할 수 없음:", e));
+        }
+    } catch (err) {
+        console.error("Camera Start Failed", err);
+        // 에러 메시지 구체화
+        let msg = "카메라를 시작할 수 없습니다.";
+        if (location.protocol !== 'https:') {
+            msg += "\n(원인: HTTPS 보안 연결이 필요합니다)";
+        } else {
+            msg += "\n권한 설정이나 다른 앱의 카메라 사용 여부를 확인해 주세요.";
+        }
+        alert(msg);
+        location.reload();
+    }
+});
 
-            const qrConfig = { 
-                fps: 20, // 초당 분석 횟수 상향
-                qrbox: (viewfinderWidth, viewfinderHeight) => {
-                    // 화면 가로세로 중 짧은 쪽의 70%를 스캔 영역으로 사용
-                    const minEdgeSize = Math.min(viewfinderWidth, viewfinderHeight);
-                    const qrboxSize = Math.floor(minEdgeSize * 0.7);
-                    return { width: qrboxSize, height: qrboxSize };
-                },
-                aspectRatio: 1.0,
-                showTorchButtonIfSupported: true // 어두운 곳을 위한 플래시 버튼 활성화
-            };
 
-            html5QrCode.start(
-                cameraConfig, 
-                qrConfig, 
-                onScanSuccess
-            ).catch(err => {
-                console.error("Camera Start Failed", err);
-                alert("카메라를 시작할 수 없습니다. 권한 설정을 확인해 주세요.");
-                location.reload();
-            });
-        });
 
         stopBtn.addEventListener('click', () => {
             if (html5QrCode.isScanning) {
