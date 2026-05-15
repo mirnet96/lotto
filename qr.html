@@ -3,31 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Universal QR Scanner (S25+ & Legacy Support)</title>
+    <title>QR Scanner Optimized</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
         #qr-reader { border: none !important; }
-        #qr-reader video { 
-            object-fit: cover !important;
-            border-radius: 1.5rem;
-        }
+        #qr-reader video { object-fit: cover !important; border-radius: 1.5rem; }
         #qr-reader img { display: none !important; }
-        .scanner-overlay {
-            box-shadow: 0 0 0 4000px rgba(0, 0, 0, 0.5);
-        }
-        /* 스캔 라인 애니메이션 */
-        @keyframes scan {
-            0% { top: 0; }
-            100% { top: 100%; }
-        }
+        @keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
         .scan-line {
-            position: absolute;
-            width: 100%;
-            height: 2px;
-            background: rgba(79, 70, 229, 0.6);
-            box-shadow: 0 0 8px rgba(79, 70, 229, 0.8);
-            animation: scan 2s linear infinite;
+            position: absolute; width: 100%; height: 2px;
+            background: rgba(79, 70, 229, 0.6); animation: scan 2s linear infinite;
         }
     </style>
 </head>
@@ -41,9 +27,8 @@
                 </svg>
             </div>
             <h1 class="text-2xl font-bold text-slate-800">QR 스캐너</h1>
-            <p class="text-slate-500 mt-2 text-sm">최신 기기 및 구형 기기 통합 지원 모드입니다.<br>카메라 권한 허용 후 이용해 주세요.</p>
-            
-            <button id="start-btn" class="mt-8 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-2xl shadow-lg shadow-indigo-200 transition-all active:scale-95">
+            <p class="text-slate-500 mt-2 text-sm">최신 스마트폰 및 인앱 브라우저 대응 완료<br>렌즈와 20cm 정도 거리를 유지해 주세요.</p>
+            <button id="start-btn" class="mt-8 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-2xl shadow-lg transition-all active:scale-95">
                 스캔 시작하기
             </button>
         </div>
@@ -52,34 +37,24 @@
     <div id="scanner-ui" class="hidden w-full max-w-md">
         <div class="relative bg-black rounded-3xl overflow-hidden shadow-2xl aspect-square border-4 border-white">
             <div id="qr-reader" class="w-full h-full"></div>
-            
             <div class="absolute inset-0 pointer-events-none flex items-center justify-center">
                 <div class="w-64 h-64 border-2 border-indigo-400/30 rounded-2xl relative overflow-hidden shadow-[0_0_0_999px_rgba(0,0,0,0.5)]">
                     <div class="absolute -top-1 -left-1 w-8 h-8 border-t-4 border-l-4 border-indigo-500 rounded-tl-lg"></div>
                     <div class="absolute -top-1 -right-1 w-8 h-8 border-t-4 border-r-4 border-indigo-500 rounded-tr-lg"></div>
                     <div class="absolute -bottom-1 -left-1 w-8 h-8 border-b-4 border-l-4 border-indigo-500 rounded-bl-lg"></div>
                     <div class="absolute -bottom-1 -right-1 w-8 h-8 border-b-4 border-r-4 border-indigo-500 rounded-br-lg"></div>
-                    
                     <div class="scan-line"></div>
                 </div>
             </div>
         </div>
-        <button id="stop-btn" class="mt-8 w-full py-3 text-slate-500 font-semibold bg-white border border-slate-200 rounded-xl active:bg-slate-50">취소하고 돌아가기</button>
+        <button id="stop-btn" class="mt-8 w-full py-3 text-slate-500 font-semibold bg-white border border-slate-200 rounded-xl">취소</button>
     </div>
 
     <div id="result-ui" class="hidden w-full max-w-md bg-white p-6 rounded-3xl shadow-xl border-2 border-indigo-500 text-center">
-        <div class="flex flex-col items-center mb-4">
-            <div class="w-12 h-12 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-2">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                </svg>
-            </div>
-            <span class="font-bold text-indigo-600 uppercase text-xs tracking-tighter">Success!</span>
-        </div>
         <div class="bg-slate-50 p-5 rounded-2xl mb-6 shadow-inner">
-            <p id="qr-result" class="text-lg font-bold text-slate-800 break-all leading-relaxed"></p>
+            <p id="qr-result" class="text-lg font-bold text-slate-800 break-all"></p>
         </div>
-        <button onclick="location.reload()" class="w-full bg-slate-900 text-white py-4 rounded-xl font-bold shadow-lg transition-transform active:scale-95">다시 스캔하기</button>
+        <button onclick="location.reload()" class="w-full bg-slate-900 text-white py-4 rounded-xl font-bold">다시 스캔</button>
     </div>
 
     <script>
@@ -90,73 +65,54 @@
         const startBtn = document.getElementById('start-btn');
         const stopBtn = document.getElementById('stop-btn');
 
-        // 스캐너 인스턴스 (verbose: false로 설정하여 로그 최소화)
-        let html5QrCode = new Html5Qrcode("qr-reader", false);
+        let html5QrCode = new Html5Qrcode("qr-reader");
 
         const onScanSuccess = (decodedText) => {
             if (navigator.vibrate) navigator.vibrate(100);
-            
             html5QrCode.stop().then(() => {
                 scannerUI.classList.add('hidden');
                 resultUI.classList.remove('hidden');
                 resultText.innerText = decodedText;
-            }).catch(err => console.error("Stop Error", err));
+            });
         };
 
         startBtn.addEventListener('click', async () => {
             welcomeUI.classList.add('hidden');
             scannerUI.classList.remove('hidden');
 
-            // 브라우저 UI 전환 안정화를 위한 짧은 지연
-            await new Promise(resolve => setTimeout(resolve, 300));
-
             try {
-                // 1. 카메라 목록 획득 (권한 요청 포함)
+                // 1. 카메라 권한 먼저 요청 및 목록 가져오기
                 const devices = await Html5Qrcode.getCameras();
                 
                 if (devices && devices.length > 0) {
-                    // 2. 후면 카메라 필터링 (가장 적합한 렌즈 찾기)
-                    // S25+ 등의 멀티렌즈 대응: 'back' 키워드가 있거나 목록의 마지막 카메라 선택
-                    let targetCamera = devices.find(d => d.label.toLowerCase().includes('back')) || devices[devices.length - 1];
-                    
-                    const qrConfig = {
+                    // 2. 후면 카메라 필터링 (최신 기기는 보통 목록 끝에 메인 카메라가 있음)
+                    let backCameras = devices.filter(d => d.label.toLowerCase().includes('back'));
+                    let cameraId = backCameras.length > 0 ? backCameras[backCameras.length - 1].id : devices[0].id;
+
+                    const config = {
                         fps: 20,
-                        qrbox: (vw, vh) => {
-                            const minSize = Math.min(vw, vh);
-                            const boxSize = Math.floor(minSize * 0.7);
-                            return { width: boxSize, height: boxSize };
-                        },
-                        aspectRatio: 1.0,
-                        showTorchButtonIfSupported: true
+                        qrbox: { width: 250, height: 250 },
+                        aspectRatio: 1.0
                     };
 
-                    // 3. 실행 (최신 기기 호환성을 위해 우선 cameraId로 접근)
-                    await html5QrCode.start(targetCamera.id, qrConfig, onScanSuccess);
-
-                    // 4. 실행 성공 후 고급 기능(AF 등) 적용 시도 (실패해도 중단되지 않음)
-                    const track = html5QrCode.getRunningTrack();
-                    if (track && track.applyConstraints) {
-                        track.applyConstraints({
-                            advanced: [{ focusMode: "continuous" }]
-                        }).catch(() => console.warn("Continuous focus not supported"));
-                    }
+                    // 3. 실행 (실패 시 facingMode로 자동 전환 시도)
+                    await html5QrCode.start(cameraId, config, onScanSuccess)
+                    .catch(async () => {
+                        console.log("ID 방식 실패, facingMode로 재시도...");
+                        await html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess);
+                    });
                 } else {
-                    // 카메라 장치 자체가 보고되지 않을 때 (facingMode로 재시도)
-                    await html5QrCode.start({ facingMode: "environment" }, { fps: 15, qrbox: 250 }, onScanSuccess);
+                    throw new Error("장치 없음");
                 }
             } catch (err) {
-                console.error("Camera Initial Error:", err);
-                alert("카메라를 실행할 수 없습니다.\n1. HTTPS 연결 확인\n2. 브라우저 카메라 권한 확인\n3. 다른 브라우저(삼성인터넷/크롬) 이용");
+                console.error(err);
+                alert("브라우저의 카메라 권한이 거부되었거나,\n카카오톡 인앱 브라우저에서 실행 중입니다.\n\n[해결 방법]\n오른쪽 하단 '...' 버튼 클릭 -> '다른 브라우저로 열기' 선택");
                 location.reload();
             }
         });
 
         stopBtn.addEventListener('click', () => {
-            if (html5QrCode.isScanning) {
-                html5QrCode.stop().then(() => location.reload());
-            } else {
-                location.reload();
-            }
+            html5QrCode.isScanning ? html5QrCode.stop().then(() => location.reload()) : location.reload();
         });
     </script>
 </body>
