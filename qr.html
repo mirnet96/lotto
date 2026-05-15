@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>QR Scanner</title>
+    <!-- 라이브러리 로드 -->
+    <script src="https://unpkg.com/html5-qrcode"></script>
+</head>
+<body>
+    <div id="qr-reader" style="width: 100%; max-width: 500px;"></div>
+    <div id="qr-reader-results"></div>
+
+    <script>
+        function onScanSuccess(decodedText, decodedResult) {
+            // 스캔 성공 시 실행될 로직
+            alert("스캔 결과: " + decodedText);
+            console.log(`Scan result: ${decodedText}`, decodedResult);
+            
+            // 성공 후 스캐너를 멈추고 싶다면 아래 주석 해제
+            // html5QrcodeScanner.clear();
+        }
+
+        function onScanFailure(error) {
+            // 스캔 실패 시(QR이 화면에 없을 때 등) 로직 (너무 빈번하므로 보통 비워둠)
+        }
+
+        let html5QrcodeScanner = new Html5QrcodeScanner(
+            "qr-reader", 
+            { fps: 10, qrbox: {width: 250, height: 250} }, 
+            /* verbose= */ false
+        );
+        html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+    </script>
+</body>
+</html>
