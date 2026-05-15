@@ -2,33 +2,81 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>QR Scanner</title>
-    <!-- 라이브러리 로드 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mobile QR Scanner</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- html5-qrcode 라이브러리 -->
     <script src="https://unpkg.com/html5-qrcode"></script>
+    <style>
+        /* 라이브러리 내부 버튼 스타일 강제 변경 */
+        #qr-reader button {
+            @apply bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold my-2 shadow-md active:bg-blue-700 transition-all;
+        }
+        #qr-reader select {
+            @apply border border-gray-300 rounded-md p-2 mt-2 w-full max-w-xs focus:ring-2 focus:ring-blue-500;
+        }
+    </style>
 </head>
-<body>
-    <div id="qr-reader" style="width: 100%; max-width: 500px;"></div>
-    <div id="qr-reader-results"></div>
+<body class="bg-gray-50 min-h-screen flex flex-col items-center p-4">
+
+    <!-- 상단 헤더 영역 -->
+    <div class="w-full max-w-md text-center mb-6">
+        <h1 class="text-2xl font-bold text-gray-800">QR 코드 스캔</h1>
+        <p class="text-sm text-gray-500 mt-1">사각형 안에 QR 코드를 맞춰주세요.</p>
+    </div>
+
+    <!-- 스캐너 컨테이너 -->
+    <div class="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-200">
+        <div id="qr-reader" class="w-full"></div>
+    </div>
+
+    <!-- 결과 표시 영역 -->
+    <div id="result-container" class="hidden w-full max-w-md mt-6 p-4 bg-white rounded-xl shadow-md border-l-4 border-green-500">
+        <p class="text-xs text-green-600 font-bold uppercase tracking-wider">스캔 결과</p>
+        <div id="qr-reader-results" class="text-gray-800 font-medium break-all mt-1"></div>
+        <button onclick="location.reload()" class="mt-3 text-sm text-blue-600 font-semibold underline">다시 스캔하기</button>
+    </div>
+
+    <!-- 도움말 가이드 -->
+    <div class="w-full max-w-md mt-8 px-2 text-gray-400 text-xs">
+        <ul class="list-disc list-inside space-y-1">
+            <li>반드시 <strong>HTTPS</strong> 환경에서 접속해야 카메라가 작동합니다.</li>
+            <li>카메라 접근 권한 요청 시 <strong>'허용'</strong>을 눌러주세요.</li>
+            <li>초점이 흐리다면 스마트폰을 조금 멀리했다가 다가와 보세요.</li>
+        </ul>
+    </div>
 
     <script>
+        const resultContainer = document.getElementById('result-container');
+        const resultText = document.getElementById('qr-reader-results');
+
         function onScanSuccess(decodedText, decodedResult) {
-            // 스캔 성공 시 실행될 로직
-            alert("스캔 결과: " + decodedText);
-            console.log(`Scan result: ${decodedText}`, decodedResult);
+            // 성공 시 결과창 보여주기
+            resultContainer.classList.remove('hidden');
+            resultText.innerText = decodedText;
             
-            // 성공 후 스캐너를 멈추고 싶다면 아래 주석 해제
-            // html5QrcodeScanner.clear();
+            // 진동 피드백 (지원되는 기기에서)
+            if (navigator.vibrate) navigator.vibrate(100);
+
+            // 스캔 성공 후 카메라 중지
+            html5QrcodeScanner.clear();
         }
 
         function onScanFailure(error) {
-            // 스캔 실패 시(QR이 화면에 없을 때 등) 로직 (너무 빈번하므로 보통 비워둠)
+            // 분석 실패 시 로그를 남기지 않음 (성능 최적화)
         }
 
         let html5QrcodeScanner = new Html5QrcodeScanner(
             "qr-reader", 
-            { fps: 10, qrbox: {width: 250, height: 250} }, 
-            /* verbose= */ false
+            { 
+                fps: 15, // 모바일 성능 고려 15fps
+                qrbox: { width: 250, height: 250 }, // 스캔 영역 크기
+                aspectRatio: 1.0 // 정사가형 뷰포트
+            }, 
+            false
         );
+        
         html5QrcodeScanner.render(onScanSuccess, onScanFailure);
     </script>
 </body>
