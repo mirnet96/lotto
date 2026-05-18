@@ -60,33 +60,53 @@
 
         let html5QrCode = new Html5Qrcode("qr-reader");
 
+        // 성공 시 공통 처리 함수
+        function onScanSuccess(text) {
+            if (navigator.vibrate) navigator.vibrate(100);
+            html5QrCode.stop().then(() => {
+                scannerUI.classList.add('hidden');
+                resultUI.classList.remove('hidden');
+                resultText.innerText = text;
+            });
+        }
+
         startBtn.addEventListener('click', async () => {
             welcomeUI.classList.add('hidden');
             scannerUI.classList.remove('hidden');
 
+            // 기본 스캔 설정
             const config = {
                 fps: 20,
                 qrbox: (vw, vh) => {
-                    const s = Math.min(vw, vh) * 0.7;
+                    const s = Math.min(vw, vw) * 0.7;
                     return { width: s, height: s };
                 }
             };
 
+            // 갤럭시 S24/S25 등 최신 기기를 위한 미디어 제약 조건 (초점 연속 및 해상도 확보)
+            const videoConstraints = {
+                facingMode: "environment",
+                focusMode: "continuous",
+                width: { ideal: 1280 },
+                height: { ideal: 720 }
+            };
+
             try {
-                // 1단계: 가장 일반적인 facingMode로 즉시 실행 시도 (S8+ 등 대다수 기기 한 번에 통과)
-                await html5QrCode.start({ facingMode: "environment" }, config, (text) => {
-                    if (navigator.vibrate) navigator.vibrate(100);
-                    html5QrCode.stop().then(() => {
-                        scannerUI.classList.add('hidden');
-                        resultUI.classList.remove('hidden');
-                        resultText.innerText = text;
-                    });
-                });
+                // 1단계: facingMode 대신 최적화된 videoConstraints 객체를 통째로 전달하여 시작
+                await html5QrCode.start({ constraint: videoConstraints }, config, onScanSuccess);
+                
+                // 카메라 실행 직후 하드웨어 레벨에서 연속 초점(Continuous Focus) 다시 한번 강제 적용
+                setTimeout(() => {
+                    html5QrCode.applyVideoConstraints({
+                        focusMode: "continuous"
+                    }).catch(e => console.warn("초점 제약 조건 적용 실패:", e));
+                }, 1500);
+
             } catch (err) {
-                console.warn("일반 모드 실패, 멀티렌즈 탐색 모드로 전환...");
+                console.warn("1단계(제약조건 모드) 실패, 멀티렌즈 탐색 모드로 전환...", err);
                 
                 try {
-                    // 2단계: 1단계 실패 시(S25+ 등)에만 카메라 목록을 불러와서 순회 시도
+                    // 2단계: 카메라 장치 목록을 가져와 매칭 시도
                     const devices = await Html5Qrcode.getCameras();
                     if (devices && devices.length > 0) {
                         const backCameras = devices.filter(d => d.label.toLowerCase().includes('back'));
@@ -95,20 +115,21 @@
                         let started = false;
                         for (const device of targets) {
                             try {
-                                await html5QrCode.start(device.id, config, (text) => {
-                                    html5QrCode.stop().then(() => {
-                                        scannerUI.classList.add('hidden');
-                                        resultUI.classList.remove('hidden');
-                                        resultText.innerText = text;
-                                    });
-                                });
-                                started = true; break;
+                                await html5QrCode.start(device.id, config, onScanSuccess);
+                                
+                                // 장치 ID로 켰을 때도 초점 유도
+                                setTimeout(() => {
+                                    html5QrCode.applyVideoConstraints({ focusMode: "continuous" }).catch(() => {});
+                                }, 1500);
+
+                                started = true; 
+                                break;
                             } catch (e) { continue; }
                         }
                         if (!started) throw new Error("모든 렌즈 실행 실패");
                     }
                 } catch (finalErr) {
-                    alert("카메라를 시작할 수 없습니다. 권한 설정을 확인하세요.");
+                    alert("카메라를 시작할 수 없습니다. 권한 설정이나 브라우저 환경을 확인하세요.");
                     location.reload();
                 }
             }
