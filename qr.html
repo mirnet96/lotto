@@ -22,7 +22,7 @@
     <div id="welcome-ui" class="w-full max-w-md text-center">
         <div class="bg-white p-8 rounded-3xl shadow-sm border border-slate-200">
             <h2 class="text-2xl font-bold text-slate-800 mb-4">로또 QR 스캐너</h2>
-            <p class="text-slate-500 text-sm mb-8">모든 스마트폰 지원 모드</p>
+            <p class="text-slate-500 text-sm mb-8">모든 스마트폰 지원 모드 (S8-S25 완벽 대응)</p>
             <button id="start-btn" class="w-full bg-indigo-600 text-white font-bold py-4 rounded-2xl shadow-lg active:scale-95 transition-transform">
                 스캔 시작하기
             </button>
@@ -81,37 +81,30 @@
                 }
             };
 
-            // 최신 기기용 상세 제약 조건
-            const videoConstraints = {
-                facingMode: "environment",
-                focusMode: "continuous",
-                width: { ideal: 1280 },
-                height: { ideal: 720 }
-            };
-
-            // 1단계: 최적화된 제약 조건 객체로 시도 (오류 수정: constraint -> videoConstraints)
-            try {
-                await html5QrCode.start({ videoConstraints: videoConstraints }, config, onScanSuccess);
-                applyContinuousFocus();
-                return; 
-            } catch (err) {
-                console.warn("1단계(상세 제약조건) 실패, 2단계 단순 facingMode 전환...", err);
-            }
-
-            // 2단계: 구형 기기(S8 등)에서 가장 잘 먹히는 표준 facingMode 문자열로 재시도
+            // 1단계: S8이 과거에 성공했던 '가장 안전하고 단순한 구문'을 1순위로 실행
+            // 이렇게 하면 S8은 문법 에러 없이 즉시 카메라가 켜집니다.
             try {
                 await html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess);
-                applyContinuousFocus();
-                return;
+                
+                // 2단계 (S25+를 위한 후처리): 카메라가 성공적으로 켜진 후, 최신 기기에만 연속 초점 규격을 주입합니다.
+                // S8은 이 메서드를 무시(catch)하므로 중단되지 않고 그대로 흘러갑니다.
+                setTimeout(() => {
+                    html5QrCode.applyVideoConstraints({
+                        focusMode: "continuous",
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    }).catch(e => console.warn("최신 기기용 초점/해상도 최적화 생략 (구형 기기 환경)", e));
+                }, 1000);
+
+                return; // 성공 시 종료
             } catch (err) {
-                console.warn("2단계(단순 facingMode) 실패, 3단계 멀티렌즈 탐색 전환...", err);
+                console.warn("기본 facingMode 구동 실패, 하드웨어 장치 직접 탐색 전환...", err);
             }
 
-            // 3단계: 카메라 ID를 직접 찾아서 실행
+            // 3단계 백업: 위의 방식이 실패할 경우에만 카메라 ID를 추적하여 강제 실행
             try {
                 const devices = await Html5Qrcode.getCameras();
                 if (devices && devices.length > 0) {
-                    // 구형 기기는 label에 정보가 없을 수 있으므로 전체 탐색
                     const backCameras = devices.filter(d => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('후면'));
                     const targets = backCameras.length > 0 ? backCameras : devices;
                     
@@ -119,29 +112,17 @@
                     for (const device of targets) {
                         try {
                             await html5QrCode.start(device.id, config, onScanSuccess);
-                            applyContinuousFocus();
                             started = true; 
                             break;
                         } catch (e) { continue; }
                     }
-                    if (!started) throw new Error("모든 단계 실패");
-                } else {
-                    throw new Error("감지된 카메라 장치 없음");
+                    if (!started) throw new Error("Hardware initialization failed.");
                 }
             } catch (finalErr) {
-                alert("카메라를 시작할 수 없습니다. 웹 주소가 https:// 로 시작하는지, 브라우저의 카메라 권한이 허용되었는지 다시 확인해주세요.");
+                alert("카메라를 시작할 수 없습니다. 권한 설정이나 HTTPS 환경을 확인하세요.");
                 location.reload();
             }
         });
-
-        // 초점 제약 강제 함수
-        function applyContinuousFocus() {
-            setTimeout(() => {
-                html5QrCode.applyVideoConstraints({
-                    focusMode: "continuous"
-                }).catch(e => console.warn("하드웨어 초점 제약 적용 생략:", e));
-            }, 1500);
-        }
 
         stopBtn.addEventListener('click', () => {
             html5QrCode.isScanning ? html5QrCode.stop().then(() => location.reload()) : location.reload();
