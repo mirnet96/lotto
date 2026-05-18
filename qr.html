@@ -60,7 +60,6 @@
 
         let html5QrCode = new Html5Qrcode("qr-reader");
 
-        // 성공 시 공통 처리 함수
         function onScanSuccess(text) {
             if (navigator.vibrate) navigator.vibrate(100);
             html5QrCode.stop().then(() => {
@@ -74,16 +73,15 @@
             welcomeUI.classList.add('hidden');
             scannerUI.classList.remove('hidden');
 
-            // 기본 스캔 설정
             const config = {
                 fps: 20,
                 qrbox: (vw, vh) => {
-                    const s = Math.min(vw, vw) * 0.7;
+                    const s = Math.min(vw, vh) * 0.7;
                     return { width: s, height: s };
                 }
             };
 
-            // 갤럭시 S24/S25 등 최신 기기를 위한 미디어 제약 조건 (초점 연속 및 해상도 확보)
+            // 최신 기기용 상세 제약 조건
             const videoConstraints = {
                 facingMode: "environment",
                 focusMode: "continuous",
@@ -91,49 +89,59 @@
                 height: { ideal: 720 }
             };
 
+            // 1단계: 최적화된 제약 조건 객체로 시도 (오류 수정: constraint -> videoConstraints)
             try {
-                // 1단계: facingMode 대신 최적화된 videoConstraints 객체를 통째로 전달하여 시작
-                await html5QrCode.start({ constraint: videoConstraints }, config, onScanSuccess);
-                
-                // 카메라 실행 직후 하드웨어 레벨에서 연속 초점(Continuous Focus) 다시 한번 강제 적용
-                setTimeout(() => {
-                    html5QrCode.applyVideoConstraints({
-                        focusMode: "continuous"
-                    }).catch(e => console.warn("초점 제약 조건 적용 실패:", e));
-                }, 1500);
-
+                await html5QrCode.start({ videoConstraints: videoConstraints }, config, onScanSuccess);
+                applyContinuousFocus();
+                return; 
             } catch (err) {
-                console.warn("1단계(제약조건 모드) 실패, 멀티렌즈 탐색 모드로 전환...", err);
-                
-                try {
-                    // 2단계: 카메라 장치 목록을 가져와 매칭 시도
-                    const devices = await Html5Qrcode.getCameras();
-                    if (devices && devices.length > 0) {
-                        const backCameras = devices.filter(d => d.label.toLowerCase().includes('back'));
-                        const targets = backCameras.length > 0 ? backCameras : devices;
-                        
-                        let started = false;
-                        for (const device of targets) {
-                            try {
-                                await html5QrCode.start(device.id, config, onScanSuccess);
-                                
-                                // 장치 ID로 켰을 때도 초점 유도
-                                setTimeout(() => {
-                                    html5QrCode.applyVideoConstraints({ focusMode: "continuous" }).catch(() => {});
-                                }, 1500);
+                console.warn("1단계(상세 제약조건) 실패, 2단계 단순 facingMode 전환...", err);
+            }
 
-                                started = true; 
-                                break;
-                            } catch (e) { continue; }
-                        }
-                        if (!started) throw new Error("모든 렌즈 실행 실패");
+            // 2단계: 구형 기기(S8 등)에서 가장 잘 먹히는 표준 facingMode 문자열로 재시도
+            try {
+                await html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess);
+                applyContinuousFocus();
+                return;
+            } catch (err) {
+                console.warn("2단계(단순 facingMode) 실패, 3단계 멀티렌즈 탐색 전환...", err);
+            }
+
+            // 3단계: 카메라 ID를 직접 찾아서 실행
+            try {
+                const devices = await Html5Qrcode.getCameras();
+                if (devices && devices.length > 0) {
+                    // 구형 기기는 label에 정보가 없을 수 있으므로 전체 탐색
+                    const backCameras = devices.filter(d => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('후면'));
+                    const targets = backCameras.length > 0 ? backCameras : devices;
+                    
+                    let started = false;
+                    for (const device of targets) {
+                        try {
+                            await html5QrCode.start(device.id, config, onScanSuccess);
+                            applyContinuousFocus();
+                            started = true; 
+                            break;
+                        } catch (e) { continue; }
                     }
-                } catch (finalErr) {
-                    alert("카메라를 시작할 수 없습니다. 권한 설정이나 브라우저 환경을 확인하세요.");
-                    location.reload();
+                    if (!started) throw new Error("모든 단계 실패");
+                } else {
+                    throw new Error("감지된 카메라 장치 없음");
                 }
+            } catch (finalErr) {
+                alert("카메라를 시작할 수 없습니다. 웹 주소가 https:// 로 시작하는지, 브라우저의 카메라 권한이 허용되었는지 다시 확인해주세요.");
+                location.reload();
             }
         });
+
+        // 초점 제약 강제 함수
+        function applyContinuousFocus() {
+            setTimeout(() => {
+                html5QrCode.applyVideoConstraints({
+                    focusMode: "continuous"
+                }).catch(e => console.warn("하드웨어 초점 제약 적용 생략:", e));
+            }, 1500);
+        }
 
         stopBtn.addEventListener('click', () => {
             html5QrCode.isScanning ? html5QrCode.stop().then(() => location.reload()) : location.reload();
