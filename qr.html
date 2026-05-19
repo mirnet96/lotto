@@ -8,7 +8,7 @@
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
         #qr-reader { border: none !important; }
-        #qr-reader video { object-fit: cover !important; border-radius: 1.5rem; }
+        #qr-reader video { object-fit: cover !important; border-radius: 1.5rem; width: 100% !important; height: 100% !important; }
         #qr-reader img { display: none !important; }
         .scan-line {
             position: absolute; width: 100%; height: 2px;
@@ -22,7 +22,7 @@
     <div id="welcome-ui" class="w-full max-w-md text-center">
         <div class="bg-white p-8 rounded-3xl shadow-sm border border-slate-200">
             <h2 class="text-2xl font-bold text-slate-800 mb-4">로또 QR 스캐너</h2>
-            <p class="text-slate-500 text-sm mb-8">모든 스마트폰 지원 모드 (S8-S25 완벽 대응)</p>
+            <p class="text-slate-500 text-sm mb-8">모든 스마트폰 지원 모드 (S8-S25+ 완벽 대응)</p>
             <button id="start-btn" class="w-full bg-indigo-600 text-white font-bold py-4 rounded-2xl shadow-lg active:scale-95 transition-transform">
                 스캔 시작하기
             </button>
@@ -66,66 +66,100 @@
                 scannerUI.classList.add('hidden');
                 resultUI.classList.remove('hidden');
                 resultText.innerText = text;
-            });
+            }).catch(err => console.error("Stop failed", err));
         }
 
         startBtn.addEventListener('click', async () => {
             welcomeUI.classList.add('hidden');
             scannerUI.classList.remove('hidden');
 
+            // S25+ 멀티 카메라의 해상도 충돌을 방지하기 위한 최적 사이즈 바인딩
             const config = {
-                fps: 20,
+                fps: 24,
                 qrbox: (vw, vh) => {
-                    const s = Math.min(vw, vh) * 0.7;
+                    const s = Math.min(vw, vh) * 0.65;
                     return { width: s, height: s };
                 }
             };
 
-            // 1단계: S8이 과거에 성공했던 '가장 안전하고 단순한 구문'을 1순위로 실행
-            // 이렇게 하면 S8은 문법 에러 없이 즉시 카메라가 켜집니다.
-            try {
-                await html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess);
-                
-                // 2단계 (S25+를 위한 후처리): 카메라가 성공적으로 켜진 후, 최신 기기에만 연속 초점 규격을 주입합니다.
-                // S8은 이 메서드를 무시(catch)하므로 중단되지 않고 그대로 흘러갑니다.
-                setTimeout(() => {
-                    html5QrCode.applyVideoConstraints({
-                        focusMode: "continuous",
-                        width: { ideal: 1280 },
-                        height: { ideal: 720 }
-                    }).catch(e => console.warn("최신 기기용 초점/해상도 최적화 생략 (구형 기기 환경)", e));
-                }, 1000);
+            // 최신 기기용 하드웨어 제약 조건 (초점 우선 매칭)
+            const advancedConstraints = {
+                facingMode: "environment",
+                width: { min: 640, ideal: 1280, max: 1920 },
+                height: { min: 480, ideal: 720, max: 1080 }
+            };
 
-                return; // 성공 시 종료
+            // 1단계 시도: 환경 인지 및 유연한 해상도로 직접 시작
+            try {
+                await html5QrCode.start(advancedConstraints, config, onScanSuccess);
+                applyFocusOptimization();
+                return;
             } catch (err) {
-                console.warn("기본 facingMode 구동 실패, 하드웨어 장치 직접 탐색 전환...", err);
+                console.warn("1단계 facingMode 구동 실패, 멀티 렌즈 장치 직접 분석 전환...", err);
             }
 
-            // 3단계 백업: 위의 방식이 실패할 경우에만 카메라 ID를 추적하여 강제 실행
+            // 2단계 시도: S25+ 트리플 렌즈 중 '메인 광각 카메라' 디바이스 ID 직접 추출
             try {
                 const devices = await Html5Qrcode.getCameras();
                 if (devices && devices.length > 0) {
-                    const backCameras = devices.filter(d => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('후면'));
+                    // 초광각(ultra-wide)이나 망원(telephoto)을 제외한 메인 렌즈 우선 매칭
+                    let backCameras = devices.filter(d => {
+                        const label = d.label.toLowerCase();
+                        return (label.includes('back') || label.includes('후면') || label.includes('rear')) 
+                               && !label.includes('wide') && !label.includes('zoom');
+                    });
+                    
+                    // 필터링 실패 시 일반 후면 카메라 선택
+                    if (backCameras.length === 0) {
+                        backCameras = devices.filter(d => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('후면'));
+                    }
+
                     const targets = backCameras.length > 0 ? backCameras : devices;
                     
                     let started = false;
                     for (const device of targets) {
                         try {
-                            await html5QrCode.start(device.id, config, onScanSuccess);
-                            started = true; 
+                            // 디바이스 ID 조합으로 스트림 실행
+                            await html5QrCode.start({ deviceId: { exact: device.id } }, config, onScanSuccess);
+                            started = true;
                             break;
-                        } catch (e) { continue; }
+                        } catch (e) { 
+                            continue; 
+                        }
                     }
-                    if (!started) throw new Error("Hardware initialization failed.");
+                    
+                    if (started) {
+                        applyFocusOptimization();
+                        return;
+                    }
                 }
             } catch (finalErr) {
-                alert("카메라를 시작할 수 없습니다. 권한 설정이나 HTTPS 환경을 확인하세요.");
-                location.reload();
+                console.error("하드웨어 탐색 실패", finalErr);
             }
+
+            // 모든 단계 실패 시 안내
+            alert("카메라를 활성화할 수 없습니다. HTTPS 보안 연결 상태와 카메라 권한을 확인해 주세요.");
+            location.reload();
         });
 
+        // 카메라 실행 직후 하드웨어 레벨의 연속 오토포커스 주입 함수
+        function applyFocusOptimization() {
+            setTimeout(() => {
+                if (html5QrCode.isScanning) {
+                    html5QrCode.applyVideoConstraints({
+                        focusMode: "continuous",
+                        advanced: [{ autoFocus: "continuous" }]
+                    }).catch(e => console.warn("하드웨어 오토포커스 제약 무시됨 (구형 기기 환경)", e));
+                }
+            }, 800); // 스트림이 안정화되는 충분한 시간 확보 후 주입
+        }
+
         stopBtn.addEventListener('click', () => {
-            html5QrCode.isScanning ? html5QrCode.stop().then(() => location.reload()) : location.reload();
+            if (html5QrCode.isScanning) {
+                html5QrCode.stop().then(() => location.reload()).catch(() => location.reload());
+            } else {
+                location.reload();
+            }
         });
     </script>
 </body>
