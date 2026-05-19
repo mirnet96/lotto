@@ -5,11 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Universal QR Scanner</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/html5-qrcode"></script>
+    <!-- 고질적인 인식 오류가 있는 html5-qrcode 대신, 순수 픽셀 분석 엔진인 jsQR 사용 -->
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     <style>
-        #qr-reader { border: none !important; }
-        #qr-reader video { object-fit: cover !important; border-radius: 1.5rem; width: 100% !important; height: 100% !important; }
-        #qr-reader img { display: none !important; }
         .scan-line {
             position: absolute; width: 100%; height: 2px;
             background: rgba(79, 70, 229, 0.6); animation: scan 2s linear infinite;
@@ -31,7 +29,10 @@
 
     <div id="scanner-ui" class="hidden w-full max-w-md">
         <div class="relative bg-black rounded-3xl overflow-hidden aspect-square border-4 border-white">
-            <div id="qr-reader" class="w-full h-full"></div>
+            <!-- 성능과 호환성을 위해 표준 HTML5 비디오 태그 직접 사용 -->
+            <video id="webcam" autoplay playsinline muted class="w-full h-full object-cover rounded-2xl"></video>
+            <canvas id="hidden-canvas" class="hidden"></canvas>
+            
             <div class="absolute inset-0 pointer-events-none flex items-center justify-center">
                 <div class="w-64 h-64 border-2 border-indigo-400/30 rounded-2xl relative overflow-hidden shadow-[0_0_0_999px_rgba(0,0,0,0.5)]">
                     <div class="absolute -top-1 -left-1 w-8 h-8 border-t-4 border-l-4 border-indigo-500 rounded-tl-lg"></div>
@@ -50,111 +51,95 @@
         <button onclick="location.reload()" class="w-full bg-slate-900 text-white py-4 rounded-xl font-bold">다시 스캔</button>
     </div>
 
+    <script>
+        const welcomeUI = document.getElementById('welcome-ui');
+        const scannerUI = document.getElementById('scanner-ui');
+        const resultUI = document.getElementById('result-ui');
+        const resultText = document.getElementById('qr-result');
+        const startBtn = document.getElementById('start-btn');
+        const stopBtn = document.getElementById('stop-btn');
+        
+        const video = document.getElementById('webcam');
+        const canvas = document.getElementById('hidden-canvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        
+        let localStream = null;
+        let animationFrameId = null;
 
+        // 성공 처리
+        function onScanSuccess(text) {
+            if (navigator.vibrate) navigator.vibrate(100);
+            
+            // 모든 스트림 및 루프 종료
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+            }
 
-<script>
-    const welcomeUI = document.getElementById('welcome-ui');
-    const scannerUI = document.getElementById('scanner-ui');
-    const resultUI = document.getElementById('result-ui');
-    const resultText = document.getElementById('qr-result');
-    const startBtn = document.getElementById('start-btn');
-    const stopBtn = document.getElementById('stop-btn');
-
-    let html5QrCode = new Html5Qrcode("qr-reader");
-
-    function onScanSuccess(text) {
-        if (navigator.vibrate) navigator.vibrate(100);
-        html5QrCode.stop().then(() => {
             scannerUI.classList.add('hidden');
             resultUI.classList.remove('hidden');
             resultText.innerText = text;
-        }).catch(err => console.error("Stop failed", err));
-    }
-
-    startBtn.addEventListener('click', async () => {
-        welcomeUI.classList.add('hidden');
-        scannerUI.classList.remove('hidden');
-
-        // S25 초점 문제 해결의 핵심: 
-        // 1. QR 스캔 박스 비율을 기존 65%에서 75%로 확장 (더 멀리서 찍을 수 있도록 유도)
-        // 2. 고화소 카메라 부하를 줄이고 인식을 빠르게 하기 위해 해상도를 가볍게 세팅
-        const config = {
-            fps: 24,
-            qrbox: (vw, vh) => {
-                const s = Math.min(vw, vh) * 0.75; 
-                return { width: s, height: s };
-            },
-            videoConstraints: {
-                facingMode: "environment",
-                // S25의 5천만/2억 화소 스트림 대신, QR 인식이 가장 잘 되는 표준 HD 해상도로 제한
-                width: { ideal: 1280 },
-                height: { ideal: 720 }
-            }
-        };
-
-        // [방법 1] 라이브러리 표준 'environment' 문자열로 시작 (S8 및 일반 기기 초고속 호환)
-        try {
-            await html5QrCode.start("environment", config, onScanSuccess);
-            return;
-        } catch (err) {
-            console.warn("1단계 기본 모드 실패, 멀티 렌즈 직접 추출 전환...", err);
         }
 
-        // [방법 2] S25+ 등 멀티 렌즈 장치의 ID를 직접 분석하여 매칭
-        try {
-            const devices = await Html5Qrcode.getCameras();
-            if (devices && devices.length > 0) {
-                let backCameras = devices.filter(d => {
-                    const label = d.label.toLowerCase();
-                    return label.includes('back') || label.includes('후면') || label.includes('rear');
+        // 루프 돌며 실시간 픽셀 스캔 진행
+        function scanTick() {
+            if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                // S25의 초고화질 화면을 인식에 가장 유리한 720p 크기의 캔버스로 리사이징 렌더링
+                canvas.width = 1280;
+                canvas.height = 720;
+                
+                // 비디오 화면을 캔버스에 그리기
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                
+                // 픽셀 데이터 추출
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                
+                // jsQR 엔진으로 QR 매칭 시도
+                const code = jsQR(imageData.data, imageData.width, imageData.height, {
+                    inversionAttempts: "dontInvert",
                 });
 
-                // 멀티 렌즈 기기일 때만 초광각/망원 필터링
-                if (backCameras.length > 1) {
-                    const filtered = backCameras.filter(d => {
-                        const label = d.label.toLowerCase();
-                        return !label.includes('ultra') && !label.includes('zoom') && !label.includes('tele');
-                    });
-                    if (filtered.length > 0) backCameras = filtered;
-                }
-
-                const targets = backCameras.length > 0 ? backCameras : devices;
-                
-                for (const device of targets) {
-                    try {
-                        // 디바이스 ID 조합으로 구동할 때도 HD 해상도 제약 조건 유지
-                        const idConfig = {
-                            fps: 24,
-                            qrbox: config.qrbox,
-                            videoConstraints: {
-                                deviceId: { exact: device.id },
-                                width: { ideal: 1280 },
-                                height: { ideal: 720 }
-                            }
-                        };
-                        await html5QrCode.start(device.id, idConfig, onScanSuccess);
-                        return;
-                    } catch (e) {
-                        continue;
-                    }
+                if (code && code.data) {
+                    onScanSuccess(code.data);
+                    return;
                 }
             }
-        } catch (finalErr) {
-            console.error("하드웨어 탐색 전체 실패", finalErr);
+            animationFrameId = requestAnimationFrame(scanTick);
         }
 
-        alert("카메라를 시작할 수 없습니다. 권한과 HTTPS 환경을 확인해 주세요.");
-        location.reload();
-    });
+        startBtn.addEventListener('click', async () => {
+            welcomeUI.classList.add('hidden');
+            scannerUI.classList.remove('hidden');
 
-    stopBtn.addEventListener('click', () => {
-        if (html5QrCode.isScanning) {
-            html5QrCode.stop().then(() => location.reload()).catch(() => location.reload());
-        } else {
+            // S8과 S25 모두 무난하게 호환되는 최적화 조건
+            const constraints = {
+                audio: false,
+                video: {
+                    facingMode: "environment",
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 }
+                }
+            };
+
+            try {
+                // 네이티브 미디어 스트림 직접 연결
+                localStream = await navigator.mediaDevices.getUserMedia(constraints);
+                video.srcObject = localStream;
+                video.setAttribute("playsinline", true);
+                video.play();
+                
+                // 스캔 분석 시작
+                animationFrameId = requestAnimationFrame(scanTick);
+            } catch (err) {
+                console.error("카메라 연결 실패", err);
+                alert("카메라를 켤 수 없습니다. 권한 혹은 HTTPS 환경을 확인해주세요.");
+                location.reload();
+            }
+        });
+
+        stopBtn.addEventListener('click', () => {
             location.reload();
-        }
-    });
-</script>
-
+        });
+    </script>
 </body>
 </html>
