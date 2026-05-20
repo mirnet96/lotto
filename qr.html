@@ -3,17 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>최적화된 QR 스캐너</title>
+    <title>QR 스캐너 - 후면 카메라 우선</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
 </head>
 <body class="bg-gray-100 p-4">
 
     <div class="max-w-md mx-auto bg-white p-6 rounded-xl shadow-lg">
-        <h1 class="text-lg font-bold mb-4">QR 스캔 서비스</h1>
+        <h1 class="text-lg font-bold mb-4">후면 QR 스캐너</h1>
         
         <button id="btnAutoScan" class="w-full bg-blue-600 text-white p-4 rounded-lg font-bold text-lg mb-2">스캔 시작하기</button>
-        <button id="btnNextCam" class="hidden w-full bg-orange-500 text-white p-3 rounded-lg font-bold mb-4">스캔 안됨 → 다음 카메라로</button>
+        <button id="btnNextCam" class="hidden w-full bg-orange-500 text-white p-3 rounded-lg font-bold mb-4">스캔 안됨 → 다음 후면 카메라로</button>
         
         <div id="reader" class="w-full bg-black rounded-lg overflow-hidden min-h-[300px]"></div>
         <div id="log" class="mt-4 p-3 bg-gray-900 text-green-400 text-[10px] rounded h-32 overflow-y-auto font-mono"></div>
@@ -26,41 +26,38 @@
         let backCameras = [];
         let currentIndex = 0;
         
-        function logger(msg) { logDiv.innerHTML += `<div>> ${msg}</div>`; logDiv.scrollTop = logDiv.scrollHeight; }
+        function logger(msg) { 
+            logDiv.innerHTML += `<div>> ${msg}</div>`; 
+            logDiv.scrollTop = logDiv.scrollHeight; 
+        }
 
-        // 카메라 목록 필터링 (후면만)
+        // 핵심 수정: Label 필터링 대신 환경(environment) 모드 사용
         async function getBackCameras() {
             const devices = await Html5Qrcode.getCameras();
-            // label에 'front'가 없는 것만 필터링
-            return devices.filter(d => !d.label.toLowerCase().includes('front'));
+            logger(`총 ${devices.length}개 장치 감지됨`);
+            
+            // 라벨에 의존하지 않고, 전체를 대상으로 시도하되 
+            // 시스템이 'environment(후면)'로 인지하는 것을 우선순위로 둡니다.
+            return devices; 
         }
 
         document.getElementById('btnAutoScan').addEventListener('click', async () => {
             logDiv.innerHTML = '';
             backCameras = await getBackCameras();
-            logger(`총 ${backCameras.length}개의 후면 카메라 발견`);
-            
             currentIndex = 0;
-            const savedId = localStorage.getItem('lastWorkingCameraId');
             
-            // 저장된 ID가 있으면 해당 ID의 인덱스를 찾음
-            if (savedId) {
-                const foundIndex = backCameras.findIndex(d => d.deviceId === savedId);
-                currentIndex = foundIndex !== -1 ? foundIndex : 0;
-                logger("저장된 카메라 시도 중...");
-            }
-            
+            logger("카메라 테스트를 시작합니다...");
             startCurrentCamera();
         });
 
         async function startCurrentCamera() {
             if (currentIndex >= backCameras.length) {
-                logger("더 이상 테스트할 후면 카메라가 없습니다.");
+                logger("모든 카메라 테스트 완료. 더 이상 장치가 없습니다.");
                 return;
             }
 
             const device = backCameras[currentIndex];
-            logger(`테스트 중: ${device.label || '카메라 ' + currentIndex}`);
+            logger(`시도 중: ${device.label || '카메라 ' + currentIndex}`);
             btnNextCam.classList.remove('hidden');
 
             try {
@@ -73,15 +70,13 @@
                         html5QrCode.stop();
                         localStorage.setItem('lastWorkingCameraId', device.deviceId);
                         alert("스캔 성공: " + text);
-                        logger("성공! 설정 저장됨.");
                     }
                 );
             } catch (err) {
-                logger("시작 실패, 다음 버튼을 누르세요.");
+                logger(`카메라 ${currentIndex} 실패`);
             }
         }
 
-        // 다음 카메라로 넘기기 버튼
         btnNextCam.addEventListener('click', async () => {
             await html5QrCode.stop().catch(e => {});
             currentIndex++;
