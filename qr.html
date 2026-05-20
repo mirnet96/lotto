@@ -12,81 +12,81 @@
     <div class="max-w-md mx-auto bg-white p-6 rounded-xl shadow-lg">
         <h1 class="text-lg font-bold mb-4">QR 스캔 서비스</h1>
         
-        <button id="btnAutoScan" class="w-full bg-blue-600 text-white p-4 rounded-lg font-bold text-lg mb-4">스캔 시작하기</button>
+        <button id="btnAutoScan" class="w-full bg-blue-600 text-white p-4 rounded-lg font-bold text-lg mb-2">스캔 시작하기</button>
+        <button id="btnNextCam" class="hidden w-full bg-orange-500 text-white p-3 rounded-lg font-bold mb-4">스캔 안됨 → 다음 카메라로</button>
         
         <div id="reader" class="w-full bg-black rounded-lg overflow-hidden min-h-[300px]"></div>
-        
         <div id="log" class="mt-4 p-3 bg-gray-900 text-green-400 text-[10px] rounded h-32 overflow-y-auto font-mono"></div>
     </div>
 
     <script>
         const html5QrCode = new Html5Qrcode("reader");
         const logDiv = document.getElementById('log');
+        const btnNextCam = document.getElementById('btnNextCam');
         let backCameras = [];
+        let currentIndex = 0;
         
         function logger(msg) { logDiv.innerHTML += `<div>> ${msg}</div>`; logDiv.scrollTop = logDiv.scrollHeight; }
 
+        // 카메라 목록 필터링 (후면만)
+        async function getBackCameras() {
+            const devices = await Html5Qrcode.getCameras();
+            // label에 'front'가 없는 것만 필터링
+            return devices.filter(d => !d.label.toLowerCase().includes('front'));
+        }
+
         document.getElementById('btnAutoScan').addEventListener('click', async () => {
             logDiv.innerHTML = '';
-            logger("카메라 장치 검색 중...");
+            backCameras = await getBackCameras();
+            logger(`총 ${backCameras.length}개의 후면 카메라 발견`);
             
-            const devices = await Html5Qrcode.getCameras();
-            // 후면 카메라만 필터링 (label에 back 포함)
-            backCameras = devices.filter(d => d.label.toLowerCase().includes('back'));
-            
-            // 기존 성공 기록 확인
+            currentIndex = 0;
             const savedId = localStorage.getItem('lastWorkingCameraId');
+            
+            // 저장된 ID가 있으면 해당 ID의 인덱스를 찾음
             if (savedId) {
-                logger("기존 성공 카메라로 즉시 시도...");
-                tryScan(savedId);
-            } else {
-                tryAllCameras(0);
+                const foundIndex = backCameras.findIndex(d => d.deviceId === savedId);
+                currentIndex = foundIndex !== -1 ? foundIndex : 0;
+                logger("저장된 카메라 시도 중...");
             }
+            
+            startCurrentCamera();
         });
 
-        async function tryAllCameras(index) {
-            if (index >= backCameras.length) {
-                logger("사용 가능한 후면 카메라를 찾지 못했습니다.");
+        async function startCurrentCamera() {
+            if (currentIndex >= backCameras.length) {
+                logger("더 이상 테스트할 후면 카메라가 없습니다.");
                 return;
             }
-            
-            const deviceId = backCameras[index].deviceId;
-            logger(`카메라 ${index+1}/${backCameras.length} 테스트 중...`);
-            
+
+            const device = backCameras[currentIndex];
+            logger(`테스트 중: ${device.label || '카메라 ' + currentIndex}`);
+            btnNextCam.classList.remove('hidden');
+
             try {
+                if (html5QrCode.isScanning) await html5QrCode.stop();
+                
                 await html5QrCode.start(
-                    { deviceId: { exact: deviceId } },
+                    { deviceId: { exact: device.deviceId } },
                     { fps: 5, qrbox: 250 },
                     (text) => {
                         html5QrCode.stop();
-                        localStorage.setItem('lastWorkingCameraId', deviceId);
+                        localStorage.setItem('lastWorkingCameraId', device.deviceId);
                         alert("스캔 성공: " + text);
                         logger("성공! 설정 저장됨.");
                     }
                 );
             } catch (err) {
-                logger(`카메라 ${index+1} 실패, 다음 카메라 시도...`);
-                await html5QrCode.stop().catch(e => {});
-                tryAllCameras(index + 1);
+                logger("시작 실패, 다음 버튼을 누르세요.");
             }
         }
 
-        async function tryScan(deviceId) {
-            try {
-                await html5QrCode.start(
-                    { deviceId: { exact: deviceId } },
-                    { fps: 5, qrbox: 250 },
-                    (text) => {
-                        html5QrCode.stop();
-                        alert("스캔 성공: " + text);
-                    }
-                );
-            } catch (err) {
-                logger("저장된 카메라 실패, 전체 목록 테스트 시작...");
-                localStorage.removeItem('lastWorkingCameraId');
-                tryAllCameras(0);
-            }
-        }
+        // 다음 카메라로 넘기기 버튼
+        btnNextCam.addEventListener('click', async () => {
+            await html5QrCode.stop().catch(e => {});
+            currentIndex++;
+            startCurrentCamera();
+        });
     </script>
 </body>
 </html>
