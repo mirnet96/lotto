@@ -19,69 +19,57 @@
         <div id="log" class="mt-4 p-3 bg-gray-900 text-green-400 text-[10px] rounded h-32 overflow-y-auto font-mono"></div>
     </div>
 
-    <script>
-        const html5QrCode = new Html5Qrcode("reader");
-        const logDiv = document.getElementById('log');
-        const btnNextCam = document.getElementById('btnNextCam');
-        let backCameras = [];
-        let currentIndex = 0;
+<script>
+    const html5QrCode = new Html5Qrcode("reader");
+    let backCameras = [];
+    let currentIndex = 0;
+
+    // 1. 카메라 목록을 가져와서 후면 카메라만 버튼으로 생성
+    document.getElementById('btnAutoScan').addEventListener('click', async () => {
+        const devices = await Html5Qrcode.getCameras();
         
-        function logger(msg) { 
-            logDiv.innerHTML += `<div>> ${msg}</div>`; 
-            logDiv.scrollTop = logDiv.scrollHeight; 
-        }
+        // [핵심] 1. 라벨에 'back'이 들어간 것 우선, 
+        // 2. 만약 하나도 없으면 전체를 다 가져와서 사용자가 직접 고르게 함 (안전장치)
+        backCameras = devices.filter(d => 
+            d.label.toLowerCase().includes('back') || 
+            d.label.toLowerCase().includes('후면') ||
+            devices.length <= 2 // 카메라가 2개뿐이면 둘 다 후보로 등록
+        );
+        
+        if(backCameras.length === 0) backCameras = devices;
 
-        // 핵심 수정: Label 필터링 대신 환경(environment) 모드 사용
-        async function getBackCameras() {
-            const devices = await Html5Qrcode.getCameras();
-            logger(`총 ${devices.length}개 장치 감지됨`);
+        logger(`후면 카메라 ${backCameras.length}개 찾음. 스캔 시작...`);
+        startScanByIndex(0);
+    });
+
+    async function startScanByIndex(index) {
+        if(index >= backCameras.length) return logger("더 이상 카메라가 없습니다.");
+        
+        currentIndex = index;
+        const device = backCameras[index];
+        
+        try {
+            if (html5QrCode.isScanning) await html5QrCode.stop();
             
-            // 라벨에 의존하지 않고, 전체를 대상으로 시도하되 
-            // 시스템이 'environment(후면)'로 인지하는 것을 우선순위로 둡니다.
-            return devices; 
+            await html5QrCode.start(
+                { deviceId: { exact: device.deviceId } },
+                { fps: 5, qrbox: 250 },
+                (text) => {
+                    html5QrCode.stop();
+                    localStorage.setItem('lastWorkingCameraId', device.deviceId);
+                    alert("성공: " + text);
+                }
+            );
+            logger(`현재 카메라: ${device.label || '카메라 ' + index}`);
+        } catch (e) {
+            logger(`카메라 ${index}번 실패`);
         }
+    }
 
-        document.getElementById('btnAutoScan').addEventListener('click', async () => {
-            logDiv.innerHTML = '';
-            backCameras = await getBackCameras();
-            currentIndex = 0;
-            
-            logger("카메라 테스트를 시작합니다...");
-            startCurrentCamera();
-        });
-
-        async function startCurrentCamera() {
-            if (currentIndex >= backCameras.length) {
-                logger("모든 카메라 테스트 완료. 더 이상 장치가 없습니다.");
-                return;
-            }
-
-            const device = backCameras[currentIndex];
-            logger(`시도 중: ${device.label || '카메라 ' + currentIndex}`);
-            btnNextCam.classList.remove('hidden');
-
-            try {
-                if (html5QrCode.isScanning) await html5QrCode.stop();
-                
-                await html5QrCode.start(
-                    { deviceId: { exact: device.deviceId } },
-                    { fps: 5, qrbox: 250 },
-                    (text) => {
-                        html5QrCode.stop();
-                        localStorage.setItem('lastWorkingCameraId', device.deviceId);
-                        alert("스캔 성공: " + text);
-                    }
-                );
-            } catch (err) {
-                logger(`카메라 ${currentIndex} 실패`);
-            }
-        }
-
-        btnNextCam.addEventListener('click', async () => {
-            await html5QrCode.stop().catch(e => {});
-            currentIndex++;
-            startCurrentCamera();
-        });
-    </script>
+    // 다음 카메라 버튼 클릭 시
+    document.getElementById('btnNextCam').addEventListener('click', () => {
+        startScanByIndex(currentIndex + 1);
+    });
+</script>
 </body>
 </html>
