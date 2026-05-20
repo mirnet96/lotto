@@ -3,71 +3,84 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QR 디버깅 테스트</title>
-    <style>
-        body { font-family: sans-serif; padding: 10px; }
-        #log { 
-            background: #000; color: #0f0; padding: 10px; 
-            height: 200px; overflow-y: auto; font-size: 12px; margin-top: 10px;
-        }
-        #video-container { margin-top: 10px; }
-        video { width: 100%; max-width: 400px; border: 1px solid #ccc; }
-    </style>
+    <title>QR 카메라 테스트 도구</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
 </head>
-<body>
+<body class="bg-gray-100 p-4">
 
-<h3>카메라 디버깅 콘솔</h3>
-<button onclick="startCamera()">카메라 테스트 시작</button>
-<div id="log"></div>
+    <div class="max-w-md mx-auto bg-white p-6 rounded-xl shadow-lg">
+        <h1 class="text-xl font-bold mb-4">카메라 선택 테스트</h1>
+        
+        <button id="btnInit" class="w-full bg-blue-600 text-white p-3 rounded-lg mb-4 font-bold">1. 카메라 목록 가져오기</button>
+        
+        <div id="cameraList" class="space-y-2 mb-6"></div>
 
-<div id="video-container">
-    <video id="preview" autoplay playsinline></video>
-</div>
+        <div id="reader" class="w-full bg-black rounded-lg overflow-hidden"></div>
 
-<script>
-    const logDiv = document.getElementById('log');
-    const video = document.getElementById('preview');
+        <div class="mt-6">
+            <h2 class="text-sm font-semibold text-gray-500 mb-2">DEBUG LOG</h2>
+            <div id="log" class="bg-gray-900 text-green-400 p-4 h-48 overflow-y-auto text-xs rounded-lg font-mono"></div>
+        </div>
+    </div>
 
-    function logger(msg) {
-        const div = document.createElement('div');
-        div.textContent = `> ${msg}`;
-        logDiv.appendChild(div);
-        logDiv.scrollTop = logDiv.scrollHeight;
-        console.log(msg); // 여전히 콘솔에도 남김
-    }
+    <script>
+        const logDiv = document.getElementById('log');
+        const cameraListDiv = document.getElementById('cameraList');
+        let html5QrCode = new Html5Qrcode("reader");
 
-    async function startCamera() {
-        logDiv.innerHTML = ''; // 로그 초기화
-        logger("카메라 접근 시도 중...");
+        function logger(msg) {
+            const div = document.createElement('div');
+            div.textContent = `> ${msg}`;
+            logDiv.appendChild(div);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
 
-        try {
-            // 1. 권한 먼저 확인
-            const stream = await navigator.mediaDevices.getUserMedia({ 
-                video: { facingMode: "environment" } 
-            });
-            
-            logger("권한 획득 성공!");
-            video.srcObject = stream;
+        // 1. 카메라 목록 호출
+        document.getElementById('btnInit').addEventListener('click', async () => {
+            try {
+                // 권한 요청
+                await Html5Qrcode.getCameras();
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const videoDevices = devices.filter(d => d.kind === 'videoinput');
+                
+                cameraListDiv.innerHTML = '';
+                videoDevices.forEach(device => {
+                    const btn = document.createElement('button');
+                    btn.className = "w-full bg-gray-200 p-3 rounded border border-gray-300 text-sm active:bg-gray-300";
+                    btn.textContent = device.label || `카메라 ${device.deviceId.slice(0, 5)}`;
+                    btn.onclick = () => startScan(device.deviceId);
+                    cameraListDiv.appendChild(btn);
+                });
+                logger("목록 로드 완료. 원하는 카메라를 클릭하세요.");
+            } catch (err) {
+                logger(`에러: ${err.message}`);
+            }
+        });
 
-            // 2. 장치 확인
-            const devices = await navigator.mediaDevices.enumerateDevices();
-            const videoDevices = devices.filter(d => d.kind === 'videoinput');
-            logger(`감지된 카메라 수: ${videoDevices.length}`);
-            
-            videoDevices.forEach((d, i) => {
-                logger(`장치 ${i}: ${d.label || '알 수 없는 장치'}`);
-            });
-
-        } catch (err) {
-            logger(`에러 발생: ${err.name}`);
-            logger(`에러 메시지: ${err.message}`);
-            
-            // OverconstrainedError 상세 확인
-            if (err.name === 'OverconstrainedError') {
-                logger("힌트: 해상도나 제약 조건이 기기 사양과 맞지 않습니다.");
+        // 2. 특정 카메라로 스캔 시작
+        async function startScan(deviceId) {
+            logger(`시도 중: ${deviceId}`);
+            try {
+                if (html5QrCode.isScanning) await html5QrCode.stop();
+                
+                await html5QrCode.start(
+                    { deviceId: { exact: deviceId } },
+                    { fps: 10, qrbox: 250 },
+                    (decodedText) => {
+                        alert(`QR 발견: ${decodedText}`);
+                        logger(`성공: ${decodedText}`);
+                    }
+                );
+                logger("스캐너 시작됨");
+            } catch (err) {
+                logger(`스캔 에러: ${err.message}`);
+                // S25 등에서 OverconstrainedError 발생 시 힌트
+                if(err.name === 'OverconstrainedError') {
+                    logger("힌트: 이 카메라 렌즈는 해당 해상도를 지원하지 않을 수 있습니다.");
+                }
             }
         }
-    }
-</script>
+    </script>
 </body>
 </html>
