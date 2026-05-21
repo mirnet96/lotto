@@ -24,7 +24,6 @@
             </div>
         </div>
         
-        <!-- 카메라 스캔 영역 -->
         <div id="reader" class="w-full bg-black rounded overflow-hidden" style="min-height: 300px;"></div>
     </div>
 
@@ -32,29 +31,38 @@
         const html5QrCode = new Html5Qrcode("reader");
         const STORAGE_KEY = "last_working_camera_id";
 
-        // 카메라 목록 로드
+        // 카메라 목록 로드 및 저장된 ID 자동 선택
         async function loadCameras() {
             try {
                 const devices = await Html5Qrcode.getCameras();
                 const select = document.getElementById('cameraSelect');
+                const savedId = localStorage.getItem(STORAGE_KEY);
+                
                 select.innerHTML = '<option value="">카메라를 선택하세요</option>';
                 
+                let savedIdExists = false;
                 devices.forEach((d, index) => {
                     const option = document.createElement('option');
                     option.value = d.id;
                     option.text = d.label || `Camera ${index}`;
                     select.appendChild(option);
+                    if (d.id === savedId) savedIdExists = true;
                 });
+
+                if (savedIdExists) {
+                    select.value = savedId;
+                }
                 return devices;
             } catch (e) {
-                alert("카메라 권한을 허용해주세요.");
+                console.error("카메라 로드 오류:", e);
+                alert("카메라 권한을 확인해주세요.");
             }
         }
 
         // 초기화 버튼
         document.getElementById('btnReset').onclick = () => {
             localStorage.removeItem(STORAGE_KEY);
-            alert("저장된 카메라 설정이 초기화되었습니다.");
+            alert("설정이 초기화되었습니다.");
             location.reload();
         };
 
@@ -63,12 +71,11 @@
 
         // 스캔 시작
         document.getElementById('btnStart').onclick = async () => {
-            const selectId = document.getElementById('cameraSelect').value;
-            const savedId = localStorage.getItem(STORAGE_KEY);
-            const targetId = selectId || savedId;
+            const select = document.getElementById('cameraSelect');
+            const targetId = select.value;
 
             if (!targetId) {
-                alert("카메라를 먼저 선택하거나 목록을 새로고침하세요.");
+                alert("카메라를 먼저 선택하세요.");
                 return;
             }
 
@@ -79,13 +86,15 @@
                     { deviceId: { exact: targetId } },
                     { fps: 10, qrbox: 250 },
                     (t) => {
-                        localStorage.setItem(STORAGE_KEY, targetId); // 성공 시 저장
+                        localStorage.setItem(STORAGE_KEY, targetId); // 성공 시 ID 저장
                         alert("인식 성공: " + t);
                         html5QrCode.stop();
                     }
                 );
             } catch (e) {
-                alert("해당 카메라를 열 수 없습니다. 다른 카메라를 선택해보세요.");
+                console.error(e);
+                alert("카메라 연결 실패. 저장된 설정을 초기화하고 다시 시도하세요.");
+                localStorage.removeItem(STORAGE_KEY); // 유효하지 않은 ID 삭제
             }
         };
 
@@ -93,9 +102,9 @@
         window.onload = async () => {
             await loadCameras();
             const savedId = localStorage.getItem(STORAGE_KEY);
-            if (savedId) {
-                document.getElementById('cameraSelect').value = savedId;
-                // 필요 시 document.getElementById('btnStart').click(); 를 넣어 자동 시작 가능
+            if (savedId && document.getElementById('cameraSelect').value === savedId) {
+                // 저장된 카메라가 유효하면 즉시 스캔 시작
+                document.getElementById('btnStart').click();
             }
         };
     </script>
