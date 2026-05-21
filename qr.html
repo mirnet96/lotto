@@ -2,104 +2,39 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QR 스캐너 - 통합 제어 시스템</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
 </head>
-<body class="bg-gray-100 p-4">
-
-    <div class="max-w-md mx-auto bg-white p-6 rounded-xl shadow-lg">
-        <h1 class="text-lg font-bold mb-4">QR 스캔 설정</h1>
-        
-        <div class="flex gap-2 mb-4">
-            <button id="btnLoad" class="flex-1 bg-blue-600 text-white p-3 rounded font-bold text-sm">목록 불러오기</button>
-            <button id="btnReset" class="flex-1 bg-red-500 text-white p-3 rounded font-bold text-sm">초기화</button>
+<body class="bg-gray-50 p-4">
+    <div class="max-w-4xl mx-auto flex flex-col md:flex-row gap-4">
+        <div class="md:w-1/2 bg-white p-4 rounded-lg shadow">
+            <button id="btnInit" class="w-full bg-blue-600 text-white p-3 rounded mb-4 font-bold">카메라 목록 로드</button>
+            <div id="cameraList" class="space-y-2 mb-4"></div>
+            <div id="reader" class="w-full bg-black rounded"></div>
         </div>
-
-        <div id="cameraList" class="space-y-2 mb-4"></div>
-        <div id="reader" class="w-full bg-black rounded-lg overflow-hidden min-h-[300px]"></div>
-        <div id="log" class="mt-4 p-2 bg-gray-900 text-green-400 text-[10px] rounded h-24 overflow-y-auto font-mono"></div>
+        <div class="md:w-1/2 bg-gray-900 text-green-400 p-4 rounded-lg h-96 overflow-y-auto font-mono text-xs" id="log"></div>
     </div>
 
     <script>
+        const log = (m) => { document.getElementById('log').innerHTML += `<div>> ${m}</div>`; console.log(m); };
         const html5QrCode = new Html5Qrcode("reader");
-        const logDiv = document.getElementById('log');
-        
-        function logger(msg) { 
-            logDiv.innerHTML += `<div>> ${msg}</div>`; 
-            logDiv.scrollTop = logDiv.scrollHeight; 
-        }
 
-        // 1. 초기화 (설정 삭제 및 중지)
-        document.getElementById('btnReset').onclick = async () => {
-            if (html5QrCode.isScanning) await html5QrCode.stop().catch(() => {});
-            localStorage.removeItem('lastWorkingCameraId');
+        document.getElementById('btnInit').onclick = async () => {
+            const devs = await Html5Qrcode.getCameras();
             document.getElementById('cameraList').innerHTML = '';
-            logger("설정 삭제됨. 목록을 다시 불러오세요.");
-        };
-
-        // 2. 목록 불러오기 및 자동 시작
-        document.getElementById('btnLoad').onclick = async () => {
-            const devices = await Html5Qrcode.getCameras();
-            const cameraListDiv = document.getElementById('cameraList');
-            cameraListDiv.innerHTML = '';
-
-            const savedId = localStorage.getItem('lastWorkingCameraId');
-            
-            // 저장된 카메라가 있으면 즉시 자동 시작
-            if (savedId && devices.some(d => d.deviceId === savedId)) {
-                logger("저장된 카메라 자동 시작...");
-                startScan(savedId);
-                return;
-            }
-
-            // 카메라 목록 버튼 생성
-            devices.forEach((d, i) => {
+            devs.filter(d => !d.label.toLowerCase().includes('front')).forEach(d => {
                 const btn = document.createElement('button');
-                // S8 대응: 라벨에 상관없이 버튼 생성
-                btn.className = "w-full bg-gray-100 p-3 rounded border text-sm hover:bg-gray-200";
-                btn.textContent = `카메라 ${i + 1}: ${d.label || '기기 ' + i}`;
-                btn.onclick = () => startScan(d.deviceId);
-                cameraListDiv.appendChild(btn);
+                btn.className = "w-full bg-gray-200 p-2 text-sm rounded";
+                btn.textContent = d.label;
+                btn.onclick = () => start(d.deviceId);
+                document.getElementById('cameraList').appendChild(btn);
             });
-            logger("카메라를 선택하세요.");
         };
 
-        // 3. 스캔 시작 (후면 강제 지정 및 오류 복구)
-        async function startScan(deviceId) {
-            if (html5QrCode.isScanning) await html5QrCode.stop().catch(() => {});
-            
-            const config = {
-                fps: 5,
-                qrbox: 250,
-                videoConstraints: {
-                    deviceId: { exact: deviceId },
-                    facingMode: { ideal: "environment" } // 후면 카메라 우선 시도
-                }
-            };
-
-            try {
-                await html5QrCode.start(
-                    { deviceId: { exact: deviceId } },
-                    config,
-                    (text) => {
-                        html5QrCode.stop();
-                        localStorage.setItem('lastWorkingCameraId', deviceId);
-                        alert("인식 성공: " + text);
-                    }
-                );
-                logger("시작 성공: " + deviceId.slice(0, 8));
-            } catch (e) {
-                logger("오류: " + e.message);
-                // 오류 시 제약 없이 다시 시도 (Fallback)
-                await html5QrCode.start({ deviceId: { exact: deviceId } }, { fps: 5, qrbox: 250 }, (text) => {
-                    html5QrCode.stop();
-                    localStorage.setItem('lastWorkingCameraId', deviceId);
-                    alert("인식 성공: " + text);
-                }).catch(err => logger("최종 실패: " + err.message));
-            }
-        }
+        const start = async (id) => {
+            if(html5QrCode.isScanning) await html5QrCode.stop();
+            html5QrCode.start({deviceId: {exact: id}}, {fps: 5, qrbox: 250}, (t) => alert("성공: "+t)).catch(e => log(e.message));
+        };
     </script>
 </body>
 </html>
