@@ -39,6 +39,7 @@
                 );
 
                 backCameras.forEach((d) => {
+                    alert( JSON.stringify( d ) );
                     const option = document.createElement('option');
                     option.value = d.id;
                     option.text = d.label || "후면 카메라";
