@@ -21,10 +21,10 @@ function _resetReaderEl() {
 
 function _camEmoji(label) {
     const l = (label || '').toLowerCase();
-    if (l.includes('front') || l.includes('ì „ë©´') || l.includes('user')) return 'í ¾í´³';
-    if (l.includes('tele')  || l.includes('ë§ì›'))                        return 'í ½í´­';
-    if (l.includes('wide')  || l.includes('ultra') || l.includes('ì´ˆê´‘ê°')) return 'í ¼í¼';
-    return 'í ½í³¸';
+    if (l.includes('front') || l.includes('ì „ë©´') || l.includes('user')) return 'ğŸ¤³';
+    if (l.includes('tele')  || l.includes('ë§ì›'))                        return 'ğŸ”­';
+    if (l.includes('wide')  || l.includes('ultra') || l.includes('ì´ˆê´‘ê°')) return 'ğŸŒ';
+    return 'ğŸ“¸';
 }
 
 async function _renderCameraSelector() {
@@ -46,9 +46,9 @@ async function _renderCameraSelector() {
 
     wrap.innerHTML = `
         <div style="margin-bottom:12px;">
-            <div class="cam-selector-label">í ½í³· ì¹´ë©”ë¼ ì„ íƒ</div>
+            <div class="cam-selector-label">ğŸ“· ì¹´ë©”ë¼ ì„ íƒ</div>
             <div class="cam-selector-inner">
-                <span style="font-size:18px;flex-shrink:0;">í ¼í¾¥</span>
+                <span style="font-size:18px;flex-shrink:0;">ğŸ¥</span>
                 <select id="cam-select"
                     style="flex:1;border:none;outline:none;background:transparent;font-family:inherit;font-size:13px;color:var(--text);cursor:pointer;"
                     onchange="onCameraChange(this.value)">
@@ -162,7 +162,7 @@ async function startCamera() {
         document.getElementById('reader').style.display = 'block';
         if (guide) guide.classList.add('active');
 
-        statusEl.textContent = 'í ½í¿¢ QRì½”ë“œë¥¼ ë„¤ëª¨ ì•ˆì— ë§ì¶°ì£¼ì„¸ìš”';
+        statusEl.textContent = 'ğŸŸ¢ QRì½”ë“œë¥¼ ë„¤ëª¨ ì•ˆì— ë§ì¶°ì£¼ì„¸ìš”';
         statusEl.className   = 'ok';
 
         btn.className = 'btn-cam-stop';
@@ -200,7 +200,7 @@ async function stopCamera() {
     statusEl.className   = '';
 
     btn.className = 'btn-cam-start';
-    btn.innerHTML = '<span style="font-size:20px">í ½í³·</span><span>ì¹´ë©”ë¼ ì‹œì‘í•˜ê¸°</span>';
+    btn.innerHTML = '<span style="font-size:20px">ğŸ“·</span><span>ì¹´ë©”ë¼ ì‹œì‘í•˜ê¸°</span>';
 }
 
 /* â•â•â• QR ê²°ê³¼ â•â•â• */
@@ -238,7 +238,7 @@ function handleQRResult(data) {
         statusEl.textContent = `âœ… ${scannedNums.length}ê°œ ë²ˆí˜¸ ìŠ¤ìº” ì™„ë£Œ`;
         statusEl.className   = 'ok';
 
-        if (typeof toast === 'function') toast(`í ¼í¾¯ ${scannedNums.length}ê°œ ë²ˆí˜¸ ì¸ì‹`);
+        if (typeof toast === 'function') toast(`ğŸ¯ ${scannedNums.length}ê°œ ë²ˆí˜¸ ì¸ì‹`);
 
     } catch (e) {
         const statusEl = document.getElementById('cam-status');
