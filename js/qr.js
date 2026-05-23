@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════════
-    js/qr.js — 다크 테마 + S25+ 멀티카메라 수동 선택
+   js/qr.js — S25+ 멀티카메라 + 인식률 최대화
    ══════════════════════════════════════════════════ */
 
 let html5QrCode = null;
@@ -14,8 +14,7 @@ function _resetReaderEl() {
     if (!old) return;
     const fresh = document.createElement('div');
     fresh.id    = 'reader';
-    fresh.style.width = '100%';
-    fresh.style.backgroundColor = '#060D1A';
+    fresh.style.cssText = 'width:100%;height:100%;background:#060D1A;';
     old.parentNode.replaceChild(fresh, old);
 }
 
@@ -45,12 +44,14 @@ async function _renderCameraSelector() {
     }).join('');
 
     wrap.innerHTML = `
-        <div style="margin-bottom:12px;">
-            <div class="cam-selector-label">📷 카메라 선택</div>
-            <div class="cam-selector-inner">
-                <span style="font-size:18px;flex-shrink:0;">🎥</span>
+        <div style="margin-bottom:10px;">
+            <div style="font-size:10px;color:#64748B;font-weight:700;letter-spacing:.6px;text-transform:uppercase;margin-bottom:5px;padding-left:2px;">
+                📷 카메라 선택
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;background:#1A2744;border:1.5px solid rgba(255,255,255,.09);border-radius:13px;padding:10px 14px;">
+                <span style="font-size:16px;flex-shrink:0;">🎥</span>
                 <select id="cam-select"
-                    style="flex:1;border:none;outline:none;background:transparent;font-family:inherit;font-size:13px;color:var(--text);cursor:pointer;"
+                    style="flex:1;border:none;outline:none;background:transparent;font-family:inherit;font-size:13px;color:#F1F5F9;cursor:pointer;"
                     onchange="onCameraChange(this.value)">
                     ${options}
                 </select>
@@ -95,24 +96,61 @@ function _getSortedBackList() {
     return backCams.length > 0 ? backCams : cameraList;
 }
 
-/* ═══ 시작 / 정지 ═══ */
+/* ── 뷰파인더 실제 크기 기반 qrbox 계산 ── */
+function _calcQrbox() {
+    const vf = document.querySelector('.viewfinder');
+    if (!vf) return { width: 280, height: 280 };
+    const w = vf.clientWidth  || 300;
+    const h = vf.clientHeight || 300;
+    /* 짧은 변의 85%를 스캔 영역으로 */
+    const size = Math.floor(Math.min(w, h) * 0.85);
+    return { width: size, height: size };
+}
+
+/* ══════════════ 시작 / 정지 ══════════════ */
 async function toggleCamera() {
     camActive ? await stopCamera() : await startCamera();
 }
 
+/* 버튼 UI 상태 업데이트 */
+function _setBtnState(isActive) {
+    const btn = document.getElementById('cam-toggle-btn');
+    if (!btn) return;
+    if (isActive) {
+        btn.style.cssText = [
+            'width:100%','display:flex','align-items:center','justify-content:center',
+            'gap:8px','padding:14px 0','border-radius:16px','cursor:pointer',
+            'font-family:inherit','font-size:14px','font-weight:700',
+            'border:1.5px solid rgba(239,68,68,.4)',
+            'background:rgba(239,68,68,.12)','color:#EF4444',
+            'margin-bottom:10px','transition:background .12s',
+        ].join(';');
+        btn.innerHTML = '<span style="font-size:18px;">⏹️</span><span>카메라 중지</span>';
+    } else {
+        btn.style.cssText = [
+            'width:100%','display:flex','align-items:center','justify-content:center',
+            'gap:8px','padding:14px 0','border-radius:16px','cursor:pointer',
+            'font-family:inherit','font-size:14px','font-weight:700',
+            'border:none','color:#fff',
+            'background:linear-gradient(135deg,#3B82F6,#1D4ED8)',
+            'box-shadow:0 4px 18px rgba(59,130,246,.3)',
+            'margin-bottom:10px','transition:transform .12s',
+        ].join(';');
+        btn.innerHTML = '<span style="font-size:18px;">📷</span><span>카메라 시작하기</span>';
+    }
+}
+
 async function startCamera() {
     const statusEl    = document.getElementById('cam-status');
-    const btn         = document.getElementById('cam-toggle-btn');
     const placeholder = document.getElementById('qr-placeholder');
     const guide       = document.getElementById('scan-guide');
     const resultPanel = document.getElementById('qr-result-panel');
 
     scannedNums = [];
-    if (resultPanel) resultPanel.style.display = 'none';
+    if (resultPanel) resultPanel.classList.add('hidden');
     document.getElementById('qr-res-nums').innerHTML = '';
 
-    statusEl.textContent = '⏳ 카메라 연결 중...';
-    statusEl.className   = '';
+    if (statusEl) { statusEl.textContent = '⏳ 카메라 연결 중...'; statusEl.className = ''; }
 
     if (html5QrCode) {
         try { if (camActive) await html5QrCode.stop(); } catch (_) {}
@@ -121,10 +159,11 @@ async function startCamera() {
     }
     camActive = false;
     _resetReaderEl();
-
     await _renderCameraSelector();
 
-    const config    = { fps: 10, qrbox: { width: 220, height: 220 }, disableFlip: false };
+    /* 뷰파인더 크기 기반 qrbox — 인식률 최대화 */
+    const qrbox   = _calcQrbox();
+    const config  = { fps: 15, qrbox, disableFlip: false, aspectRatio: 1.0 };
     const onSuccess = (decodedText) => handleQRResult(decodedText);
 
     try {
@@ -158,30 +197,26 @@ async function startCamera() {
         }
 
         camActive = true;
-        placeholder.style.display = 'none';
+        if (placeholder) placeholder.style.display = 'none';
         document.getElementById('reader').style.display = 'block';
         if (guide) guide.classList.add('active');
 
-        statusEl.textContent = '🟢 QR코드를 네모 안에 맞춰주세요';
-        statusEl.className   = 'ok';
-
-        btn.className = 'btn-cam-stop';
-        btn.innerHTML = '<span style="font-size:20px">⏹️</span><span>카메라 중지</span>';
+        if (statusEl) { statusEl.textContent = '🟢 QR코드를 화면 중앙에 맞춰주세요'; statusEl.className = 'ok'; }
+        _setBtnState(true);
 
     } catch (err) {
         console.error('카메라 오류:', err);
         localStorage.removeItem(CAM_STORAGE_KEY);
-        statusEl.textContent = '❌ 카메라 시작 실패: ' + (err.message || err.name);
-        statusEl.className   = 'err';
+        if (statusEl) { statusEl.textContent = '❌ 카메라 시작 실패: ' + (err.message || err.name); statusEl.className = 'err'; }
         camActive = false;
+        _setBtnState(false);
     }
 }
 
 async function stopCamera() {
-    const btn         = document.getElementById('cam-toggle-btn');
-    const statusEl    = document.getElementById('cam-status');
     const placeholder = document.getElementById('qr-placeholder');
     const guide       = document.getElementById('scan-guide');
+    const statusEl    = document.getElementById('cam-status');
 
     camActive = false;
 
@@ -193,17 +228,13 @@ async function stopCamera() {
 
     _resetReaderEl();
     document.getElementById('reader').style.display = 'none';
-    placeholder.style.display = 'flex';
+    if (placeholder) placeholder.style.display = 'flex';
     if (guide) guide.classList.remove('active');
-
-    statusEl.textContent = '';
-    statusEl.className   = '';
-
-    btn.className = 'btn-cam-start';
-    btn.innerHTML = '<span style="font-size:20px">📷</span><span>카메라 시작하기</span>';
+    if (statusEl) { statusEl.textContent = ''; statusEl.className = ''; }
+    _setBtnState(false);
 }
 
-/* ═══ QR 결과 ═══ */
+/* ══════════════ QR 결과 처리 ══════════════ */
 function handleQRResult(data) {
     if (!camActive) return;
     camActive = false;
@@ -230,20 +261,21 @@ function handleQRResult(data) {
         const numsWrap = document.getElementById('qr-res-nums');
         numsWrap.innerHTML = '';
         scannedNums.forEach(n => {
-            if (typeof mkBall === 'function') numsWrap.appendChild(mkBall(n, 'mini-ball'));
+            if (typeof mkBall === 'function') {
+                const b = mkBall(n, 'mini-ball');
+                b.style.flexShrink = '0';
+                numsWrap.appendChild(b);
+            }
         });
-        panel.style.display = 'block';
+        panel.classList.remove('hidden');
 
         const statusEl = document.getElementById('cam-status');
-        statusEl.textContent = `✅ ${scannedNums.length}개 번호 스캔 완료`;
-        statusEl.className   = 'ok';
-
+        if (statusEl) { statusEl.textContent = `✅ ${scannedNums.length}개 번호 스캔 완료`; statusEl.className = 'ok'; }
         if (typeof toast === 'function') toast(`🎯 ${scannedNums.length}개 번호 인식`);
 
     } catch (e) {
         const statusEl = document.getElementById('cam-status');
-        statusEl.textContent = '❌ ' + e.message;
-        statusEl.className   = 'err';
+        if (statusEl) { statusEl.textContent = '❌ ' + e.message; statusEl.className = 'err'; }
     }
 }
 
@@ -255,7 +287,7 @@ function applyQRExclude() {
 
 function resetQR() {
     scannedNums = [];
-    document.getElementById('qr-result-panel').style.display = 'none';
+    document.getElementById('qr-result-panel').classList.add('hidden');
     document.getElementById('qr-res-nums').innerHTML = '';
     startCamera();
 }
