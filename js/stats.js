@@ -113,6 +113,10 @@ function renderFreqBars(freq, total) {
 
         const ball = mkBall(num, 'mini-ball');
         ball.style.flexShrink = '0';
+        ball.style.width  = '28px';
+        ball.style.height = '28px';
+        ball.style.minWidth = '28px';
+        ball.style.fontSize = '10px';
 
         const barWrap = document.createElement('div');
         barWrap.style.cssText = 'flex:1;height:10px;background:rgba(255,255,255,.06);border-radius:99px;overflow:hidden;';
@@ -229,6 +233,8 @@ function renderGapTable(lastSeen, freq, total) {
         rankEl.textContent=rank+1;
         const ball=mkBall(n,'mini-ball');
         ball.style.flexShrink='0';
+        ball.style.width='28px'; ball.style.height='28px';
+        ball.style.minWidth='28px'; ball.style.fontSize='10px';
         const barWrap=document.createElement('div');
         barWrap.style.cssText='flex:1;height:8px;background:rgba(255,255,255,.06);border-radius:99px;overflow:hidden;';
         const fill=document.createElement('div');
@@ -257,12 +263,17 @@ function renderRecentHistory() {
         meta.style.cssText='flex-shrink:0;width:44px;';
         meta.innerHTML=`<div style="font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:1px;color:#F5C842;">${d.no}회</div><div style="font-size:9.5px;color:#64748B;">${fmt.slice(5)}</div>`;
 
-        /* 볼 행 — nowrap */
+        /* 볼 행 — nowrap, clamp 크기 */
         const ballsWrap=document.createElement('div');
-        ballsWrap.style.cssText='display:flex;flex-wrap:nowrap;align-items:center;gap:3px;flex:1;overflow:hidden;';
+        ballsWrap.style.cssText='display:flex;flex-wrap:nowrap;align-items:center;gap:3px;flex:1;min-width:0;overflow:visible;';
         d.nums.forEach(n=>{
             const b=mkBall(n,'mini-ball');
             b.style.flexShrink='0';
+            b.style.flexGrow='0';
+            b.style.width='clamp(24px,calc((100vw - 210px)/5),30px)';
+            b.style.height='clamp(24px,calc((100vw - 210px)/5),30px)';
+            b.style.minWidth='0';
+            b.style.fontSize='clamp(9px,2.8vw,11px)';
             ballsWrap.appendChild(b);
         });
 

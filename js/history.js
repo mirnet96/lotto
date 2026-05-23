@@ -66,12 +66,17 @@ function renderMyHistory() {
                 'align-items:center',
                 'gap:4px',
                 'flex:1',
-                'overflow:hidden',
+                'overflow:visible',
             ].join(';');
             item.nums.forEach(n => {
                 const ball = mkBall(n, 'mini-ball');
                 ball.style.flexShrink = '0';
                 ball.style.flexGrow   = '0';
+                ball.style.minWidth   = '0';
+                /* 6개가 한 줄에 들어오도록 clamp */
+                ball.style.width      = 'clamp(26px, calc((100vw - 195px) / 6), 34px)';
+                ball.style.height     = 'clamp(26px, calc((100vw - 195px) / 6), 34px)';
+                ball.style.fontSize   = 'clamp(9px, 2.6vw, 11.5px)';
                 balls.appendChild(ball);
             });
 
