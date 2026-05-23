@@ -1,0 +1,15 @@
+{
+  "name": "LOTTO+ 로또 번호 생성기",
+  "short_name": "LOTTO+",
+  "start_url": "/lotto/",
+  "display": "standalone",
+  "background_color": "#0F172A",
+  "theme_color": "#0F172A",
+  "icons": [
+    {
+      "src": "./favicon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
