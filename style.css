@@ -43,8 +43,13 @@ body { background: var(--bg); color: var(--text); -webkit-font-smoothing: antial
     line-height: 1;
 }
 .ball {
-    width: 40px; height: 40px; min-width: 40px;
-    font-size: 13px;
+    /* 6개 + gap5px*5 + 패딩28px*2 = 최소 필요폭 계산
+       (100vw - 32px패딩 - 28px카드패딩*2 - 6px헤더) / 6 - 5px gap
+       → clamp(32px, calc((100vw - 120px)/6), 42px) */
+    width:  clamp(32px, calc((100vw - 120px) / 6), 42px);
+    height: clamp(32px, calc((100vw - 120px) / 6), 42px);
+    min-width: 0;
+    font-size: clamp(11px, calc((100vw - 120px) / 6 * 0.33), 14px);
     box-shadow: 0 3px 10px rgba(0,0,0,.4);
 }
 .mini-ball {
@@ -91,7 +96,7 @@ body { background: var(--bg); color: var(--text); -webkit-font-smoothing: antial
     background: var(--card);
     border: 1px solid rgba(255,255,255,.07);
     border-radius: var(--radius);
-    padding: 12px 14px;
+    padding: 12px 10px;   /* 좌우 패딩 축소로 볼 공간 확보 */
     margin-bottom: 10px;
     position: relative; overflow: hidden;
     transition: border-color .2s;

@@ -173,11 +173,12 @@ function generateAll(excludeNums=[]) {
         const ballsRow = document.createElement('div');
         ballsRow.style.cssText = [
             'display:flex',
-            'flex-wrap:nowrap',       /* 절대 줄바꿈 안 함 */
+            'flex-wrap:nowrap',
             'align-items:center',
-            'gap:5px',
-            'overflow:hidden',
+            'gap:clamp(3px,1.2vw,6px)',
+            'overflow:visible',
             'width:100%',
+            'min-width:0',
         ].join(';');
 
         nums.forEach(n => {
