@@ -101,12 +101,12 @@ function smartNums(excludeNums=[], weights=freqMap) {
 function getQualityBadge(score) {
     if (score>=185) return {label:'âœ¨ S+', color:'#C084FC', bg:'rgba(192,132,252,.15)', border:'rgba(192,132,252,.35)'};
     if (score>=175) return {label:'â­ Sê¸‰', color:'#F5C842', bg:'rgba(245,200,66,.12)', border:'rgba(245,200,66,.3)'};
-    if (score>=160) return {label:'í ½í´¥ Aê¸‰', color:'#22C55E', bg:'rgba(34,197,94,.1)',  border:'rgba(34,197,94,.28)'};
-    return              {label:'í ½í²§ Bê¸‰', color:'#3B82F6', bg:'rgba(59,130,246,.1)', border:'rgba(59,130,246,.28)'};
+    if (score>=160) return {label:'ğŸ”¥ Aê¸‰', color:'#22C55E', bg:'rgba(34,197,94,.1)',  border:'rgba(34,197,94,.28)'};
+    return              {label:'ğŸ’§ Bê¸‰', color:'#3B82F6', bg:'rgba(59,130,246,.1)', border:'rgba(59,130,246,.28)'};
 }
 
 const SET_LABELS = ['A','B','C','D','E'];
-const SET_EMOJIS = ['í ¼íµ','í ¼íµ‘','í ¼íµ’','í ¼íµ“','í ¼íµ”'];
+const SET_EMOJIS = ['ğŸ…','ğŸ…‘','ğŸ…’','ğŸ…“','ğŸ…”'];
 
 function applySet(nums, cardEl, btnEl) {
     const arr = getHistory();
