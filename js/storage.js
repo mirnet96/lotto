@@ -9,5 +9,5 @@ function getHistory() {
 
 function setHistory(arr) {
     localStorage.setItem(LS_KEY, JSON.stringify(arr));
-    refreshBadges();
+    //  refreshBadges();
 }

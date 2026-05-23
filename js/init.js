@@ -29,7 +29,7 @@ async function init() {
 
     generateAll();
     buildStats();
-    refreshBadges();
+    //  refreshBadges();
 }
 
 init();
