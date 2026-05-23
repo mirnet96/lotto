@@ -1,8 +1,7 @@
 /* ══════════════════════════════════════════════════
-   style.css — Tailwind로 대체 불가한 것만
+   style.css — Tailwind 보완용 (최소화)
    ══════════════════════════════════════════════════ */
 
-/* ── CSS 변수 (JS에서도 참조) ── */
 :root {
     --bg:     #0F172A;
     --bg2:    #1E293B;
@@ -22,7 +21,6 @@
     --radius: 18px;
 }
 
-/* ── 기본 ── */
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased; overflow-x: hidden; }
 
@@ -34,27 +32,40 @@ body { background: var(--bg); color: var(--text); -webkit-font-smoothing: antial
     to   { opacity: 1; transform: none; }
 }
 
-/* ── 번호 볼 (그라디언트+광택 — Tailwind 불가) ── */
+/* ══ 번호 볼 ══
+   flex-shrink:0 + 고정 크기 — 절대 줄어들지 않음
+   부모가 flex여도 볼이 찌그러지지 않도록 min-width 동일하게 */
 .ball, .mini-ball {
     position: relative; overflow: hidden; border-radius: 9999px;
     display: flex; align-items: center; justify-content: center;
-    font-weight: 900; color: #fff; flex-shrink: 0; line-height: 1;
+    font-weight: 900; color: #fff;
+    flex-shrink: 0; flex-grow: 0;   /* ★ 크기 고정 */
+    line-height: 1;
 }
-.ball      { width: 42px; height: 42px; font-size: 14px; box-shadow: 0 3px 10px rgba(0,0,0,.4); }
-.mini-ball { width: 32px; height: 32px; font-size: 11.5px; box-shadow: 0 2px 6px rgba(0,0,0,.35); }
+.ball {
+    width: 40px; height: 40px; min-width: 40px;
+    font-size: 13px;
+    box-shadow: 0 3px 10px rgba(0,0,0,.4);
+}
+.mini-ball {
+    width: 30px; height: 30px; min-width: 30px;
+    font-size: 11px;
+    box-shadow: 0 2px 6px rgba(0,0,0,.35);
+}
+/* 광택 */
 .ball::after, .mini-ball::after {
     content: ''; position: absolute;
     top: 18%; left: 18%; width: 30%; height: 22%;
     background: rgba(255,255,255,.32); border-radius: 50%;
     transform: rotate(-30deg); pointer-events: none;
 }
+/* 색상 */
 .b-y   { background: linear-gradient(135deg,#FBC02D,#F59E0B); }
 .b-b   { background: linear-gradient(135deg,#3B82F6,#1D4ED8); }
 .b-r   { background: linear-gradient(135deg,#EF4444,#B91C1C); }
 .b-gr  { background: linear-gradient(135deg,#22C55E,#15803D); }
 .b-gry { background: linear-gradient(135deg,#9CA3AF,#4B5563); }
 
-/* ── 볼 등장 애니메이션 ── */
 @keyframes ballBounce {
     0%   { transform: translateY(-40px) scale(.5); opacity: 0; }
     60%  { transform: translateY(4px) scale(1.07); opacity: 1; }
@@ -63,7 +74,126 @@ body { background: var(--bg); color: var(--text); -webkit-font-smoothing: antial
 }
 .ball.anim { animation: ballBounce .45s cubic-bezier(.36,1.6,.26,.9) both; }
 
-/* ── 하단 네비 active 인디케이터 (::before 불가) ── */
+/* ══ 세트 카드 — 볼 행 ══
+   wrap 금지, 볼 6개가 한 줄에 꽉 차도록 */
+.balls-row {
+    display: flex;
+    flex-wrap: nowrap;          /* ★ 줄바꿈 금지 */
+    align-items: center;
+    gap: 5px;
+    overflow: hidden;           /* 삐져나와도 카드 밖으로 안 나감 */
+}
+/* 볼 사이 gap을 뷰포트에 맞게 조정 */
+@media (max-width: 380px) { .balls-row { gap: 3px; } }
+
+/* ══ 세트 카드 레이아웃 ══ */
+.set-card {
+    background: var(--card);
+    border: 1px solid rgba(255,255,255,.07);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    margin-bottom: 10px;
+    position: relative; overflow: hidden;
+    transition: border-color .2s;
+    box-shadow: 0 4px 20px rgba(0,0,0,.22);
+    animation: fadeIn .3s ease both;
+}
+.set-card:hover { border-color: rgba(245,200,66,.2); }
+.set-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    opacity: 0; transition: opacity .2s;
+}
+.set-card:hover::before { opacity: 1; }
+
+.set-card-header {
+    display: flex; align-items: center;
+    justify-content: space-between; margin-bottom: 10px;
+}
+.set-label {
+    font-size: 10px; font-weight: 700; color: var(--text3);
+    letter-spacing: 1px; text-transform: uppercase;
+    display: flex; align-items: center; gap: 4px;
+}
+.save-btn {
+    display: flex; align-items: center; gap: 4px;
+    padding: 4px 10px; border-radius: 8px;
+    font-family: inherit; font-size: 11px; font-weight: 700;
+    border: 1.5px solid rgba(245,200,66,.3);
+    background: rgba(245,200,66,.08); color: var(--gold);
+    cursor: pointer; transition: all .15s; white-space: nowrap;
+}
+.save-btn:hover { background: rgba(245,200,66,.18); border-color: var(--gold); }
+
+/* ══ QR — 뷰파인더 높이 제한 (소형화면) ══ */
+.viewfinder {
+    border-radius: 18px; overflow: hidden;
+    background: #060D1A; margin-bottom: 8px;
+    position: relative;
+    /* 화면 높이의 35%로 제한 — 버튼이 화면 안에 들어오게 */
+    height: clamp(160px, 35vh, 280px);
+}
+.viewfinder #reader        { width: 100%; height: 100%; display: none; }
+.viewfinder #reader video  { width: 100% !important; height: 100% !important; object-fit: cover !important; }
+
+.scan-overlay {
+    position: absolute; inset: 0;
+    display: none; align-items: center; justify-content: center;
+    pointer-events: none; z-index: 5;
+}
+.scan-overlay.active { display: flex; }
+.scan-box { width: 160px; height: 160px; position: relative; }
+.scan-corner {
+    position: absolute; width: 20px; height: 20px;
+    border-color: rgba(245,200,66,.9); border-style: solid;
+}
+.sc-tl { top:0;    left:0;  border-width:3px 0 0 3px; border-radius:4px 0 0 0; }
+.sc-tr { top:0;    right:0; border-width:3px 3px 0 0; border-radius:0 4px 0 0; }
+.sc-bl { bottom:0; left:0;  border-width:0 0 3px 3px; border-radius:0 0 0 4px; }
+.sc-br { bottom:0; right:0; border-width:0 3px 3px 0; border-radius:0 0 4px 0; }
+.scan-line {
+    position: absolute; left: 4px; right: 4px; height: 2px; top: 0;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    border-radius: 2px; animation: scanMove 2s ease-in-out infinite;
+}
+@keyframes scanMove {
+    0%,100% { top: 6px; opacity: .7; }
+    50%      { top: 148px; opacity: 1; }
+}
+
+.cam-placeholder {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 8px; text-align: center; padding: 16px;
+}
+.cam-placeholder .big-emoji { font-size: 40px; line-height: 1; }
+.cam-placeholder p { font-size: 12.5px; color: var(--text2); line-height: 1.5; }
+
+/* ── cam-status ── */
+#cam-status { text-align: center; font-size: 12px; color: var(--text2); min-height: 18px; margin-bottom: 8px; }
+#cam-status.ok  { color: var(--green); }
+#cam-status.err { color: var(--red); }
+
+/* ── 카메라 선택 드롭다운 ── */
+.cam-selector-label {
+    font-size: 10px; color: var(--text3); font-weight: 700;
+    letter-spacing: .6px; text-transform: uppercase;
+    margin-bottom: 4px; padding-left: 2px;
+}
+.cam-selector-inner {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--card); border: 1.5px solid rgba(255,255,255,.09);
+    border-radius: 12px; padding: 9px 12px; margin-bottom: 8px;
+}
+.cam-selector-inner select {
+    flex: 1; border: none; outline: none;
+    background: transparent; font-family: inherit;
+    font-size: 12.5px; color: var(--text); cursor: pointer;
+}
+.cam-selector-inner select option { background: #1A2744; }
+
+/* ── 하단 네비 active ── */
 #bottom-nav .tab-btn.active { color: var(--gold); }
 #bottom-nav .tab-btn.active .material-symbols-rounded {
     filter: drop-shadow(0 0 6px rgba(245,200,66,.55));
@@ -74,16 +204,26 @@ body { background: var(--bg); color: var(--text); -webkit-font-smoothing: antial
     height: 2px; background: var(--gold);
     border-radius: 0 0 3px 3px;
 }
-
-/* ── PC 탭 active ── */
 #top-nav .tab-btn.active { background: rgba(245,200,66,.12); color: var(--gold); font-weight: 700; }
 
-/* ── 로고 점 펄스 ── */
-@keyframes pulse-dot {
-    0%,100% { box-shadow: 0 0 6px var(--gold); }
-    50%      { box-shadow: 0 0 14px var(--gold), 0 0 28px rgba(245,200,66,.3); }
+/* ── 배지 ── */
+.badge {
+    position: absolute; top: 6px; right: calc(50% - 20px);
+    min-width: 15px; height: 15px;
+    background: var(--red); color: #fff; font-size: 9px; font-weight: 700;
+    border-radius: 99px; padding: 0 3px;
+    display: none; align-items: center; justify-content: center;
+    border: 1.5px solid var(--bg);
 }
-.logo-dot { animation: pulse-dot 2s ease-in-out infinite; }
+.badge.show { display: flex; }
+#pc-badge {
+    position: absolute; top: 4px; right: 4px;
+    min-width: 15px; height: 15px;
+    background: var(--red); color: #fff; font-size: 9px; font-weight: 700;
+    border-radius: 99px; padding: 0 3px;
+    display: none; align-items: center; justify-content: center;
+}
+#pc-badge.show { display: flex; }
 
 /* ── 토스트 ── */
 #toast {
@@ -98,54 +238,38 @@ body { background: var(--bg); color: var(--text); -webkit-font-smoothing: antial
 }
 #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-/* ── 세트 카드 골드 상단 라인 (hover ::before) ── */
-.set-card::before {
-    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
-    background: linear-gradient(90deg, transparent, var(--gold), transparent);
-    opacity: 0; transition: opacity .2s;
+/* ── 로고 펄스 ── */
+@keyframes pulse-dot {
+    0%,100% { box-shadow: 0 0 6px var(--gold); }
+    50%      { box-shadow: 0 0 14px var(--gold), 0 0 28px rgba(245,200,66,.3); }
 }
-.set-card:hover::before { opacity: 1; }
+.logo-dot { animation: pulse-dot 2s ease-in-out infinite; }
 
-/* ── QR 스캔라인 애니메이션 ── */
-.scan-line {
-    position: absolute; left: 4px; right: 4px; height: 2px; top: 0;
-    background: linear-gradient(90deg, transparent, var(--gold), transparent);
-    border-radius: 2px; animation: scanMove 2s ease-in-out infinite;
-}
-@keyframes scanMove {
-    0%,100% { top: 8px; opacity: .7; }
-    50%      { top: 182px; opacity: 1; }
-}
-
-/* ── QR 결과 슬라이드인 ── */
-@keyframes slideDown {
-    from { opacity: 0; transform: translateY(-8px); }
-    to   { opacity: 1; transform: translateY(0); }
-}
-
-/* ── 빈도 바 너비 트랜지션 (JS에서 width 주입) ── */
+/* ── 빈도 바 ── */
 .freq-bar { height: 100%; border-radius: 99px; width: 0; transition: width .9s cubic-bezier(.25,.8,.25,1); }
 
-/* ── 내 번호 날짜 구분선 ::after ── */
-.my-date-label::after {
-    content: ''; flex: 1; height: 1px; background: rgba(255,255,255,.06);
-}
+/* ── 내 번호 날짜 구분 ── */
+.my-date-label::after { content: ''; flex: 1; height: 1px; background: rgba(255,255,255,.06); }
 
-/* ── .stats-card-title .badge 충돌 방지 ── */
+/* ── stats badge 충돌 방지 ── */
 .stats-card-title .badge {
     position: static; background: none; min-width: unset;
     height: auto; border: none; padding: 0; display: inline;
     font-size: 10px; color: var(--text3);
 }
 
-/* ── html5-qrcode 내부 UI 제거 ── */
-#reader              { border: none !important; width: 100% !important; }
-#reader video        { object-fit: cover !important; }
-#reader__scan_region { background: transparent !important; }
+/* ── QR 슬라이드인 ── */
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── html5-qrcode 오버라이드 ── */
+#reader { border: none !important; width: 100% !important; }
 #reader__dashboard, #reader__dashboard_section_swaplink { display: none !important; }
 
 /* ── 스크롤바 ── */
-::-webkit-scrollbar       { width: 4px; }
+::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: var(--bg); }
 ::-webkit-scrollbar-thumb { background: var(--bg3); border-radius: 4px; }
 
@@ -160,4 +284,10 @@ body { background: var(--bg); color: var(--text); -webkit-font-smoothing: antial
     #bottom-nav { display: none !important; }
     #content    { padding-bottom: 32px; }
     #toast      { bottom: 24px; }
+    .viewfinder { height: 300px; }
+    .scan-box   { width: 200px; height: 200px; }
+    @keyframes scanMove {
+        0%,100% { top: 8px; }
+        50%      { top: 186px; }
+    }
 }
