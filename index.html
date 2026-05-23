@@ -66,21 +66,17 @@
 
         <!-- ══════════ 홈 ══════════ -->
         <section class="page active" id="page-home">
-            <!-- 히어로 -->
             <div class="relative overflow-hidden rounded-2xl p-5 mb-4 border border-yellow-400/[.12]"
                  style="background:linear-gradient(135deg,rgba(245,200,66,.08),rgba(59,130,246,.06))">
                 <span class="absolute right-4 top-1/2 -translate-y-1/2 text-[52px] opacity-[.08] pointer-events-none select-none">🎱</span>
                 <h1 class="font-display text-[28px] tracking-[3px] text-yellow-400 mb-1">🍀 행운의 번호</h1>
                 <p class="text-[12px] text-slate-400 leading-relaxed">통계 기반 5세트 자동 생성 — ⭐ 버튼으로 저장하세요</p>
             </div>
-
             <div id="sets-container"></div>
-
             <button id="genBtn" onclick="generateAll()"
                 class="w-full mt-4 flex items-center justify-center gap-2 py-4 rounded-2xl border-none font-sans text-[15px] font-black text-[#0F172A] cursor-pointer tracking-wide transition-all active:scale-[.97]"
                 style="background:linear-gradient(135deg,#F5C842,#E8A800);box-shadow:0 4px 24px rgba(245,200,66,.35);">
-                <span class="text-[20px]" id="gen-icon">🎲</span>
-                번호 새로 생성하기
+                <span class="text-[20px]" id="gen-icon">🎲</span>번호 새로 생성하기
             </button>
         </section>
 
@@ -90,8 +86,6 @@
                 <h2 class="font-display text-[26px] tracking-[2px]">📷 QR 번호 제외</h2>
                 <p class="text-[12px] text-slate-400 mt-1">구입한 로또 QR을 스캔 → 겹치지 않는 새 번호 생성</p>
             </div>
-
-            <!-- 결과 패널 -->
             <div id="qr-result-panel" class="hidden mb-3 rounded-2xl p-3.5 border border-green-500/30"
                  style="background:linear-gradient(135deg,rgba(34,197,94,.12),rgba(21,128,61,.08));animation:slideDown .22s ease;">
                 <div class="text-[11px] font-bold text-green-400 mb-2">✅ 스캔 완료 — 제외할 번호</div>
@@ -108,11 +102,7 @@
                     </button>
                 </div>
             </div>
-
-            <!-- 카메라 선택 (멀티캠 자동 표시) -->
             <div id="cam-selector-wrap"></div>
-
-            <!-- 뷰파인더 — clamp 높이로 소형화면에서도 버튼 보임 -->
             <div class="viewfinder">
                 <div id="reader"></div>
                 <div id="scan-guide" class="scan-overlay">
@@ -129,15 +119,12 @@
                     <p>카메라 시작 버튼을 누르면<br>QR 스캔이 시작됩니다</p>
                 </div>
             </div>
-
             <div id="cam-status"></div>
-
             <button id="cam-toggle-btn" onclick="toggleCamera()"
                 class="btn-cam-start w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl border-none font-sans text-[14px] font-bold text-white cursor-pointer mb-2.5 active:scale-[.97] transition-transform"
                 style="background:linear-gradient(135deg,#3B82F6,#1D4ED8);box-shadow:0 4px 18px rgba(59,130,246,.3);">
                 <span class="text-[18px]">📷</span><span>카메라 시작하기</span>
             </button>
-
             <div class="flex items-start gap-2 rounded-xl p-3.5 text-[12px] text-blue-300 border border-blue-500/20 bg-blue-500/[.08]">
                 <span class="flex-shrink-0">💡</span>
                 <span>로또 QR코드를 스캔하면 해당 번호를 제외한 새 조합을 자동 생성합니다. 멀티카메라 기기는 위에서 카메라를 선택하세요.</span>
@@ -150,8 +137,6 @@
                 <h2 class="font-display text-[28px] tracking-[2.5px]">📊 통계 대시보드</h2>
                 <p class="text-[12px] text-slate-400 mt-1">1~1223회차 전체 데이터 분석</p>
             </div>
-
-            <!-- 요약 4칸 -->
             <div class="grid grid-cols-2 gap-2.5 mb-3">
                 <div class="bg-card rounded-2xl p-3.5 border border-white/[.07]">
                     <div class="text-[10.5px] text-slate-400 mb-1.5">🔢 평균 합계</div>
@@ -160,12 +145,12 @@
                 </div>
                 <div class="bg-card rounded-2xl p-3.5 border border-white/[.07]">
                     <div class="text-[10.5px] text-slate-400 mb-1.5">⚖️ 최다 홀짝</div>
-                    <div id="s-ratio"  class="font-display text-[26px] tracking-wide text-red-400">—</div>
+                    <div id="s-ratio" class="font-display text-[26px] tracking-wide text-red-400">—</div>
                     <div class="text-[9.5px] text-slate-600 mt-0.5">전체 33.5% 출현</div>
                 </div>
                 <div class="bg-card rounded-2xl p-3.5 border border-white/[.07]">
                     <div class="text-[10.5px] text-slate-400 mb-1.5">📋 분석 회차</div>
-                    <div id="s-count"  class="font-display text-[26px] tracking-wide text-green-400">—</div>
+                    <div id="s-count" class="font-display text-[26px] tracking-wide text-green-400">—</div>
                     <div class="text-[9.5px] text-slate-600 mt-0.5">2002년 ~ 2026년</div>
                 </div>
                 <div class="bg-card rounded-2xl p-3.5 border border-white/[.07]">
@@ -174,20 +159,18 @@
                     <div class="text-[9.5px] text-slate-600 mt-0.5">중앙값 26</div>
                 </div>
             </div>
-
             <div class="bg-card rounded-2xl p-4 mb-3 border border-white/[.07]">
-                <div class="flex items-center gap-2 text-[13px] font-bold mb-3">🔥 핫 &amp; 콜드 번호 <span class="stats-card-title badge ml-auto">최근 30회 기준</span></div>
+                <div class="flex items-center gap-2 text-[13px] font-bold mb-3">🔥 핫 &amp; 콜드 번호<span class="stats-card-title badge ml-auto">최근 30회 기준</span></div>
                 <div id="hot-cold-wrap" class="flex gap-4"></div>
             </div>
             <div class="bg-card rounded-2xl p-4 mb-3 border border-white/[.07]">
-                <div class="flex items-center gap-2 text-[13px] font-bold mb-3">📈 출현 빈도 TOP 15 <span class="stats-card-title badge ml-auto">전체 회차</span></div>
+                <div class="flex items-center gap-2 text-[13px] font-bold mb-3">📈 출현 빈도 TOP 15<span class="stats-card-title badge ml-auto">전체 회차</span></div>
                 <div id="freq-bars"></div>
             </div>
             <div class="bg-card rounded-2xl p-4 mb-3 border border-white/[.07]">
-                <div class="flex items-center gap-2 text-[13px] font-bold mb-3">📉 번호 합계 분포 <span class="stats-card-title badge ml-auto">파란색 = 최다 구간</span></div>
+                <div class="flex items-center gap-2 text-[13px] font-bold mb-3">📉 번호 합계 분포<span class="stats-card-title badge ml-auto">파란색 = 최다 구간</span></div>
                 <div id="sum-chart"></div>
             </div>
-
             <div class="grid grid-cols-2 gap-2.5 mb-3">
                 <div class="bg-card rounded-2xl p-4 border border-white/[.07]">
                     <div class="text-[12.5px] font-bold mb-2.5">🟣 홀짝 비율</div>
@@ -198,9 +181,8 @@
                     <div id="lh-chart"></div>
                 </div>
             </div>
-
             <div class="bg-card rounded-2xl p-4 mb-3 border border-white/[.07]">
-                <div class="flex items-center gap-2 text-[13px] font-bold mb-3">⏳ 미출현 번호 TOP 10 <span class="stats-card-title badge ml-auto">빨강 = 15회↑</span></div>
+                <div class="flex items-center gap-2 text-[13px] font-bold mb-3">⏳ 미출현 번호 TOP 10<span class="stats-card-title badge ml-auto">빨강 = 15회↑</span></div>
                 <div id="gap-table"></div>
             </div>
             <div class="bg-card rounded-2xl p-4 mb-3 border border-white/[.07]">
@@ -222,23 +204,24 @@
 
     <!-- ══ 모바일 하단 네비 ══ -->
     <nav id="bottom-nav" aria-label="하단 메뉴"
-         class="fixed bottom-0 left-0 right-0 z-50 border-t border-white/10"
-         style="height:var(--nav-h);background:rgba(10,16,30,0.97);backdrop-filter:blur(16px);box-shadow:0 -4px 24px rgba(0,0,0,.5);">
-        <div class="flex h-full">
-            <button id="bn-home"      class="tab-btn active flex-1 flex flex-col items-center justify-center gap-0.5 border-none bg-transparent font-sans text-[10px] text-slate-500 cursor-pointer relative transition-colors" onclick="switchTab('home')">
-                <span class="material-symbols-rounded text-[22px]">home</span>홈
-            </button>
-            <button id="bn-qr"        class="tab-btn flex-1 flex flex-col items-center justify-center gap-0.5 border-none bg-transparent font-sans text-[10px] text-slate-500 cursor-pointer relative transition-colors" onclick="switchTab('qr')">
-                <span class="material-symbols-rounded text-[22px]">qr_code_scanner</span>QR
-            </button>
-            <button id="bn-stats"     class="tab-btn flex-1 flex flex-col items-center justify-center gap-0.5 border-none bg-transparent font-sans text-[10px] text-slate-500 cursor-pointer relative transition-colors" onclick="switchTab('stats')">
-                <span class="material-symbols-rounded text-[22px]">bar_chart</span>통계
-            </button>
-            <button id="bn-myhistory" class="tab-btn flex-1 flex flex-col items-center justify-center gap-0.5 border-none bg-transparent font-sans text-[10px] text-slate-500 cursor-pointer relative transition-colors" onclick="switchTab('myhistory')">
-                <span class="material-symbols-rounded text-[22px]">bookmarks</span>내 번호
-                <span id="mob-badge" class="badge"></span>
-            </button>
-        </div>
+         style="position:fixed;bottom:0;left:0;right:0;height:var(--nav-h);
+                background:rgba(10,16,30,0.97);backdrop-filter:blur(16px);
+                border-top:1px solid rgba(255,255,255,.1);
+                box-shadow:0 -4px 24px rgba(0,0,0,.5);z-index:50;
+                display:flex;"><!-- display:flex 인라인으로 보장 -->
+        <button id="bn-home" class="tab-btn active" onclick="switchTab('home')" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:none;background:transparent;font-family:inherit;font-size:10px;color:#64748B;cursor:pointer;position:relative;white-space:nowrap;padding:0;">
+            <span class="material-symbols-rounded" style="font-size:22px;">home</span>홈
+        </button>
+        <button id="bn-qr" class="tab-btn" onclick="switchTab('qr')" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:none;background:transparent;font-family:inherit;font-size:10px;color:#64748B;cursor:pointer;position:relative;white-space:nowrap;padding:0;">
+            <span class="material-symbols-rounded" style="font-size:22px;">qr_code_scanner</span>QR
+        </button>
+        <button id="bn-stats" class="tab-btn" onclick="switchTab('stats')" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:none;background:transparent;font-family:inherit;font-size:10px;color:#64748B;cursor:pointer;position:relative;white-space:nowrap;padding:0;">
+            <span class="material-symbols-rounded" style="font-size:22px;">bar_chart</span>통계
+        </button>
+        <button id="bn-myhistory" class="tab-btn" onclick="switchTab('myhistory')" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:none;background:transparent;font-family:inherit;font-size:10px;color:#64748B;cursor:pointer;position:relative;white-space:nowrap;padding:0;">
+            <span class="material-symbols-rounded" style="font-size:22px;">bookmarks</span>내번호
+            <span id="mob-badge" class="badge"></span>
+        </button>
     </nav>
 
 </div>
