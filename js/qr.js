@@ -249,16 +249,25 @@ function handleQRResult(data) {
         const qrRawNumbers = urlParts[1].split('q');
         const allNums = [];
 
-		// 0번 인덱스는 회차(1226), 1번부터 5번까지가 각 세트일 확률이 높음
-		for (let i = 1; i <= 5 && i < qrRawNumbers.length; i++) {
-			const gameStr = qrRawNumbers[i];
-			// 각 세트에서 6개 숫자(12글자)만 명확히 추출
-			for (let j = 0; j < 12; j += 2) {
-				const num = parseInt(gameStr.substring(j, j + 2), 10);
 
-                if (num >= 1 && num <= 45) allNums.push(num);
-            }
-        }
+		for (let i = 1; i < qrData.length; i++) {
+			const segment = qrData[i];
+
+			// segment가 최소 12자리 이상인 경우에만 앞 12자리를 추출
+			if (segment.length >= 12) {
+				// 뒤에 무엇이 붙어있든 상관없이 앞의 12자리만 가져옴
+				const gameStr = segment.substring(0, 12);
+
+				for (let j = 0; j < 12; j += 2) {
+					const num = parseInt(gameStr.substring(j, j + 2), 10);
+
+					// 1~45 범위 내의 숫자만 배열에 추가
+					if (num >= 1 && num <= 45) {
+						allNums.push(num);
+					}
+				}
+			}
+		}
         scannedNums = [...new Set(allNums)].sort((a, b) => a - b);
 
         const panel    = document.getElementById('qr-result-panel');
