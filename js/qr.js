@@ -248,10 +248,14 @@ function handleQRResult(data) {
 
         const qrRawNumbers = urlParts[1].split('q');
         const allNums = [];
-        for (let i = 1; i < qrRawNumbers.length; i++) {
-            const gameStr = qrRawNumbers[i];
-            for (let j = 0; j < gameStr.length; j += 2) {
-                const num = parseInt(gameStr.substring(j, j + 2), 10);
+
+		// 0번 인덱스는 회차(1226), 1번부터 5번까지가 각 세트일 확률이 높음
+		for (let i = 1; i <= 5 && i < qrRawNumbers.length; i++) {
+			const gameStr = qrRawNumbers[i];
+			// 각 세트에서 6개 숫자(12글자)만 명확히 추출
+			for (let j = 0; j < 12; j += 2) {
+				const num = parseInt(gameStr.substring(j, j + 2), 10);
+
                 if (num >= 1 && num <= 45) allNums.push(num);
             }
         }
