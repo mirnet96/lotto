@@ -236,13 +236,13 @@ async function stopCamera() {
 
 /* ══════════════ QR 결과 처리 ══════════════ */
 function handleQRResult(data) {
+    alert('test');
     if (!camActive) return;
     camActive = false;
 
     if (navigator.vibrate) navigator.vibrate([100, 50, 300]);
     stopCamera();
 
-    alert(data );
 
     try {
         const urlParts = data.split('v=');
