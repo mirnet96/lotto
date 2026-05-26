@@ -262,8 +262,6 @@ function handleQRResult(data) {
                 if (num >= 1 && num <= 45) allNums.push(num);
             }
         }
-    const testEl = document.getElementById('debug');
-    testEl.textContent = '테스트 02: ' +  allNums.length + ' | ' +  JSON.stringify( allNums ); 
 
 
 
