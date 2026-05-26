@@ -8,7 +8,7 @@ const ASSETS = [
   '/lotto/js/storage.js',
   '/lotto/js/ui.js',
   '/lotto/js/generator.js',
-  '/lotto/js/qr.js',
+  '/lotto/js/qr.js?v=20260526-001',
   '/lotto/js/history.js',
   '/lotto/js/stats.js'
 ];
