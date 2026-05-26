@@ -237,8 +237,8 @@ async function stopCamera() {
 /* ══════════════ QR 결과 처리 ══════════════ */
 function handleQRResult(data) {
 
-    const testEl = document.getElementById('cam-status');
-    if (testEl) testEl.textContent = '스캔 성공! 데이터: ' + data; 
+    const testEl = document.getElementById('debug');
+    testEl.textContent = '스캔 성공! 데이터: ' + data; 
 
 
     if (!camActive) return;
