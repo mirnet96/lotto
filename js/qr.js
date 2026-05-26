@@ -242,6 +242,8 @@ function handleQRResult(data) {
     if (navigator.vibrate) navigator.vibrate([100, 50, 300]);
     stopCamera();
 
+    alert(data );
+
     try {
         const urlParts = data.split('v=');
         if (urlParts.length < 2) throw new Error('로또 QR 형식이 아닙니다.');
@@ -260,8 +262,7 @@ function handleQRResult(data) {
             }
         }
         scannedNums = [...new Set(allNums)].sort((a, b) => a - b);
-        alert( JSON.strpingify( allNums ) );
-        alert( JSON.strpingify( scannedNums ) );
+
 
         const panel    = document.getElementById('qr-result-panel');
         const numsWrap = document.getElementById('qr-res-nums');
