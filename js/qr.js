@@ -248,26 +248,17 @@ function handleQRResult(data) {
 
         const qrRawNumbers = urlParts[1].split('q');
         const allNums = [];
-
-
-		for (let i = 1; i < qrData.length; i++) {
-			const segment = qrData[i];
-
-			// segment가 최소 12자리 이상인 경우에만 앞 12자리를 추출
-			if (segment.length >= 12) {
-				// 뒤에 무엇이 붙어있든 상관없이 앞의 12자리만 가져옴
-				const gameStr = segment.substring(0, 12);
-
-				for (let j = 0; j < 12; j += 2) {
-					const num = parseInt(gameStr.substring(j, j + 2), 10);
-
-					// 1~45 범위 내의 숫자만 배열에 추가
-					if (num >= 1 && num <= 45) {
-						allNums.push(num);
-					}
-				}
-			}
-		}
+        /* q 다음 정확히 앞 12자리(2자리×6개)만 로또번호
+           마지막 세그먼트 뒤에 쓰레기값이 붙어도 무시 */
+        for (let i = 1; i < qrRawNumbers.length; i++) {
+            const segment = qrRawNumbers[i];
+            if (segment.length < 12) continue;
+            const gameStr = segment.substring(0, 12);
+            for (let j = 0; j < 12; j += 2) {
+                const num = parseInt(gameStr.substring(j, j + 2), 10);
+                if (num >= 1 && num <= 45) allNums.push(num);
+            }
+        }
         scannedNums = [...new Set(allNums)].sort((a, b) => a - b);
 
         const panel    = document.getElementById('qr-result-panel');
