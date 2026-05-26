@@ -260,6 +260,8 @@ function handleQRResult(data) {
             }
         }
         scannedNums = [...new Set(allNums)].sort((a, b) => a - b);
+        alert( JSON.strpingify( allNums ) );
+        alert( JSON.strpingify( scannedNums ) );
 
         const panel    = document.getElementById('qr-result-panel');
         const numsWrap = document.getElementById('qr-res-nums');
