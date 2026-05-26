@@ -263,7 +263,7 @@ function handleQRResult(data) {
             }
         }
     const testEl = document.getElementById('debug');
-    testEl.textContent = '테스트 01: ' + JSON.stringify( allNums ); 
+    testEl.textContent = '테스트 02: ' +  allNums.length + ' | ' ' + JSON.stringify( allNums ); 
 
 
 
