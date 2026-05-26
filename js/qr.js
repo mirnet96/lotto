@@ -237,9 +237,6 @@ async function stopCamera() {
 /* ══════════════ QR 결과 처리 ══════════════ */
 function handleQRResult(data) {
 
-    const testEl = document.getElementById('debug');
-    testEl.textContent = '스캔 성공! 데이터: ' + data; 
-
 
     if (!camActive) return;
     camActive = false;
@@ -265,6 +262,11 @@ function handleQRResult(data) {
                 if (num >= 1 && num <= 45) allNums.push(num);
             }
         }
+    const testEl = document.getElementById('debug');
+    testEl.textContent = '테스트 01: ' + JSON.stringify( allNums ); 
+
+
+
         scannedNums = [...new Set(allNums)].sort((a, b) => a - b);
 
 
