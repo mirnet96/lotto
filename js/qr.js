@@ -266,6 +266,7 @@ function handleQRResult(data) {
 
 
         scannedNums = [...new Set(allNums)].sort((a, b) => a - b);
+        if (typeof setQRExclude === 'function') setQRExclude(scannedNums);
 
 
         const panel    = document.getElementById('qr-result-panel');
@@ -292,13 +293,17 @@ function handleQRResult(data) {
 
 function applyQRExclude() {
     if (!scannedNums.length) return;
-    if (typeof switchTab   === 'function') switchTab('home');
-    if (typeof generateAll === 'function') generateAll(scannedNums);
+    if (typeof setQRExclude    === 'function') setQRExclude(scannedNums);
+    if (typeof switchTab       === 'function') switchTab('home');
+    if (typeof generateAll     === 'function') generateAll(scannedNums);
+    if (typeof updateHomeBanner === 'function') updateHomeBanner();
 }
 
 function resetQR() {
     scannedNums = [];
+    if (typeof setQRExclude === 'function') setQRExclude([]);
     document.getElementById('qr-result-panel').classList.add('hidden');
     document.getElementById('qr-res-nums').innerHTML = '';
+    if (typeof updateHomeBanner === 'function') updateHomeBanner();
     startCamera();
 }

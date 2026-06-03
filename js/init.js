@@ -7,7 +7,6 @@ async function init() {
         const res = await fetch('./lotto.json');
         lottoData = await res.json();
     } catch {
-        /* lotto.json 없을 때 폴백 데이터 */
         lottoData = [
             { no:1223, date:'20260509', nums:[16,18,20,32,33,39], bonus:26, stats:{ sum:158, endsum:28, ratio:{ even_odd:'4:2', low_high:'3:3' } } },
             { no:1222, date:'20260502', nums:[4,11,17,22,32,41],  bonus:34, stats:{ sum:127, endsum:17, ratio:{ even_odd:'3:3', low_high:'4:2' } } },
@@ -27,8 +26,12 @@ async function init() {
     if (lottoData.length)
         avgSum = Math.round(lottoData.reduce((a, b) => a + b.stats.sum, 0) / lottoData.length);
 
-    generateAll();
+    /* ── 세션에 저장된 제외번호가 있으면 복원해서 생성 ── */
+    const savedExclude = getQRExclude();
+    generateAll(savedExclude.length ? savedExclude : []);
+    updateHomeBanner();
     buildStats();
 }
 
 init();
+

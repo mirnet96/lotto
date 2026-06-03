@@ -76,11 +76,42 @@
                 <p class="text-[12px] text-slate-400 leading-relaxed">통계 기반 5세트 자동 생성 — ⭐ 버튼으로 저장하세요</p>
             </div>
             <div id="sets-container"></div>
-            <button id="genBtn" onclick="generateAll()"
-                class="w-full mt-4 flex items-center justify-center gap-2 py-4 rounded-2xl border-none font-sans text-[15px] font-black text-[#0F172A] cursor-pointer tracking-wide transition-all active:scale-[.97]"
-                style="background:linear-gradient(135deg,#F5C842,#E8A800);box-shadow:0 4px 24px rgba(245,200,66,.35);">
-                <span class="text-[20px]" id="gen-icon">🎲</span>번호 새로 생성하기
-            </button>
+
+            <!-- ── QR 제외 배너 (스캔 결과 있을 때만 표시) ── -->
+            <div id="qr-exclude-banner" class="hidden mt-4 rounded-2xl p-3.5 border border-green-500/30"
+                 style="background:linear-gradient(135deg,rgba(34,197,94,.1),rgba(21,128,61,.06));">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-[11px] font-bold text-green-400">🎯 QR 제외 번호 적용 중</span>
+                    <button onclick="clearQRExclude()"
+                        class="text-[10px] text-slate-500 border border-white/10 bg-transparent rounded-lg px-2 py-1 cursor-pointer font-sans hover:text-red-400 hover:border-red-400/30 transition-colors">
+                        ✕ 해제
+                    </button>
+                </div>
+                <div id="banner-nums" class="flex flex-wrap gap-1.5"></div>
+            </div>
+
+            <!-- ── 버튼 영역 ── -->
+            <div id="home-btn-area" class="mt-4">
+                <!-- 기본: 새로 생성 버튼 (단독) -->
+                <button id="genBtn" onclick="generateAll()"
+                    class="w-full flex items-center justify-center gap-2 py-4 rounded-2xl border-none font-sans text-[15px] font-black text-[#0F172A] cursor-pointer tracking-wide transition-all active:scale-[.97]"
+                    style="background:linear-gradient(135deg,#F5C842,#E8A800);box-shadow:0 4px 24px rgba(245,200,66,.35);">
+                    <span class="text-[20px]" id="gen-icon">🎲</span>번호 새로 생성하기
+                </button>
+                <!-- QR 제외 있을 때: 두 버튼 나란히 -->
+                <div id="btn-with-exclude" class="hidden flex gap-2">
+                    <button onclick="generateAll()"
+                        class="flex-1 flex items-center justify-center gap-1.5 py-4 rounded-2xl border-none font-sans text-[13px] font-black text-slate-400 cursor-pointer tracking-wide transition-all active:scale-[.97]"
+                        style="background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.12);">
+                        <span id="gen-icon">🎲</span>새로 생성
+                    </button>
+                    <button onclick="generateAll(getQRExclude())"
+                        class="flex-[2] flex items-center justify-center gap-1.5 py-4 rounded-2xl border-none font-sans text-[14px] font-black text-[#0F172A] cursor-pointer tracking-wide transition-all active:scale-[.97]"
+                        style="background:linear-gradient(135deg,#22C55E,#15803D);box-shadow:0 4px 20px rgba(34,197,94,.3);">
+                        🎯 제외하고 생성
+                    </button>
+                </div>
+            </div>
         </section>
 
         <!-- ══════════ QR ══════════ -->
@@ -232,6 +263,50 @@
 <div id="toast"></div>
 
 <script src="./js/state.js"></script>
+<script>
+/* ── 홈 배너 / 버튼 분기 업데이트 ── */
+function updateHomeBanner() {
+    const nums    = getQRExclude();
+    const banner  = document.getElementById('qr-exclude-banner');
+    const single  = document.getElementById('genBtn').parentNode.querySelector('#genBtn');
+    const btnArea = document.getElementById('home-btn-area');
+    const dualBtn = document.getElementById('btn-with-exclude');
+    const genBtn  = document.getElementById('genBtn');
+    const bannerNums = document.getElementById('banner-nums');
+    if (!banner) return;
+
+    if (nums.length) {
+        /* 배너 표시 */
+        banner.classList.remove('hidden');
+        bannerNums.innerHTML = '';
+        nums.forEach(n => {
+            const b = document.createElement('div');
+            b.style.cssText = 'width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;color:#fff;flex-shrink:0;';
+            const colors = ['','linear-gradient(135deg,#FBC02D,#F59E0B)','linear-gradient(135deg,#3B82F6,#1D4ED8)','linear-gradient(135deg,#EF4444,#B91C1C)','linear-gradient(135deg,#22C55E,#15803D)','linear-gradient(135deg,#9CA3AF,#4B5563)'];
+            const ci = n<=10?1:n<=20?2:n<=30?3:n<=40?4:5;
+            b.style.background = colors[ci];
+            b.textContent = n;
+            bannerNums.appendChild(b);
+        });
+        /* 버튼 분기 */
+        if (genBtn) genBtn.style.display = 'none';
+        if (dualBtn) dualBtn.classList.remove('hidden');
+    } else {
+        banner.classList.add('hidden');
+        if (genBtn) genBtn.style.display = '';
+        if (dualBtn) dualBtn.classList.add('hidden');
+    }
+}
+
+function clearQRExclude() {
+    setQRExclude([]);
+    /* qr.js의 scannedNums도 초기화 */
+    if (typeof scannedNums !== 'undefined') { scannedNums = []; }
+    updateHomeBanner();
+    generateAll([]);
+    if (typeof toast === 'function') toast('🗑️ QR 제외 해제됨');
+}
+</script>
 <script src="./js/storage.js"></script>
 <script src="./js/ui.js"></script>
 <script src="./js/generator.js"></script>
