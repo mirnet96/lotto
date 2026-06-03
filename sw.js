@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lotto-plus-v1.0.8';
+const CACHE_NAME = 'lotto-plus-v1.0.9';
 const ASSETS = [
   '/lotto/',
   '/lotto/index.html',
@@ -14,6 +14,7 @@ const ASSETS = [
 ];
 
 self.addEventListener('install', (event) => {
+   self.skipWaiting(); // 설치 완료 즉시 대기 중인 서비스 워커를 활성화
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(ASSETS);
@@ -30,6 +31,7 @@ self.addEventListener('fetch', (event) => {
 });
 
 self.addEventListener('activate', (event) => {
+   clients.claim(); // 즉시 현재 페이지를 제어하도록 설정
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
