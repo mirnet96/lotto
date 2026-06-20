@@ -26,10 +26,19 @@ async function init() {
     if (lottoData.length)
         avgSum = Math.round(lottoData.reduce((a, b) => a + b.stats.sum, 0) / lottoData.length);
 
-    /* ── 세션에 저장된 QR 제외번호 복원 ── */
+    /* 세션 복원 */
     const savedQR = getQRData();
-    const startNums = savedQR ? savedQR.all : [];
-    generateAll(startNums);
+    if (savedQR && savedQR.all.length) {
+        const mode = savedQR.mode || 'all';
+        if (mode === 'perline' && savedQR.lines && savedQR.lines.length) {
+            generatePerLine(savedQR.lines);
+        } else {
+            generateAll(savedQR.all);
+        }
+    } else {
+        generateAll([]);
+    }
+
     updateHomeBanner();
     updateBadge();
     buildStats();

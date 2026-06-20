@@ -77,37 +77,29 @@
             </div>
             <div id="sets-container"></div>
 
-            <!-- QR 제외 배너 -->
+            <!-- QR 배너 -->
             <div id="qr-exclude-banner" class="hidden mt-4 rounded-2xl p-3.5 border border-green-500/30"
                  style="background:linear-gradient(135deg,rgba(34,197,94,.1),rgba(21,128,61,.06));">
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-                    <span style="font-size:11px;font-weight:700;color:#22C55E;" id="banner-label">🎯 QR 제외 번호 적용 중</span>
-                    <button onclick="clearQRExclude()"
-                        style="font-size:10px;color:#64748B;border:1px solid rgba(255,255,255,.1);background:transparent;border-radius:8px;padding:3px 8px;cursor:pointer;font-family:inherit;">
-                        ✕ 해제
-                    </button>
+                    <span id="banner-label" style="font-size:11px;font-weight:700;color:#22C55E;">🎯 QR 제외 적용 중</span>
+                    <button onclick="clearQRExclude()" style="font-size:10px;color:#64748B;border:1px solid rgba(255,255,255,.1);background:transparent;border-radius:8px;padding:3px 8px;cursor:pointer;font-family:inherit;">✕ 해제</button>
                 </div>
                 <div id="banner-nums" style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px;"></div>
-                <div id="banner-mode-tabs" style="display:flex;gap:5px;flex-wrap:wrap;"></div>
+                <!-- 탭 2개 -->
+                <div id="banner-tabs" style="display:flex;gap:6px;margin-bottom:10px;"></div>
+                <!-- 탭 콘텐츠 -->
+                <div id="banner-content"></div>
+                <!-- 버튼 -->
+                <div id="banner-btn-row" style="display:flex;gap:8px;margin-top:10px;"></div>
             </div>
 
-            <!-- 홈 버튼 영역 -->
+            <!-- 홈 버튼 -->
             <div id="home-btn-area" class="mt-4">
                 <button id="genBtn" onclick="generateAll()"
                     class="w-full flex items-center justify-center gap-2 py-4 rounded-2xl border-none font-sans text-[15px] font-black text-[#0F172A] cursor-pointer tracking-wide transition-all active:scale-[.97]"
                     style="background:linear-gradient(135deg,#F5C842,#E8A800);box-shadow:0 4px 24px rgba(245,200,66,.35);">
                     <span class="text-[20px]" id="gen-icon">🎲</span>번호 새로 생성하기
                 </button>
-                <div id="btn-with-exclude" class="hidden" style="display:none;gap:8px;">
-                    <button onclick="generateAll()"
-                        style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:14px 0;border-radius:18px;border:1.5px solid rgba(255,255,255,.15);background:rgba(255,255,255,.07);font-family:inherit;font-size:13px;font-weight:700;color:#94A3B8;cursor:pointer;">
-                        <span id="gen-icon">🎲</span>새로 생성
-                    </button>
-                    <button id="exclude-gen-btn" onclick="applyHomeBannerExclude()"
-                        style="flex:2;display:flex;align-items:center;justify-content:center;gap:6px;padding:14px 0;border-radius:18px;border:none;background:linear-gradient(135deg,#22C55E,#15803D);box-shadow:0 4px 20px rgba(34,197,94,.3);font-family:inherit;font-size:14px;font-weight:900;color:#fff;cursor:pointer;">
-                        🎯 제외하고 생성
-                    </button>
-                </div>
             </div>
         </section>
 
@@ -119,8 +111,7 @@
             <div id="qr-result-panel" class="hidden mb-3 rounded-2xl p-3.5 border border-green-500/30"
                  style="background:linear-gradient(135deg,rgba(34,197,94,.12),rgba(21,128,61,.08));animation:slideDown .22s ease;">
                 <div class="text-[11px] font-bold text-green-400 mb-2">✅ 스캔 완료 — 제외 방식 선택</div>
-                <div id="qr-res-nums" style="margin-bottom:10px;"></div>
-                <div class="qr-btn-row flex gap-2"></div>
+                <div id="qr-res-nums"></div>
             </div>
             <div id="cam-selector-wrap"></div>
             <!-- 뷰파인더: 화면의 45%로 크게 잡아 인식률 향상 -->
@@ -251,115 +242,128 @@
 
 <script src="./js/state.js"></script>
 <script>
-/* ══ 홈 배너 & 버튼 분기 ══ */
-const SET_LABELS_BANNER = ['A','B','C','D','E'];
-const LABEL_COLORS_BANNER = ['#F5C842','#3B82F6','#EF4444','#22C55E','#A78BFA'];
+/* ══ 홈 배너 (탭 2개: 전체/라인별) ══ */
+const _BL = ['A','B','C','D','E'];
+const _BC = ['#F5C842','#3B82F6','#EF4444','#22C55E','#A78BFA'];
+let _bannerTab = 'all';   /* 'all' | 'perline' */
 
-let _homeBannerTab = 'all';  /* 현재 선택된 제외 방식 */
-
-function _mkBannerBall(n) {
+function _mkMini(n, size) {
+    size = size || 24;
     const b = document.createElement('div');
-    b.style.cssText = 'width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;color:#fff;flex-shrink:0;';
-    const g = ['','linear-gradient(135deg,#FBC02D,#F59E0B)','linear-gradient(135deg,#3B82F6,#1D4ED8)','linear-gradient(135deg,#EF4444,#B91C1C)','linear-gradient(135deg,#22C55E,#15803D)','linear-gradient(135deg,#9CA3AF,#4B5563)'];
+    b.style.cssText = `width:${size}px;height:${size}px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:${Math.round(size*0.42)}px;font-weight:900;color:#fff;flex-shrink:0;`;
+    const g=['','linear-gradient(135deg,#FBC02D,#F59E0B)','linear-gradient(135deg,#3B82F6,#1D4ED8)','linear-gradient(135deg,#EF4444,#B91C1C)','linear-gradient(135deg,#22C55E,#15803D)','linear-gradient(135deg,#9CA3AF,#4B5563)'];
     b.style.background = g[n<=10?1:n<=20?2:n<=30?3:n<=40?4:5];
     b.textContent = n;
     return b;
 }
 
 function updateHomeBanner() {
-    const d       = (typeof getQRData === 'function') ? getQRData() : null;
-    const banner  = document.getElementById('qr-exclude-banner');
-    const genBtn  = document.getElementById('genBtn');
-    const dualDiv = document.getElementById('btn-with-exclude');
-    const bannerNums = document.getElementById('banner-nums');
-    const modeTabs   = document.getElementById('banner-mode-tabs');
-    const label      = document.getElementById('banner-label');
+    const d      = (typeof getQRData === 'function') ? getQRData() : null;
+    const banner = document.getElementById('qr-exclude-banner');
+    const genBtn = document.getElementById('genBtn');
     if (!banner) return;
 
     if (!d || !d.all || !d.all.length) {
         banner.classList.add('hidden');
-        if (genBtn)  { genBtn.style.display  = ''; }
-        if (dualDiv) { dualDiv.style.display  = 'none'; }
+        if (genBtn) genBtn.parentElement.style.display = '';
         return;
     }
 
-    /* ── 배너 표시 ── */
     banner.classList.remove('hidden');
-    if (genBtn)  genBtn.style.display  = 'none';
-    if (dualDiv) dualDiv.style.display = 'flex';
+    if (genBtn) genBtn.parentElement.style.display = 'none';  /* 배너가 대신 버튼 담당 */
 
-    const lines = d.lines || [];
+    const lines  = d.lines || [];
+    const mode   = d.mode || 'all';
+    if (!_bannerTab || _bannerTab === 'all' && mode === 'perline') _bannerTab = mode;
 
-    /* 탭 빌드 */
-    if (modeTabs) {
-        modeTabs.innerHTML = '';
-        const tabs = [{id:'all', txt:'전체 제외'}, ...lines.map((_,i)=>({id:'line'+i, txt: SET_LABELS_BANNER[i]+'열 제외'}))];
-        tabs.forEach((t,ti) => {
+    /* ── 번호 미리보기 (전체) ── */
+    const bannerNums = document.getElementById('banner-nums');
+    if (bannerNums) {
+        bannerNums.innerHTML = '';
+        d.all.forEach(n => bannerNums.appendChild(_mkMini(n, 24)));
+    }
+
+    /* ── 탭 2개 ── */
+    const tabDiv = document.getElementById('banner-tabs');
+    if (tabDiv) {
+        tabDiv.innerHTML = '';
+        [['all','📋 전체 제외'],['perline','🔢 라인별 제외']].forEach(([id, label]) => {
             const btn = document.createElement('button');
-            btn.style.cssText = 'padding:4px 10px;border-radius:99px;border:1.5px solid;font-family:inherit;font-size:11px;cursor:pointer;white-space:nowrap;transition:all .12s;';
-            const isActive = t.id === _homeBannerTab;
-            btn.style.background  = isActive ? 'rgba(34,197,94,.2)' : 'rgba(255,255,255,.05)';
-            btn.style.borderColor = isActive ? 'rgba(34,197,94,.5)' : 'rgba(255,255,255,.1)';
-            btn.style.color       = isActive ? '#22C55E' : '#94A3B8';
-            btn.style.fontWeight  = isActive ? '700' : '500';
-            if (ti > 0) {
-                btn.innerHTML = `<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${LABEL_COLORS_BANNER[ti-1]};margin-right:4px;vertical-align:middle;"></span>${t.txt}`;
-            } else { btn.textContent = t.txt; }
-            btn.onclick = () => { _homeBannerTab = t.id; updateHomeBanner(); };
-            modeTabs.appendChild(btn);
+            btn.style.cssText = 'flex:1;padding:7px 0;border-radius:10px;border:1.5px solid;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;transition:all .12s;';
+            const active = _bannerTab === id;
+            btn.style.background  = active ? 'rgba(34,197,94,.2)' : 'rgba(255,255,255,.05)';
+            btn.style.borderColor = active ? 'rgba(34,197,94,.5)' : 'rgba(255,255,255,.12)';
+            btn.style.color       = active ? '#22C55E' : '#64748B';
+            btn.textContent = label;
+            btn.onclick = () => { _bannerTab = id; updateHomeBanner(); };
+            tabDiv.appendChild(btn);
         });
     }
 
-    /* 번호 표시 */
-    if (bannerNums) {
-        bannerNums.innerHTML = '';
-        let showNums;
-        if (_homeBannerTab === 'all') {
-            showNums = d.all;
+    /* ── 탭 콘텐츠 ── */
+    const contentDiv = document.getElementById('banner-content');
+    if (contentDiv) {
+        contentDiv.innerHTML = '';
+        if (_bannerTab === 'all') {
+            const desc = document.createElement('p');
+            desc.style.cssText = 'font-size:10px;color:#64748B;';
+            desc.textContent = `전체 ${d.all.length}개 번호를 제외 → 5세트 동일 조건 생성`;
+            contentDiv.appendChild(desc);
         } else {
-            const idx = parseInt(_homeBannerTab.replace('line',''));
-            showNums = (lines[idx] || []);
+            lines.forEach((ln, i) => {
+                const row = document.createElement('div');
+                row.style.cssText = 'display:flex;align-items:center;gap:5px;margin-bottom:5px;';
+                const lbl = document.createElement('span');
+                lbl.style.cssText = `font-size:11px;font-weight:700;color:${_BC[i]};width:14px;flex-shrink:0;`;
+                lbl.textContent = _BL[i];
+                const balls = document.createElement('div');
+                balls.style.cssText = 'display:flex;gap:3px;';
+                ln.forEach(n => balls.appendChild(_mkMini(n, 20)));
+                const arr = document.createElement('span');
+                arr.style.cssText = 'font-size:10px;color:#475569;';
+                arr.textContent = '→ 세트 ' + _BL[i];
+                row.append(lbl, balls, arr);
+                contentDiv.appendChild(row);
+            });
         }
-        showNums.forEach(n => bannerNums.appendChild(_mkBannerBall(n)));
+    }
+
+    /* ── 버튼 행 ── */
+    const btnRow = document.getElementById('banner-btn-row');
+    if (btnRow) {
+        btnRow.innerHTML = '';
+        const newBtn = document.createElement('button');
+        newBtn.style.cssText = 'flex:1;padding:12px 0;border-radius:14px;border:1.5px solid rgba(255,255,255,.12);background:rgba(255,255,255,.07);font-family:inherit;font-size:13px;font-weight:700;color:#94A3B8;cursor:pointer;';
+        newBtn.innerHTML = '<span id="gen-icon">🎲</span> 새로 생성';
+        newBtn.onclick = () => { if (typeof generateAll === 'function') generateAll([]); };
+
+        const exBtn = document.createElement('button');
+        exBtn.style.cssText = 'flex:2;padding:12px 0;border-radius:14px;border:none;background:linear-gradient(135deg,#22C55E,#15803D);box-shadow:0 4px 20px rgba(34,197,94,.28);font-family:inherit;font-size:14px;font-weight:900;color:#fff;cursor:pointer;';
+        exBtn.textContent = _bannerTab === 'all' ? '🎯 전체 제외하고 생성' : '🔢 라인별 제외하고 생성';
+        exBtn.onclick = () => {
+            if (_bannerTab === 'all') {
+                if (typeof generateAll     === 'function') generateAll(d.all);
+            } else {
+                if (typeof generatePerLine === 'function') generatePerLine(lines);
+            }
+        };
+        btnRow.append(newBtn, exBtn);
     }
 
     /* 레이블 */
-    if (label) {
-        if (_homeBannerTab === 'all') {
-            label.textContent = `🎯 전체 ${d.all.length}개 제외 적용 중`;
-        } else {
-            const idx = parseInt(_homeBannerTab.replace('line',''));
-            label.textContent = `🎯 ${SET_LABELS_BANNER[idx]}열 ${(lines[idx]||[]).length}개 제외 적용 중`;
-        }
-    }
-
-    /* 제외하고 생성 버튼 텍스트 */
-    const excBtn = document.getElementById('exclude-gen-btn');
-    if (excBtn) {
-        excBtn.textContent = _homeBannerTab === 'all'
-            ? '🎯 전체 제외하고 생성'
-            : `🎯 ${SET_LABELS_BANNER[parseInt(_homeBannerTab.replace('line',''))]}열 제외하고 생성`;
-    }
-}
-
-function applyHomeBannerExclude() {
-    const d = (typeof getQRData === 'function') ? getQRData() : null;
-    if (!d) return;
-    let nums;
-    if (_homeBannerTab === 'all') {
-        nums = d.all;
-    } else {
-        const idx = parseInt(_homeBannerTab.replace('line',''));
-        nums = (d.lines || [])[idx] || [];
-    }
-    if (typeof generateAll === 'function') generateAll(nums);
+    const lbl = document.getElementById('banner-label');
+    if (lbl) lbl.textContent = _bannerTab === 'all'
+        ? `🎯 전체 ${d.all.length}개 제외 적용 중`
+        : `🔢 라인별 제외 적용 중 (${lines.length}게임)`;
 }
 
 function clearQRExclude() {
-    _homeBannerTab = 'all';
-    if (typeof setQRData === 'function') setQRData(null);
+    _bannerTab = 'all';
+    if (typeof setQRData !== 'undefined') setQRData(null);
     if (typeof scannedNums !== 'undefined') scannedNums = [];
     updateHomeBanner();
+    const genBtn = document.getElementById('genBtn');
+    if (genBtn) genBtn.parentElement.style.display = '';
     if (typeof generateAll === 'function') generateAll([]);
     if (typeof toast === 'function') toast('🗑️ QR 제외 해제됨');
 }

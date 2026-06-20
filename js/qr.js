@@ -246,8 +246,7 @@ function handleQRResult(data) {
         if (urlParts.length < 2) throw new Error('로또 QR 형식이 아닙니다.');
 
         const qrRawNumbers = urlParts[1].split('q');
-        /* ── 라인별(게임별) 파싱 ── */
-        const scannedLines = [];   /* [ [n,n,n,n,n,n], ... ]  최대 5줄 */
+        const scannedLines = [];
         for (let i = 1; i < qrRawNumbers.length; i++) {
             const segment = qrRawNumbers[i];
             if (segment.length < 12) continue;
@@ -257,22 +256,18 @@ function handleQRResult(data) {
                 const num = parseInt(gameStr.substring(j, j + 2), 10);
                 if (num >= 1 && num <= 45) lineNums.push(num);
             }
-            if (lineNums.length === 6) scannedLines.push(lineNums.sort((a,b)=>a-b));
+            if (lineNums.length === 6) scannedLines.push(lineNums.sort((a, b) => a - b));
         }
         if (!scannedLines.length) throw new Error('번호를 읽을 수 없습니다.');
 
-        /* 전체 합집합 */
-        const allNums = [...new Set(scannedLines.flat())].sort((a,b)=>a-b);
+        const allNums = [...new Set(scannedLines.flat())].sort((a, b) => a - b);
         scannedNums = allNums;
-
-        /* sessionStorage 저장 */
         if (typeof setQRData === 'function') setQRData({ lines: scannedLines, all: allNums });
 
-        /* ── 결과 패널 렌더링 ── */
         _renderQRPanel(scannedLines, allNums);
 
         const statusEl = document.getElementById('cam-status');
-        if (statusEl) { statusEl.textContent = `✅ ${scannedLines.length}줄 / ${allNums.length}개 번호 스캔 완료`; statusEl.className = 'ok'; }
+        if (statusEl) { statusEl.textContent = `✅ ${scannedLines.length}줄 스캔 완료`; statusEl.className = 'ok'; }
         if (typeof toast === 'function') toast(`🎯 ${scannedLines.length}게임 인식`);
 
     } catch (e) {
@@ -281,163 +276,140 @@ function handleQRResult(data) {
     }
 }
 
-/* ── QR 결과 패널 렌더링 ── */
+/* ── QR 결과 패널: 탭 2개(전체 / 라인별) ── */
+let _qrActiveTab = 'all';   /* 'all' | 'perline' */
+
 function _renderQRPanel(lines, allNums) {
     const panel    = document.getElementById('qr-result-panel');
     const numsWrap = document.getElementById('qr-res-nums');
     if (!panel || !numsWrap) return;
 
-    const SET_LABELS = ['A','B','C','D','E'];
-    const LABEL_COLORS = ['#F5C842','#3B82F6','#EF4444','#22C55E','#A78BFA'];
+    const SET_LABELS  = ['A','B','C','D','E'];
+    const LINE_COLORS = ['#F5C842','#3B82F6','#EF4444','#22C55E','#A78BFA'];
 
+    _qrActiveTab = 'all';
     numsWrap.innerHTML = '';
 
-    /* ── 제외 방식 탭 ── */
-    const tabWrap = document.createElement('div');
-    tabWrap.style.cssText = 'display:flex;gap:6px;margin-bottom:10px;';
+    /* ── 탭 2개 ── */
+    const tabBar = document.createElement('div');
+    tabBar.style.cssText = 'display:flex;gap:6px;margin-bottom:10px;';
 
-    const tabs = [{ id:'all', label:'전체 제외' }, ...lines.map((_,i)=>({ id:'line'+i, label: SET_LABELS[i]+'열 제외' }))];
-    let activeTab = 'all';
-
-    function renderTabContent() {
-        content.innerHTML = '';
-        if (activeTab === 'all') {
-            /* 전체 번호 표시 */
-            const row = document.createElement('div');
-            row.style.cssText = 'display:flex;flex-wrap:wrap;gap:5px;margin-bottom:4px;';
-            allNums.forEach(n => {
-                const b = mkBall(n, 'mini-ball');
-                b.style.flexShrink = '0'; row.appendChild(b);
-            });
-            content.appendChild(row);
-            const desc = document.createElement('div');
-            desc.style.cssText = 'font-size:10px;color:#64748B;margin-top:4px;';
-            desc.textContent = `스캔된 전체 ${allNums.length}개 번호를 제외하고 5세트 생성`;
-            content.appendChild(desc);
-        } else {
-            /* 특정 라인 */
-            const idx = parseInt(activeTab.replace('line',''));
-            const lineNums = lines[idx];
-            const row = document.createElement('div');
-            row.style.cssText = 'display:flex;flex-wrap:wrap;gap:5px;margin-bottom:4px;';
-            lineNums.forEach(n => {
-                const b = mkBall(n, 'mini-ball');
-                b.style.flexShrink = '0'; row.appendChild(b);
-            });
-            content.appendChild(row);
-            const desc = document.createElement('div');
-            desc.style.cssText = 'font-size:10px;color:#64748B;margin-top:4px;';
-            desc.textContent = `${SET_LABELS[idx]}열 ${lineNums.length}개 번호를 제외하고 5세트 생성`;
-            content.appendChild(desc);
-        }
-
-        /* 탭 버튼 색상 갱신 */
-        tabWrap.querySelectorAll('.qr-tab').forEach(btn => {
-            const isActive = btn.dataset.tab === activeTab;
-            btn.style.background = isActive ? 'rgba(34,197,94,.22)' : 'rgba(255,255,255,.05)';
-            btn.style.borderColor = isActive ? 'rgba(34,197,94,.5)' : 'rgba(255,255,255,.1)';
-            btn.style.color = isActive ? '#22C55E' : '#94A3B8';
-            btn.style.fontWeight = isActive ? '700' : '500';
-        });
-
-        /* 실행 버튼 텍스트 */
-        const applyBtn = panel.querySelector('#qr-apply-btn');
-        if (applyBtn) {
-            applyBtn.textContent = activeTab === 'all'
-                ? `🎰 전체 제외하고 생성`
-                : `🎯 ${SET_LABELS[parseInt(activeTab.replace('line',''))]}열 제외하고 생성`;
-        }
-    }
-
-    tabs.forEach((t, ti) => {
+    function mkTab(id, label) {
         const btn = document.createElement('button');
-        btn.className = 'qr-tab';
-        btn.dataset.tab = t.id;
-        btn.style.cssText = [
-            'padding:5px 10px','border-radius:99px','border:1.5px solid rgba(255,255,255,.1)',
-            'background:rgba(255,255,255,.05)','color:#94A3B8',
-            'font-family:inherit','font-size:11px','font-weight:500','cursor:pointer',
-            'white-space:nowrap','transition:all .12s',
-        ].join(';');
-        if (ti > 0) {
-            /* 라인 탭에 색상 점 */
-            btn.innerHTML = `<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${LABEL_COLORS[ti-1]};margin-right:4px;vertical-align:middle;"></span>${t.label}`;
-        } else {
-            btn.textContent = t.label;
-        }
-        btn.onclick = () => { activeTab = t.id; renderTabContent(); };
-        tabWrap.appendChild(btn);
-    });
-    numsWrap.appendChild(tabWrap);
+        btn.style.cssText = 'flex:1;padding:7px 0;border-radius:10px;border:1.5px solid;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;transition:all .12s;';
+        btn.dataset.tabId = id;
+        btn.textContent = label;
+        btn.onclick = () => { _qrActiveTab = id; refreshPanel(); };
+        return btn;
+    }
+    const tabAll     = mkTab('all',     '📋 전체 제외');
+    const tabPerLine = mkTab('perline', '🔢 라인별 제외');
+    tabBar.append(tabAll, tabPerLine);
+    numsWrap.appendChild(tabBar);
 
-    /* 콘텐츠 영역 */
+    /* ── 콘텐츠 영역 ── */
     const content = document.createElement('div');
     numsWrap.appendChild(content);
 
-    renderTabContent();
+    /* ── 버튼 행 ── */
+    const btnRow = document.createElement('div');
+    btnRow.style.cssText = 'display:flex;gap:8px;margin-top:10px;';
+    numsWrap.appendChild(btnRow);
 
-    /* ── 버튼 재구성 ── */
-    const btnRow = panel.querySelector('.qr-btn-row');
-    if (btnRow) {
+    function refreshPanel() {
+        /* 탭 스타일 */
+        [tabAll, tabPerLine].forEach(btn => {
+            const active = btn.dataset.tabId === _qrActiveTab;
+            btn.style.background  = active ? 'rgba(34,197,94,.2)' : 'rgba(255,255,255,.05)';
+            btn.style.borderColor = active ? 'rgba(34,197,94,.5)' : 'rgba(255,255,255,.12)';
+            btn.style.color       = active ? '#22C55E' : '#64748B';
+        });
+
+        content.innerHTML = '';
+
+        if (_qrActiveTab === 'all') {
+            /* 전체 번호 나열 */
+            const row = document.createElement('div');
+            row.style.cssText = 'display:flex;flex-wrap:wrap;gap:5px;';
+            allNums.forEach(n => {
+                const b = mkBall(n, 'mini-ball');
+                b.style.flexShrink = '0';
+                row.appendChild(b);
+            });
+            content.appendChild(row);
+            const desc = document.createElement('p');
+            desc.style.cssText = 'font-size:10px;color:#64748B;margin-top:6px;';
+            desc.textContent = `전체 ${allNums.length}개 번호를 제외 → 5세트 동일 조건으로 생성`;
+            content.appendChild(desc);
+        } else {
+            /* 라인별: 각 줄 번호 + 화살표 표시 */
+            lines.forEach((lineNums, i) => {
+                const row = document.createElement('div');
+                row.style.cssText = 'display:flex;align-items:center;gap:6px;margin-bottom:6px;';
+
+                const labelEl = document.createElement('span');
+                labelEl.style.cssText = `font-size:11px;font-weight:700;color:${LINE_COLORS[i]};width:14px;flex-shrink:0;`;
+                labelEl.textContent = SET_LABELS[i];
+
+                const balls = document.createElement('div');
+                balls.style.cssText = 'display:flex;gap:3px;flex-wrap:nowrap;';
+                lineNums.forEach(n => {
+                    const b = mkBall(n, 'mini-ball');
+                    b.style.width = b.style.height = '22px';
+                    b.style.fontSize = '9px';
+                    b.style.flexShrink = '0';
+                    balls.appendChild(b);
+                });
+
+                const arrow = document.createElement('span');
+                arrow.style.cssText = 'font-size:10px;color:#475569;flex-shrink:0;';
+                arrow.textContent = '→ 세트 ' + SET_LABELS[i] + ' 제외';
+
+                row.append(labelEl, balls, arrow);
+                content.appendChild(row);
+            });
+            const desc = document.createElement('p');
+            desc.style.cssText = 'font-size:10px;color:#64748B;margin-top:4px;';
+            desc.textContent = '각 줄 번호를 제외해 세트별로 따로 생성 (A줄→세트A, B줄→세트B …)';
+            content.appendChild(desc);
+        }
+
+        /* 버튼 갱신 */
         btnRow.innerHTML = '';
         const applyBtn = document.createElement('button');
-        applyBtn.id = 'qr-apply-btn';
-        applyBtn.style.cssText = [
-            'flex:1','padding:10px 0','border-radius:12px','border:none',
-            'font-family:inherit','font-size:13px','font-weight:700','color:#fff','cursor:pointer',
-            'background:linear-gradient(135deg,#22C55E,#15803D)',
-            'display:flex','align-items:center','justify-content:center','gap:4px',
-        ].join(';');
-        applyBtn.textContent = '🎰 전체 제외하고 생성';
-        applyBtn.onclick = () => applyQRExclude(activeTab, lines);
+        applyBtn.style.cssText = 'flex:1;padding:11px 0;border-radius:12px;border:none;font-family:inherit;font-size:13px;font-weight:700;color:#fff;cursor:pointer;background:linear-gradient(135deg,#22C55E,#15803D);';
+        applyBtn.textContent = _qrActiveTab === 'all' ? '🎰 전체 제외하고 생성' : '🔢 라인별 제외하고 생성';
+        applyBtn.onclick = () => _applyAndGo(lines, allNums);
 
         const rescanBtn = document.createElement('button');
-        rescanBtn.style.cssText = [
-            'padding:10px 14px','border-radius:12px',
-            'border:1px solid rgba(34,197,94,.3)','background:transparent',
-            'font-family:inherit','font-size:13px','font-weight:600','color:#22C55E','cursor:pointer',
-        ].join(';');
+        rescanBtn.style.cssText = 'padding:11px 14px;border-radius:12px;border:1px solid rgba(34,197,94,.3);background:transparent;font-family:inherit;font-size:13px;font-weight:600;color:#22C55E;cursor:pointer;';
         rescanBtn.textContent = '🔄 재스캔';
-        rescanBtn.onclick = () => resetQR();
+        rescanBtn.onclick = resetQR;
 
         btnRow.append(applyBtn, rescanBtn);
-        /* activeTab을 클로저로 참조하도록 renderTabContent 내에서도 갱신 */
     }
 
+    refreshPanel();
     panel.classList.remove('hidden');
 }
 
-/* ── 제외 적용 ── */
-function applyQRExclude(tabId, lines) {
-    /* tabId, lines 가 없으면 sessionStorage에서 복원 */
-    if (!tabId || !lines) {
-        const d = typeof getQRData === 'function' ? getQRData() : null;
-        if (!d) return;
-        lines  = d.lines || [];
-        tabId  = 'all';
-    }
-    let excludeNums;
-    if (tabId === 'all') {
-        excludeNums = [...new Set(lines.flat())].sort((a,b)=>a-b);
+function _applyAndGo(lines, allNums) {
+    if (typeof setQRData === 'function') setQRData({ lines, all: allNums, mode: _qrActiveTab });
+    if (typeof switchTab === 'function') switchTab('home');
+    if (_qrActiveTab === 'all') {
+        if (typeof generateAll     === 'function') generateAll(allNums);
     } else {
-        const idx = parseInt(tabId.replace('line',''));
-        excludeNums = lines[idx] || [];
+        if (typeof generatePerLine === 'function') generatePerLine(lines);
     }
-    if (typeof setQRData === 'function') {
-        const all = [...new Set(lines.flat())].sort((a,b)=>a-b);
-        setQRData({ lines, all, activeTab: tabId });
-    }
-    if (typeof switchTab       === 'function') switchTab('home');
-    if (typeof generateAll     === 'function') generateAll(excludeNums);
     if (typeof updateHomeBanner === 'function') updateHomeBanner();
 }
 
 function resetQR() {
     scannedNums = [];
     if (typeof setQRData === 'function') setQRData(null);
-    const panel = document.getElementById('qr-result-panel');
+    const panel    = document.getElementById('qr-result-panel');
     const numsWrap = document.getElementById('qr-res-nums');
-    if (panel) panel.classList.add('hidden');
+    if (panel)    panel.classList.add('hidden');
     if (numsWrap) numsWrap.innerHTML = '';
     if (typeof updateHomeBanner === 'function') updateHomeBanner();
     startCamera();

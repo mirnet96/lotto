@@ -205,3 +205,108 @@ function generateAll(excludeNums=[]) {
         wrap.appendChild(card);
     });
 }
+
+/* ══════════════════════════════════════════════════
+   라인별 제외 생성
+   lines: [[n,n,n,n,n,n], ...]  각 줄의 번호
+   세트 A→A줄 제외, B→B줄 제외, ...
+   ══════════════════════════════════════════════════ */
+function generatePerLine(lines) {
+    const icon = document.getElementById('gen-icon');
+    const wrap = document.getElementById('sets-container');
+    if (icon) {
+        icon.style.transition = 'transform .55s cubic-bezier(.4,0,.2,1)';
+        icon.style.transform  = 'rotate(360deg)';
+        setTimeout(() => { icon.style.transform = ''; icon.style.transition = ''; }, 560);
+    }
+    wrap.innerHTML = '';
+    const weights = Object.keys(freqMap).length ? buildWeights(lottoData, 30) : freqMap;
+
+    lines.forEach((lineNums, i) => {
+        const { nums, score } = smartNums(lineNums, weights);
+        const sum = nums.reduce((a, b) => a + b, 0);
+        const odd = nums.filter(n => n % 2 !== 0).length;
+
+        const card = document.createElement('div');
+        card.className = 'set-card';
+        card.style.animationDelay = (i * 60) + 'ms';
+
+        /* 헤더 */
+        const header = document.createElement('div');
+        header.className = 'set-card-header';
+
+        const lbl = document.createElement('div');
+        lbl.className = 'set-label';
+        lbl.textContent = SET_EMOJIS[i] + ' 세트 ' + SET_LABELS[i];
+
+        /* 제외번호 미니 표시 */
+        const excludeTag = document.createElement('div');
+        excludeTag.style.cssText = 'display:flex;align-items:center;gap:3px;flex-shrink:0;';
+        const exLabel = document.createElement('span');
+        exLabel.style.cssText = 'font-size:9px;color:#64748B;white-space:nowrap;';
+        exLabel.textContent = '제외:';
+        excludeTag.appendChild(exLabel);
+        lineNums.forEach(n => {
+            const b = document.createElement('span');
+            b.style.cssText = `display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;font-size:8px;font-weight:700;color:#fff;flex-shrink:0;background:${_bgGrad(n)};opacity:.7;`;
+            b.textContent = n;
+            excludeTag.appendChild(b);
+        });
+
+        const rightWrap = document.createElement('div');
+        rightWrap.style.cssText = 'display:flex;align-items:center;gap:6px;flex-shrink:0;';
+
+        if (score > 0) {
+            const qb    = getQualityBadge(score);
+            const badge = document.createElement('span');
+            badge.style.cssText = `font-size:10px;font-weight:700;padding:3px 8px;border-radius:99px;white-space:nowrap;background:${qb.bg};border:1px solid ${qb.border};color:${qb.color};`;
+            badge.textContent = qb.label;
+            rightWrap.appendChild(badge);
+        }
+
+        const saveBtn = document.createElement('button');
+        saveBtn.className = 'save-btn';
+        saveBtn.textContent = '⭐ 저장';
+        saveBtn.onclick = () => applySet(nums, card, saveBtn);
+        rightWrap.appendChild(saveBtn);
+
+        header.append(lbl, rightWrap);
+
+        /* 제외 태그 행 */
+        const excludeRow = document.createElement('div');
+        excludeRow.style.cssText = 'display:flex;align-items:center;gap:3px;margin-bottom:6px;';
+        excludeRow.appendChild(excludeTag);
+
+        /* 볼 행 */
+        const ballsRow = document.createElement('div');
+        ballsRow.style.cssText = 'display:flex;flex-wrap:nowrap;align-items:center;gap:clamp(3px,1.2vw,6px);overflow:visible;width:100%;min-width:0;';
+        nums.forEach(n => {
+            const ball = mkBall(n, 'ball');
+            ball.style.flexShrink = '0';
+            ball.style.flexGrow   = '0';
+            ballsRow.appendChild(ball);
+        });
+
+        /* 푸터 */
+        const footer = document.createElement('div');
+        footer.style.cssText = 'display:flex;align-items:center;gap:6px;margin-top:8px;';
+        const mkTag = (txt) => {
+            const t = document.createElement('span');
+            t.style.cssText = 'font-size:10px;color:#94A3B8;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);padding:2px 8px;border-radius:99px;white-space:nowrap;';
+            t.textContent = txt;
+            return t;
+        };
+        footer.append(mkTag('합계 ' + sum), mkTag('홀' + odd + ' 짝' + (6 - odd)));
+
+        card.append(header, excludeRow, ballsRow, footer);
+        wrap.appendChild(card);
+    });
+}
+
+function _bgGrad(n) {
+    if (n <= 10) return 'linear-gradient(135deg,#FBC02D,#F59E0B)';
+    if (n <= 20) return 'linear-gradient(135deg,#3B82F6,#1D4ED8)';
+    if (n <= 30) return 'linear-gradient(135deg,#EF4444,#B91C1C)';
+    if (n <= 40) return 'linear-gradient(135deg,#22C55E,#15803D)';
+    return 'linear-gradient(135deg,#9CA3AF,#4B5563)';
+}
