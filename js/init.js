@@ -26,12 +26,13 @@ async function init() {
     if (lottoData.length)
         avgSum = Math.round(lottoData.reduce((a, b) => a + b.stats.sum, 0) / lottoData.length);
 
-    /* ── 세션에 저장된 제외번호가 있으면 복원해서 생성 ── */
-    const savedExclude = getQRExclude();
-    generateAll(savedExclude.length ? savedExclude : []);
+    /* ── 세션에 저장된 QR 제외번호 복원 ── */
+    const savedQR = getQRData();
+    const startNums = savedQR ? savedQR.all : [];
+    generateAll(startNums);
     updateHomeBanner();
+    updateBadge();
     buildStats();
 }
 
 init();
-

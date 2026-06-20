@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lotto-plus-v1.0.11';
+const CACHE_NAME = 'lotto-plus-v1.0.12';
 const ASSETS = [
   '/lotto/',
   '/lotto/index.html',

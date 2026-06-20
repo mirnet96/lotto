@@ -236,54 +236,44 @@ async function stopCamera() {
 
 /* ══════════════ QR 결과 처리 ══════════════ */
 function handleQRResult(data) {
-
-
     if (!camActive) return;
     camActive = false;
-
     if (navigator.vibrate) navigator.vibrate([100, 50, 300]);
     stopCamera();
-
 
     try {
         const urlParts = data.split('v=');
         if (urlParts.length < 2) throw new Error('로또 QR 형식이 아닙니다.');
 
         const qrRawNumbers = urlParts[1].split('q');
-        const allNums = [];
-        /* q 다음 정확히 앞 12자리(2자리×6개)만 로또번호
-           마지막 세그먼트 뒤에 쓰레기값이 붙어도 무시 */
+        /* ── 라인별(게임별) 파싱 ── */
+        const scannedLines = [];   /* [ [n,n,n,n,n,n], ... ]  최대 5줄 */
         for (let i = 1; i < qrRawNumbers.length; i++) {
             const segment = qrRawNumbers[i];
             if (segment.length < 12) continue;
             const gameStr = segment.substring(0, 12);
+            const lineNums = [];
             for (let j = 0; j < 12; j += 2) {
                 const num = parseInt(gameStr.substring(j, j + 2), 10);
-                if (num >= 1 && num <= 45) allNums.push(num);
+                if (num >= 1 && num <= 45) lineNums.push(num);
             }
+            if (lineNums.length === 6) scannedLines.push(lineNums.sort((a,b)=>a-b));
         }
+        if (!scannedLines.length) throw new Error('번호를 읽을 수 없습니다.');
 
+        /* 전체 합집합 */
+        const allNums = [...new Set(scannedLines.flat())].sort((a,b)=>a-b);
+        scannedNums = allNums;
 
+        /* sessionStorage 저장 */
+        if (typeof setQRData === 'function') setQRData({ lines: scannedLines, all: allNums });
 
-        scannedNums = [...new Set(allNums)].sort((a, b) => a - b);
-        if (typeof setQRExclude === 'function') setQRExclude(scannedNums);
-
-
-        const panel    = document.getElementById('qr-result-panel');
-        const numsWrap = document.getElementById('qr-res-nums');
-        numsWrap.innerHTML = '';
-        scannedNums.forEach(n => {
-            if (typeof mkBall === 'function') {
-                const b = mkBall(n, 'mini-ball');
-                b.style.flexShrink = '0';
-                numsWrap.appendChild(b);
-            }
-        });
-        panel.classList.remove('hidden');
+        /* ── 결과 패널 렌더링 ── */
+        _renderQRPanel(scannedLines, allNums);
 
         const statusEl = document.getElementById('cam-status');
-        if (statusEl) { statusEl.textContent = `✅ ${scannedNums.length}개 번호 스캔 완료`; statusEl.className = 'ok'; }
-        if (typeof toast === 'function') toast(`🎯 ${scannedNums.length}개 번호 인식`);
+        if (statusEl) { statusEl.textContent = `✅ ${scannedLines.length}줄 / ${allNums.length}개 번호 스캔 완료`; statusEl.className = 'ok'; }
+        if (typeof toast === 'function') toast(`🎯 ${scannedLines.length}게임 인식`);
 
     } catch (e) {
         const statusEl = document.getElementById('cam-status');
@@ -291,19 +281,164 @@ function handleQRResult(data) {
     }
 }
 
-function applyQRExclude() {
-    if (!scannedNums.length) return;
-    if (typeof setQRExclude    === 'function') setQRExclude(scannedNums);
+/* ── QR 결과 패널 렌더링 ── */
+function _renderQRPanel(lines, allNums) {
+    const panel    = document.getElementById('qr-result-panel');
+    const numsWrap = document.getElementById('qr-res-nums');
+    if (!panel || !numsWrap) return;
+
+    const SET_LABELS = ['A','B','C','D','E'];
+    const LABEL_COLORS = ['#F5C842','#3B82F6','#EF4444','#22C55E','#A78BFA'];
+
+    numsWrap.innerHTML = '';
+
+    /* ── 제외 방식 탭 ── */
+    const tabWrap = document.createElement('div');
+    tabWrap.style.cssText = 'display:flex;gap:6px;margin-bottom:10px;';
+
+    const tabs = [{ id:'all', label:'전체 제외' }, ...lines.map((_,i)=>({ id:'line'+i, label: SET_LABELS[i]+'열 제외' }))];
+    let activeTab = 'all';
+
+    function renderTabContent() {
+        content.innerHTML = '';
+        if (activeTab === 'all') {
+            /* 전체 번호 표시 */
+            const row = document.createElement('div');
+            row.style.cssText = 'display:flex;flex-wrap:wrap;gap:5px;margin-bottom:4px;';
+            allNums.forEach(n => {
+                const b = mkBall(n, 'mini-ball');
+                b.style.flexShrink = '0'; row.appendChild(b);
+            });
+            content.appendChild(row);
+            const desc = document.createElement('div');
+            desc.style.cssText = 'font-size:10px;color:#64748B;margin-top:4px;';
+            desc.textContent = `스캔된 전체 ${allNums.length}개 번호를 제외하고 5세트 생성`;
+            content.appendChild(desc);
+        } else {
+            /* 특정 라인 */
+            const idx = parseInt(activeTab.replace('line',''));
+            const lineNums = lines[idx];
+            const row = document.createElement('div');
+            row.style.cssText = 'display:flex;flex-wrap:wrap;gap:5px;margin-bottom:4px;';
+            lineNums.forEach(n => {
+                const b = mkBall(n, 'mini-ball');
+                b.style.flexShrink = '0'; row.appendChild(b);
+            });
+            content.appendChild(row);
+            const desc = document.createElement('div');
+            desc.style.cssText = 'font-size:10px;color:#64748B;margin-top:4px;';
+            desc.textContent = `${SET_LABELS[idx]}열 ${lineNums.length}개 번호를 제외하고 5세트 생성`;
+            content.appendChild(desc);
+        }
+
+        /* 탭 버튼 색상 갱신 */
+        tabWrap.querySelectorAll('.qr-tab').forEach(btn => {
+            const isActive = btn.dataset.tab === activeTab;
+            btn.style.background = isActive ? 'rgba(34,197,94,.22)' : 'rgba(255,255,255,.05)';
+            btn.style.borderColor = isActive ? 'rgba(34,197,94,.5)' : 'rgba(255,255,255,.1)';
+            btn.style.color = isActive ? '#22C55E' : '#94A3B8';
+            btn.style.fontWeight = isActive ? '700' : '500';
+        });
+
+        /* 실행 버튼 텍스트 */
+        const applyBtn = panel.querySelector('#qr-apply-btn');
+        if (applyBtn) {
+            applyBtn.textContent = activeTab === 'all'
+                ? `🎰 전체 제외하고 생성`
+                : `🎯 ${SET_LABELS[parseInt(activeTab.replace('line',''))]}열 제외하고 생성`;
+        }
+    }
+
+    tabs.forEach((t, ti) => {
+        const btn = document.createElement('button');
+        btn.className = 'qr-tab';
+        btn.dataset.tab = t.id;
+        btn.style.cssText = [
+            'padding:5px 10px','border-radius:99px','border:1.5px solid rgba(255,255,255,.1)',
+            'background:rgba(255,255,255,.05)','color:#94A3B8',
+            'font-family:inherit','font-size:11px','font-weight:500','cursor:pointer',
+            'white-space:nowrap','transition:all .12s',
+        ].join(';');
+        if (ti > 0) {
+            /* 라인 탭에 색상 점 */
+            btn.innerHTML = `<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${LABEL_COLORS[ti-1]};margin-right:4px;vertical-align:middle;"></span>${t.label}`;
+        } else {
+            btn.textContent = t.label;
+        }
+        btn.onclick = () => { activeTab = t.id; renderTabContent(); };
+        tabWrap.appendChild(btn);
+    });
+    numsWrap.appendChild(tabWrap);
+
+    /* 콘텐츠 영역 */
+    const content = document.createElement('div');
+    numsWrap.appendChild(content);
+
+    renderTabContent();
+
+    /* ── 버튼 재구성 ── */
+    const btnRow = panel.querySelector('.qr-btn-row');
+    if (btnRow) {
+        btnRow.innerHTML = '';
+        const applyBtn = document.createElement('button');
+        applyBtn.id = 'qr-apply-btn';
+        applyBtn.style.cssText = [
+            'flex:1','padding:10px 0','border-radius:12px','border:none',
+            'font-family:inherit','font-size:13px','font-weight:700','color:#fff','cursor:pointer',
+            'background:linear-gradient(135deg,#22C55E,#15803D)',
+            'display:flex','align-items:center','justify-content:center','gap:4px',
+        ].join(';');
+        applyBtn.textContent = '🎰 전체 제외하고 생성';
+        applyBtn.onclick = () => applyQRExclude(activeTab, lines);
+
+        const rescanBtn = document.createElement('button');
+        rescanBtn.style.cssText = [
+            'padding:10px 14px','border-radius:12px',
+            'border:1px solid rgba(34,197,94,.3)','background:transparent',
+            'font-family:inherit','font-size:13px','font-weight:600','color:#22C55E','cursor:pointer',
+        ].join(';');
+        rescanBtn.textContent = '🔄 재스캔';
+        rescanBtn.onclick = () => resetQR();
+
+        btnRow.append(applyBtn, rescanBtn);
+        /* activeTab을 클로저로 참조하도록 renderTabContent 내에서도 갱신 */
+    }
+
+    panel.classList.remove('hidden');
+}
+
+/* ── 제외 적용 ── */
+function applyQRExclude(tabId, lines) {
+    /* tabId, lines 가 없으면 sessionStorage에서 복원 */
+    if (!tabId || !lines) {
+        const d = typeof getQRData === 'function' ? getQRData() : null;
+        if (!d) return;
+        lines  = d.lines || [];
+        tabId  = 'all';
+    }
+    let excludeNums;
+    if (tabId === 'all') {
+        excludeNums = [...new Set(lines.flat())].sort((a,b)=>a-b);
+    } else {
+        const idx = parseInt(tabId.replace('line',''));
+        excludeNums = lines[idx] || [];
+    }
+    if (typeof setQRData === 'function') {
+        const all = [...new Set(lines.flat())].sort((a,b)=>a-b);
+        setQRData({ lines, all, activeTab: tabId });
+    }
     if (typeof switchTab       === 'function') switchTab('home');
-    if (typeof generateAll     === 'function') generateAll(scannedNums);
+    if (typeof generateAll     === 'function') generateAll(excludeNums);
     if (typeof updateHomeBanner === 'function') updateHomeBanner();
 }
 
 function resetQR() {
     scannedNums = [];
-    if (typeof setQRExclude === 'function') setQRExclude([]);
-    document.getElementById('qr-result-panel').classList.add('hidden');
-    document.getElementById('qr-res-nums').innerHTML = '';
+    if (typeof setQRData === 'function') setQRData(null);
+    const panel = document.getElementById('qr-result-panel');
+    const numsWrap = document.getElementById('qr-res-nums');
+    if (panel) panel.classList.add('hidden');
+    if (numsWrap) numsWrap.innerHTML = '';
     if (typeof updateHomeBanner === 'function') updateHomeBanner();
     startCamera();
 }
