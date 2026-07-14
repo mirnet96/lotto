@@ -1,7 +1,42 @@
 /* ══════════════════════════════════════════════════
-   js/generator.js — 다크 테마 + 볼 한줄 고정
+   js/generator.js
+   모드: stat(통계) | random(완전랜덤) | fortune(운세) | custom(조건설정)
+   연출: 볼 하나씩 공개 + 파티클 + 랜덤 멘트
    ══════════════════════════════════════════════════ */
 
+/* ── 현재 선택 모드 ── */
+let currentMode = 'stat';
+let customOpts  = { oddMin:2, oddMax:4, sumMin:100, sumMax:176, lowMin:2, lowMax:4 };
+
+/* ── 운세 멘트 (랜덤) ── */
+const FORTUNE_MSG = [
+    ['🌙','오늘 달빛이 당신의 손을 이끕니다'],
+    ['⚡','번개처럼 강렬한 기운이 느껴집니다'],
+    ['🌊','물처럼 흐르는 행운이 찾아옵니다'],
+    ['🔥','뜨거운 열정이 행운을 부릅니다'],
+    ['🌸','봄꽃처럼 피어나는 운세입니다'],
+    ['🌈','무지개 끝에 황금이 기다립니다'],
+    ['⭐','별이 당신의 번호를 속삭입니다'],
+    ['🍀','네잎 클로버의 기운이 가득합니다'],
+    ['🦋','나비가 날아든 날, 행운이 따릅니다'],
+    ['🌺','오늘은 특별한 숫자가 빛납니다'],
+];
+
+/* 랜덤 승리 멘트 */
+const WIN_MSGS = [
+    '💰 이번엔 진짜 될 것 같아요!',
+    '🎯 통계가 이 조합을 원하고 있어요',
+    '✨ 오늘 운이 넘치는 느낌!',
+    '🍀 행운의 번호가 탄생했습니다',
+    '🔥 이 조합... 심상치 않은데요?',
+    '⭐ 별자리가 이 숫자를 가리킵니다',
+    '🎰 잭팟의 향기가 납니다',
+    '🌈 무지개 너머 당신의 번호예요',
+    '💫 우주가 선택한 조합입니다',
+    '🎱 완벽한 조합이 완성됐어요!',
+];
+
+/* ── 통계 함수들 ── */
 function buildWeights(data, recentWindow = 30) {
     const freq = {}, recentFreq = {}, lastSeen = {};
     for (let n = 1; n <= 45; n++) { freq[n] = 0; recentFreq[n] = 0; }
@@ -98,6 +133,50 @@ function smartNums(excludeNums=[], weights=freqMap) {
     return {nums:best,score:bestScore};
 }
 
+/* ── 완전 랜덤 ── */
+function randomNums(excludeNums=[]) {
+    const exclude = new Set(excludeNums);
+    const pool = Array.from({length:45},(_,i)=>i+1).filter(n=>!exclude.has(n));
+    const s = new Set();
+    while (s.size < 6) s.add(pool[Math.floor(Math.random()*pool.length)]);
+    return { nums: [...s].sort((a,b)=>a-b), score: 0 };
+}
+
+/* ── 운세 기반 (날짜 시드 + 약한 가중치) ── */
+function fortuneNums(excludeNums=[]) {
+    const today = new Date();
+    // 날짜 기반 시드로 숫자 편향
+    const seed = today.getFullYear()*10000 + (today.getMonth()+1)*100 + today.getDate();
+    const lucky = [(seed % 45)+1, (seed*7 % 45)+1, (seed*13 % 45)+1];
+    const exclude = new Set(excludeNums);
+    const pool = Array.from({length:45},(_,i)=>i+1).filter(n=>!exclude.has(n));
+    const weights = {};
+    pool.forEach(n => {
+        weights[n] = lucky.includes(n) ? 5 : 1;
+    });
+    return smartNums(excludeNums, weights);
+}
+
+/* ── 조건 기반 ── */
+function customNums(excludeNums=[], opts=customOpts) {
+    const exclude = new Set(excludeNums);
+    const pool = Array.from({length:45},(_,i)=>i+1).filter(n=>!exclude.has(n));
+    for (let t=0;t<2000;t++){
+        const s=new Set();
+        while(s.size<6) s.add(pool[Math.floor(Math.random()*pool.length)]);
+        const arr=[...s].sort((a,b)=>a-b);
+        const sum = arr.reduce((a,b)=>a+b,0);
+        const odd = arr.filter(n=>n%2!==0).length;
+        const low = arr.filter(n=>n<=23).length;
+        if (sum<opts.sumMin||sum>opts.sumMax) continue;
+        if (odd<opts.oddMin||odd>opts.oddMax) continue;
+        if (low<opts.lowMin||low>opts.lowMax) continue;
+        return {nums:arr, score:scoreNums(arr,freqMap)};
+    }
+    return smartNums(excludeNums); // fallback
+}
+
+/* ── 뱃지 ── */
 function getQualityBadge(score) {
     if (score>=185) return {label:'✨ S+', color:'#C084FC', bg:'rgba(192,132,252,.15)', border:'rgba(192,132,252,.35)'};
     if (score>=175) return {label:'⭐ S급', color:'#F5C842', bg:'rgba(245,200,66,.12)', border:'rgba(245,200,66,.3)'};
@@ -122,7 +201,103 @@ function applySet(nums, cardEl, btnEl) {
     if (typeof updateBadge === 'function') updateBadge();
 }
 
-function generateAll(excludeNums=[]) {
+/* ══ 볼 공개 애니메이션 ══ */
+function revealBalls(ballsRow, nums, onDone) {
+    const delay = 220;   // 볼 하나씩 간격 ms
+    ballsRow.innerHTML = '';
+
+    // 먼저 ? 플레이스홀더 6개
+    const placeholders = nums.map((n, i) => {
+        const ph = document.createElement('div');
+        ph.style.cssText = [
+            `width:clamp(32px,calc((100vw - 120px)/6),42px)`,
+            `height:clamp(32px,calc((100vw - 120px)/6),42px)`,
+            'border-radius:50%',
+            'display:flex','align-items:center','justify-content:center',
+            'font-size:clamp(11px,3vw,14px)','font-weight:900','color:#475569',
+            'background:rgba(255,255,255,.07)',
+            'border:2px dashed rgba(255,255,255,.15)',
+            'flex-shrink:0','transition:all .3s',
+        ].join(';');
+        ph.textContent = '?';
+        ballsRow.appendChild(ph);
+        return ph;
+    });
+
+    nums.forEach((n, i) => {
+        setTimeout(() => {
+            const ball = mkBall(n, 'ball');
+            ball.style.flexShrink = '0';
+            ball.style.flexGrow   = '0';
+            ball.style.opacity    = '0';
+            ball.style.transform  = 'scale(0.3) translateY(-20px)';
+            ball.style.transition = 'all 0.35s cubic-bezier(.36,1.6,.26,.9)';
+            placeholders[i].replaceWith(ball);
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    ball.style.opacity   = '1';
+                    ball.style.transform = 'scale(1) translateY(0)';
+                });
+            });
+            if (i === nums.length - 1) setTimeout(onDone, 350);
+        }, i * delay);
+    });
+}
+
+/* ══ 파티클 이펙트 ══ */
+function spawnParticles(anchorEl) {
+    const rect = anchorEl.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const colors = ['#F5C842','#3B82F6','#EF4444','#22C55E','#C084FC','#F97316'];
+    for (let i = 0; i < 18; i++) {
+        const p = document.createElement('div');
+        const angle = (Math.PI * 2 * i) / 18;
+        const dist  = 60 + Math.random() * 60;
+        const size  = 5 + Math.random() * 6;
+        p.style.cssText = [
+            'position:fixed','pointer-events:none','z-index:9999',
+            `left:${cx}px`,`top:${cy}px`,
+            `width:${size}px`,`height:${size}px`,
+            'border-radius:50%',
+            `background:${colors[i % colors.length]}`,
+            'transition:all 0.7s cubic-bezier(.2,.8,.3,1)',
+            'opacity:1',
+        ].join(';');
+        document.body.appendChild(p);
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                p.style.left    = `${cx + Math.cos(angle)*dist}px`;
+                p.style.top     = `${cy + Math.sin(angle)*dist}px`;
+                p.style.opacity = '0';
+                p.style.transform = 'scale(0)';
+            });
+        });
+        setTimeout(() => p.remove(), 750);
+    }
+}
+
+/* ══ 모드별 인사이트 태그 ══ */
+function getModeTag(mode, score, nums) {
+    const sum = nums.reduce((a,b)=>a+b,0);
+    const odd = nums.filter(n=>n%2!==0).length;
+    if (mode === 'stat') {
+        const qb = getQualityBadge(score);
+        return { text: qb.label, color: qb.color, bg: qb.bg, border: qb.border };
+    }
+    if (mode === 'random')  return { text:'🎲 완전랜덤', color:'#94A3B8', bg:'rgba(148,163,184,.1)', border:'rgba(148,163,184,.25)' };
+    if (mode === 'fortune') {
+        const fm = FORTUNE_MSG[Math.floor(Math.random()*FORTUNE_MSG.length)];
+        return { text: fm[0]+' 운세', color:'#C084FC', bg:'rgba(192,132,252,.12)', border:'rgba(192,132,252,.3)' };
+    }
+    if (mode === 'custom')  return { text:`⚙️ 합${sum} 홀${odd}`, color:'#F97316', bg:'rgba(249,115,22,.1)', border:'rgba(249,115,22,.28)' };
+    return { text:'', color:'', bg:'', border:'' };
+}
+
+/* ══ 메인 생성 함수 ══ */
+function generateAll(excludeNums=[], mode=null) {
+    mode = mode || currentMode;
+
     const icon = document.getElementById('gen-icon');
     const wrap = document.getElementById('sets-container');
     if (icon) {
@@ -131,17 +306,33 @@ function generateAll(excludeNums=[]) {
         setTimeout(()=>{icon.style.transform='';icon.style.transition='';}, 560);
     }
     wrap.innerHTML = '';
+
     const weights = Object.keys(freqMap).length ? buildWeights(lottoData,30) : freqMap;
 
-    Array.from({length:5}).forEach((_,i)=>{
-        const {nums, score} = smartNums(excludeNums, weights);
+    /* 운세 모드: 오늘의 멘트 */
+    if (mode === 'fortune') {
+        const fm = FORTUNE_MSG[new Date().getDate() % FORTUNE_MSG.length];
+        const msg = document.createElement('div');
+        msg.style.cssText = 'text-align:center;padding:10px 0 14px;font-size:13px;color:#C084FC;animation:fadeIn .3s ease;';
+        msg.textContent = fm[0] + ' ' + fm[1];
+        wrap.appendChild(msg);
+    }
+
+    /* 5세트 생성 */
+    const sets = Array.from({length:5}).map(() => {
+        if (mode === 'random')  return randomNums(excludeNums);
+        if (mode === 'fortune') return fortuneNums(excludeNums);
+        if (mode === 'custom')  return customNums(excludeNums, customOpts);
+        return smartNums(excludeNums, weights);
+    });
+
+    sets.forEach(({nums, score}, i) => {
         const sum = nums.reduce((a,b)=>a+b,0);
         const odd = nums.filter(n=>n%2!==0).length;
 
-        /* ── 카드 ── */
         const card = document.createElement('div');
         card.className = 'set-card';
-        card.style.animationDelay = (i*60)+'ms';
+        card.style.animationDelay = (i*50)+'ms';
 
         /* 헤더 */
         const header = document.createElement('div');
@@ -154,11 +345,11 @@ function generateAll(excludeNums=[]) {
         const rightWrap = document.createElement('div');
         rightWrap.style.cssText = 'display:flex;align-items:center;gap:6px;flex-shrink:0;';
 
-        if (score>0) {
-            const qb    = getQualityBadge(score);
+        const mt = getModeTag(mode, score, nums);
+        if (mt.text) {
             const badge = document.createElement('span');
-            badge.style.cssText = `font-size:10px;font-weight:700;padding:3px 8px;border-radius:99px;white-space:nowrap;background:${qb.bg};border:1px solid ${qb.border};color:${qb.color};`;
-            badge.textContent = qb.label;
+            badge.style.cssText = `font-size:10px;font-weight:700;padding:3px 8px;border-radius:99px;white-space:nowrap;background:${mt.bg};border:1px solid ${mt.border};color:${mt.color};`;
+            badge.textContent = mt.text;
             rightWrap.appendChild(badge);
         }
 
@@ -169,30 +360,13 @@ function generateAll(excludeNums=[]) {
         rightWrap.appendChild(saveBtn);
         header.append(lbl, rightWrap);
 
-        /* ── 볼 행 — 핵심: display:flex, flex-wrap:nowrap, 볼 크기 고정 ── */
+        /* 볼 행 */
         const ballsRow = document.createElement('div');
-        ballsRow.style.cssText = [
-            'display:flex',
-            'flex-wrap:nowrap',
-            'align-items:center',
-            'gap:clamp(3px,1.2vw,6px)',
-            'overflow:visible',
-            'width:100%',
-            'min-width:0',
-        ].join(';');
-
-        nums.forEach(n => {
-            const ball = mkBall(n, 'ball');
-            /* flex-shrink:0 을 인라인으로도 보장 */
-            ball.style.flexShrink = '0';
-            ball.style.flexGrow   = '0';
-            ballsRow.appendChild(ball);
-        });
+        ballsRow.style.cssText = 'display:flex;flex-wrap:nowrap;align-items:center;gap:clamp(3px,1.2vw,6px);overflow:visible;width:100%;min-width:0;';
 
         /* 푸터 */
         const footer = document.createElement('div');
         footer.style.cssText = 'display:flex;align-items:center;gap:6px;margin-top:8px;';
-
         const mkTag = (txt) => {
             const t = document.createElement('span');
             t.style.cssText = 'font-size:10px;color:#94A3B8;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);padding:2px 8px;border-radius:99px;white-space:nowrap;';
@@ -203,110 +377,17 @@ function generateAll(excludeNums=[]) {
 
         card.append(header, ballsRow, footer);
         wrap.appendChild(card);
+
+        /* 볼 순차 공개 연출 */
+        setTimeout(() => {
+            revealBalls(ballsRow, nums, () => {
+                if (i === 4) {
+                    /* 마지막 세트 완료 → 파티클 + 멘트 */
+                    spawnParticles(ballsRow);
+                    const winMsg = WIN_MSGS[Math.floor(Math.random()*WIN_MSGS.length)];
+                    if (typeof toast === 'function') toast(winMsg);
+                }
+            });
+        }, i * 120);
     });
-}
-
-/* ══════════════════════════════════════════════════
-   라인별 제외 생성
-   lines: [[n,n,n,n,n,n], ...]  각 줄의 번호
-   세트 A→A줄 제외, B→B줄 제외, ...
-   ══════════════════════════════════════════════════ */
-function generatePerLine(lines) {
-    const icon = document.getElementById('gen-icon');
-    const wrap = document.getElementById('sets-container');
-    if (icon) {
-        icon.style.transition = 'transform .55s cubic-bezier(.4,0,.2,1)';
-        icon.style.transform  = 'rotate(360deg)';
-        setTimeout(() => { icon.style.transform = ''; icon.style.transition = ''; }, 560);
-    }
-    wrap.innerHTML = '';
-    const weights = Object.keys(freqMap).length ? buildWeights(lottoData, 30) : freqMap;
-
-    lines.forEach((lineNums, i) => {
-        const { nums, score } = smartNums(lineNums, weights);
-        const sum = nums.reduce((a, b) => a + b, 0);
-        const odd = nums.filter(n => n % 2 !== 0).length;
-
-        const card = document.createElement('div');
-        card.className = 'set-card';
-        card.style.animationDelay = (i * 60) + 'ms';
-
-        /* 헤더 */
-        const header = document.createElement('div');
-        header.className = 'set-card-header';
-
-        const lbl = document.createElement('div');
-        lbl.className = 'set-label';
-        lbl.textContent = SET_EMOJIS[i] + ' 세트 ' + SET_LABELS[i];
-
-        /* 제외번호 미니 표시 */
-        const excludeTag = document.createElement('div');
-        excludeTag.style.cssText = 'display:flex;align-items:center;gap:3px;flex-shrink:0;';
-        const exLabel = document.createElement('span');
-        exLabel.style.cssText = 'font-size:9px;color:#64748B;white-space:nowrap;';
-        exLabel.textContent = '제외:';
-        excludeTag.appendChild(exLabel);
-        lineNums.forEach(n => {
-            const b = document.createElement('span');
-            b.style.cssText = `display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;font-size:8px;font-weight:700;color:#fff;flex-shrink:0;background:${_bgGrad(n)};opacity:.7;`;
-            b.textContent = n;
-            excludeTag.appendChild(b);
-        });
-
-        const rightWrap = document.createElement('div');
-        rightWrap.style.cssText = 'display:flex;align-items:center;gap:6px;flex-shrink:0;';
-
-        if (score > 0) {
-            const qb    = getQualityBadge(score);
-            const badge = document.createElement('span');
-            badge.style.cssText = `font-size:10px;font-weight:700;padding:3px 8px;border-radius:99px;white-space:nowrap;background:${qb.bg};border:1px solid ${qb.border};color:${qb.color};`;
-            badge.textContent = qb.label;
-            rightWrap.appendChild(badge);
-        }
-
-        const saveBtn = document.createElement('button');
-        saveBtn.className = 'save-btn';
-        saveBtn.textContent = '⭐ 저장';
-        saveBtn.onclick = () => applySet(nums, card, saveBtn);
-        rightWrap.appendChild(saveBtn);
-
-        header.append(lbl, rightWrap);
-
-        /* 제외 태그 행 */
-        const excludeRow = document.createElement('div');
-        excludeRow.style.cssText = 'display:flex;align-items:center;gap:3px;margin-bottom:6px;';
-        excludeRow.appendChild(excludeTag);
-
-        /* 볼 행 */
-        const ballsRow = document.createElement('div');
-        ballsRow.style.cssText = 'display:flex;flex-wrap:nowrap;align-items:center;gap:clamp(3px,1.2vw,6px);overflow:visible;width:100%;min-width:0;';
-        nums.forEach(n => {
-            const ball = mkBall(n, 'ball');
-            ball.style.flexShrink = '0';
-            ball.style.flexGrow   = '0';
-            ballsRow.appendChild(ball);
-        });
-
-        /* 푸터 */
-        const footer = document.createElement('div');
-        footer.style.cssText = 'display:flex;align-items:center;gap:6px;margin-top:8px;';
-        const mkTag = (txt) => {
-            const t = document.createElement('span');
-            t.style.cssText = 'font-size:10px;color:#94A3B8;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);padding:2px 8px;border-radius:99px;white-space:nowrap;';
-            t.textContent = txt;
-            return t;
-        };
-        footer.append(mkTag('합계 ' + sum), mkTag('홀' + odd + ' 짝' + (6 - odd)));
-
-        card.append(header, excludeRow, ballsRow, footer);
-        wrap.appendChild(card);
-    });
-}
-
-function _bgGrad(n) {
-    if (n <= 10) return 'linear-gradient(135deg,#FBC02D,#F59E0B)';
-    if (n <= 20) return 'linear-gradient(135deg,#3B82F6,#1D4ED8)';
-    if (n <= 30) return 'linear-gradient(135deg,#EF4444,#B91C1C)';
-    if (n <= 40) return 'linear-gradient(135deg,#22C55E,#15803D)';
-    return 'linear-gradient(135deg,#9CA3AF,#4B5563)';
 }
