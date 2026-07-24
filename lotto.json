@@ -1,5 +1,80 @@
 [
     {
+        "no": 1233,
+        "date": "20260718",
+        "nums": [
+            2,
+            7,
+            20,
+            25,
+            37,
+            40
+        ],
+        "bonus": 29,
+        "stats": {
+            "sum": 131,
+            "endsum": 21,
+            "ratio": {
+                "even_odd": "3:3",
+                "low_high": "4:2"
+            }
+        },
+        "win": {
+            "price": 0,
+            "count": 0
+        }
+    },
+    {
+        "no": 1232,
+        "date": "20260711",
+        "nums": [
+            12,
+            15,
+            19,
+            22,
+            24,
+            36
+        ],
+        "bonus": 3,
+        "stats": {
+            "sum": 128,
+            "endsum": 28,
+            "ratio": {
+                "even_odd": "4:2",
+                "low_high": "5:1"
+            }
+        },
+        "win": {
+            "price": 0,
+            "count": 0
+        }
+    },
+    {
+        "no": 1231,
+        "date": "20260704",
+        "nums": [
+            4,
+            13,
+            14,
+            18,
+            31,
+            38
+        ],
+        "bonus": 15,
+        "stats": {
+            "sum": 118,
+            "endsum": 28,
+            "ratio": {
+                "even_odd": "4:2",
+                "low_high": "4:2"
+            }
+        },
+        "win": {
+            "price": 0,
+            "count": 0
+        }
+    },
+    {
         "no": 1230,
         "date": "20260627",
         "nums": [
