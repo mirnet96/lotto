@@ -3,22 +3,44 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>로또 번호 생성기 | 통계 기반 AI 추천 - LOTTO+</title>
-    <meta name="description" content="최신 로또 당첨 통계를 분석해 스마트하게 번호를 추천해 드립니다.">
-    <meta name="theme-color" content="#0F172A">
+
+    <!-- ── 기본 메타 ── -->
+    <title>로또슬기 — 행운의 번호 생성기 | 통계·운세·조건 설정</title>
+    <meta name="description" content="로또슬기: 1,200회↑ 당첨 통계 분석 · 운세 기반 · 조건 설정으로 나만의 행운 번호를 뽑아보세요. QR 스캔으로 중복 번호 자동 제외!">
+    <meta name="keywords" content="로또,로또번호생성기,로또슬기,행운번호,로또통계,로또당첨번호,번호추천">
+    <meta name="author" content="로또슬기">
+    <meta name="theme-color" content="#0F1B2D">
+
+    <!-- ── PWA ── -->
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="LOTTO+">
-    <meta property="og:type" content="website">
-    <meta property="og:title" content="로또 번호 생성기 | 통계 기반 AI 추천 - LOTTO+">
-    <meta property="og:description" content="최신 로또 당첨 통계를 분석해 스마트하게 번호를 추천해 드립니다.">
-    <meta property="og:url" content="https://yourdomain.com/">
-    <meta property="og:image" content="https://yourdomain.com/og-image.png">
-    <meta name="twitter:card" content="summary_large_image">
-    <link rel="canonical" href="https://yourdomain.com/">
-    <link rel="icon" href="./favicon.ico">
-    <link rel="apple-touch-icon" sizes="512x512" href="./favicon-512.png">
+    <meta name="apple-mobile-web-app-title" content="로또슬기">
+
+    <!-- ── Open Graph ── -->
+    <meta property="og:type"        content="website">
+    <meta property="og:site_name"   content="로또슬기">
+    <meta property="og:title"       content="로또슬기 — 행운의 번호 생성기">
+    <meta property="og:description" content="통계·운세·조건 설정으로 나만의 행운 번호! QR 스캔 중복 제외까지.">
+    <meta property="og:url"         content="https://mirnet96.github.io/lotto/">
+    <meta property="og:image"       content="https://mirnet96.github.io/lotto/src-og.png">
+    <meta property="og:image:width"  content="1024">
+    <meta property="og:image:height" content="1024">
+    <meta property="og:locale"      content="ko_KR">
+
+    <!-- ── Twitter Card ── -->
+    <meta name="twitter:card"        content="summary_large_image">
+    <meta name="twitter:title"       content="로또슬기 — 행운의 번호 생성기">
+    <meta name="twitter:description" content="통계·운세·조건 설정으로 나만의 행운 번호를 뽑아보세요.">
+    <meta name="twitter:image"       content="https://mirnet96.github.io/lotto/src-og.png">
+
+    <!-- ── Canonical ── -->
+    <link rel="canonical" href="https://mirnet96.github.io/lotto/">
+
+    <!-- ── 파비콘 ── -->
+    <link rel="icon"             type="image/png" sizes="32x32"  href="./src-icon-full.png">
+    <link rel="icon"             type="image/png" sizes="192x192" href="./src-icon-full.png">
+    <link rel="apple-touch-icon" sizes="180x180"                  href="./src-icon-full.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Bebas+Neue&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block">
@@ -36,27 +58,24 @@
             }
         }
     </script>
-
-    <!--  네이버 애널리틱스 -->= 
     <script src="https://unpkg.com/html5-qrcode@2.3.4/html5-qrcode.min.js"></script>
     <link rel="stylesheet" href="./style.css">
 
+    <!-- ── 네이버 애널리틱스 ── -->
     <script type="text/javascript" src="//wcs.pstatic.net/wcslog.js"></script>
     <script type="text/javascript">
-    if(!wcs_add) var wcs_add = {};
-    wcs_add["wa"] = "19d261fafacf520";
-    if(window.wcs) {
-    wcs_do();
-    }
+        if(!wcs_add) var wcs_add = {};
+        wcs_add["wa"] = "19d261fafacf520";
+        if(window.wcs) { wcs_do(); }
     </script>
-    <!-- Google tag (gtag.js) -->
+
+    <!-- ── Google Analytics ── -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-C8VYPDR68Z"></script>
     <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-
-      gtag('config', 'G-C8VYPDR68Z');
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-C8VYPDR68Z');
     </script>
 </head>
 
@@ -65,8 +84,8 @@
 
     <!-- ══ PC 상단 네비 ══ -->
     <header id="top-nav" class="sticky top-0 z-50 h-[60px] px-6 border-b border-white/[.07] bg-[#0F172A]/90 backdrop-blur-xl items-center justify-between">
-        <div class="logo font-display text-[22px] tracking-[3px] text-yellow-400 flex items-center gap-2">
-            <span class="logo-dot w-2 h-2 rounded-full bg-yellow-400"></span>LOTTO+
+        <div class="logo flex items-center gap-2">
+            <img src="./bi-logo.png" alt="로또슬기" style="height:34px;object-fit:contain;">
         </div>
         <nav class="flex gap-1">
             <button id="tn-home"      class="tab-btn active flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-[13px] text-slate-400 hover:bg-white/[.06] transition-all font-sans border-none cursor-pointer" onclick="switchTab('home')">
@@ -89,71 +108,15 @@
 
         <!-- ══════════ 홈 ══════════ -->
         <section class="page active" id="page-home">
-            <!-- 헤더 배너 -->
             <div class="relative overflow-hidden rounded-2xl p-5 mb-4 border border-yellow-400/[.12]"
                  style="background:linear-gradient(135deg,rgba(245,200,66,.08),rgba(59,130,246,.06))">
                 <span class="absolute right-4 top-1/2 -translate-y-1/2 text-[52px] opacity-[.08] pointer-events-none select-none">🎱</span>
-                <h1 class="font-display text-[28px] tracking-[3px] text-yellow-400 mb-1">🍀 행운의 번호</h1>
-                <p id="home-sub" class="text-[12px] text-slate-400 leading-relaxed">통계 기반 5세트 자동 생성 — ⭐ 버튼으로 저장하세요</p>
-            </div>
-
-            <!-- ── 모드 선택 탭 4개 ── -->
-            <div id="mode-tabs" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px;">
-                <button class="mode-tab active" data-mode="stat"    onclick="selectMode('stat')"    style="padding:10px 0;border-radius:14px;border:1.5px solid rgba(245,200,66,.5);background:rgba(245,200,66,.15);color:#F5C842;font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;transition:all .15s;display:flex;flex-direction:column;align-items:center;gap:3px;">
-                    <span style="font-size:18px;">📊</span>통계
-                </button>
-                <button class="mode-tab" data-mode="random"  onclick="selectMode('random')"  style="padding:10px 0;border-radius:14px;border:1.5px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:#64748B;font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;transition:all .15s;display:flex;flex-direction:column;align-items:center;gap:3px;">
-                    <span style="font-size:18px;">🎲</span>랜덤
-                </button>
-                <button class="mode-tab" data-mode="fortune" onclick="selectMode('fortune')" style="padding:10px 0;border-radius:14px;border:1.5px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:#64748B;font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;transition:all .15s;display:flex;flex-direction:column;align-items:center;gap:3px;">
-                    <span style="font-size:18px;">🔮</span>운세
-                </button>
-                <button class="mode-tab" data-mode="custom"  onclick="selectMode('custom')"  style="padding:10px 0;border-radius:14px;border:1.5px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:#64748B;font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;transition:all .15s;display:flex;flex-direction:column;align-items:center;gap:3px;">
-                    <span style="font-size:18px;">⚙️</span>조건
-                </button>
-            </div>
-
-            <!-- ── 조건 설정 패널 (custom 모드일 때만 표시) ── -->
-            <div id="custom-panel" class="hidden rounded-2xl p-4 mb-3 border border-orange-500/25"
-                 style="background:rgba(249,115,22,.07);animation:fadeIn .2s ease;">
-                <div style="font-size:11px;font-weight:700;color:#F97316;margin-bottom:12px;">⚙️ 조건 설정</div>
-
-                <div style="margin-bottom:10px;">
-                    <div style="display:flex;justify-content:space-between;font-size:11px;color:#94A3B8;margin-bottom:5px;">
-                        <span>홀수 개수</span><span id="lbl-odd">2~4개</span>
-                    </div>
-                    <div style="display:flex;gap:6px;">
-                        <input type="range" id="sl-odd-min" min="0" max="6" value="2" oninput="updateCustom()" style="flex:1;accent-color:#F97316;">
-                        <span style="font-size:10px;color:#475569;align-self:center;">~</span>
-                        <input type="range" id="sl-odd-max" min="0" max="6" value="4" oninput="updateCustom()" style="flex:1;accent-color:#F97316;">
-                    </div>
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+                    <img src="./bi-logo.png" alt="로또슬기" style="height:28px;object-fit:contain;">
                 </div>
-
-                <div style="margin-bottom:10px;">
-                    <div style="display:flex;justify-content:space-between;font-size:11px;color:#94A3B8;margin-bottom:5px;">
-                        <span>번호 합계 범위</span><span id="lbl-sum">100~176</span>
-                    </div>
-                    <div style="display:flex;gap:6px;">
-                        <input type="range" id="sl-sum-min" min="21" max="230" value="100" oninput="updateCustom()" style="flex:1;accent-color:#F97316;">
-                        <span style="font-size:10px;color:#475569;align-self:center;">~</span>
-                        <input type="range" id="sl-sum-max" min="21" max="230" value="176" oninput="updateCustom()" style="flex:1;accent-color:#F97316;">
-                    </div>
-                </div>
-
-                <div>
-                    <div style="display:flex;justify-content:space-between;font-size:11px;color:#94A3B8;margin-bottom:5px;">
-                        <span>저번호(1~23) 개수</span><span id="lbl-low">2~4개</span>
-                    </div>
-                    <div style="display:flex;gap:6px;">
-                        <input type="range" id="sl-low-min" min="0" max="6" value="2" oninput="updateCustom()" style="flex:1;accent-color:#F97316;">
-                        <span style="font-size:10px;color:#475569;align-self:center;">~</span>
-                        <input type="range" id="sl-low-max" min="0" max="6" value="4" oninput="updateCustom()" style="flex:1;accent-color:#F97316;">
-                    </div>
-                </div>
+                <p class="text-[12px] text-slate-400 leading-relaxed">통계 기반 5세트 자동 생성 — ⭐ 버튼으로 저장하세요</p>
             </div>
-
             <div id="sets-container"></div>
-
             <button id="genBtn" onclick="generateAll()"
                 class="w-full mt-4 flex items-center justify-center gap-2 py-4 rounded-2xl border-none font-sans text-[15px] font-black text-[#0F172A] cursor-pointer tracking-wide transition-all active:scale-[.97]"
                 style="background:linear-gradient(135deg,#F5C842,#E8A800);box-shadow:0 4px 24px rgba(245,200,66,.35);">
@@ -310,80 +273,6 @@
 <div id="toast"></div>
 
 <script src="./js/state.js"></script>
-<script>
-/* ══ 모드 탭 전환 ══ */
-const MODE_META = {
-    stat:    { btn:'linear-gradient(135deg,#F5C842,#E8A800)', btnTxt:'#0F172A', icon:'📊', label:'통계 기반 생성하기',   sub:'과거 1,000회↑ 통계로 최적 조합을 추천해 드립니다' },
-    random:  { btn:'linear-gradient(135deg,#6366F1,#4338CA)', btnTxt:'#fff',    icon:'🎲', label:'랜덤 생성하기',        sub:'순수 랜덤 — 운에 모든 것을 맡겨 보세요' },
-    fortune: { btn:'linear-gradient(135deg,#C084FC,#7C3AED)', btnTxt:'#fff',    icon:'🔮', label:'오늘의 운세로 생성하기', sub:'오늘 날짜의 기운이 담긴 번호를 뽑아드립니다' },
-    custom:  { btn:'linear-gradient(135deg,#F97316,#C2410C)', btnTxt:'#fff',    icon:'⚙️', label:'조건대로 생성하기',     sub:'홀짝·합계·고저 조건을 직접 설정하세요' },
-};
-const TAB_ACTIVE = {
-    stat:    'border:1.5px solid rgba(245,200,66,.5);background:rgba(245,200,66,.15);color:#F5C842;',
-    random:  'border:1.5px solid rgba(99,102,241,.5);background:rgba(99,102,241,.15);color:#818CF8;',
-    fortune: 'border:1.5px solid rgba(192,132,252,.5);background:rgba(192,132,252,.15);color:#C084FC;',
-    custom:  'border:1.5px solid rgba(249,115,22,.5);background:rgba(249,115,22,.15);color:#F97316;',
-};
-const TAB_IDLE = 'border:1.5px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:#64748B;';
-
-function selectMode(mode) {
-    currentMode = mode;
-    const m = MODE_META[mode];
-
-    /* 탭 스타일 */
-    document.querySelectorAll('.mode-tab').forEach(btn => {
-        const bm = btn.dataset.mode;
-        btn.style.cssText = btn.style.cssText.replace(/border:[^;]+;background:[^;]+;color:[^;]+;/,'');
-        const base = 'padding:10px 0;border-radius:14px;font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;transition:all .15s;display:flex;flex-direction:column;align-items:center;gap:3px;';
-        btn.style.cssText = base + (bm===mode ? TAB_ACTIVE[mode] : TAB_IDLE);
-    });
-
-    /* 조건 패널 토글 */
-    const panel = document.getElementById('custom-panel');
-    if (panel) panel.classList.toggle('hidden', mode !== 'custom');
-
-    /* 생성 버튼 스타일 */
-    const btn = document.getElementById('genBtn');
-    if (btn) {
-        btn.style.background = m.btn;
-        btn.style.color      = m.btnTxt;
-        btn.style.boxShadow  = '';
-        const icon = document.getElementById('gen-icon');
-        if (icon) icon.textContent = m.icon;
-        btn.childNodes.forEach(n => { if (n.nodeType===3) n.textContent = m.label; });
-        // 텍스트 노드 교체
-        const spans = btn.querySelectorAll('span');
-        btn.innerHTML = '';
-        const sp = document.createElement('span');
-        sp.style.cssText = 'font-size:20px;';
-        sp.id = 'gen-icon';
-        sp.textContent = m.icon;
-        btn.append(sp, m.label);
-    }
-
-    /* 서브 텍스트 */
-    const sub = document.getElementById('home-sub');
-    if (sub) sub.textContent = m.sub;
-}
-
-/* ══ 조건 패널 슬라이더 업데이트 ══ */
-function updateCustom() {
-    const oddMin = +document.getElementById('sl-odd-min').value;
-    const oddMax = +document.getElementById('sl-odd-max').value;
-    const sumMin = +document.getElementById('sl-sum-min').value;
-    const sumMax = +document.getElementById('sl-sum-max').value;
-    const lowMin = +document.getElementById('sl-low-min').value;
-    const lowMax = +document.getElementById('sl-low-max').value;
-    customOpts = {
-        oddMin: Math.min(oddMin,oddMax), oddMax: Math.max(oddMin,oddMax),
-        sumMin: Math.min(sumMin,sumMax), sumMax: Math.max(sumMin,sumMax),
-        lowMin: Math.min(lowMin,lowMax), lowMax: Math.max(lowMin,lowMax),
-    };
-    document.getElementById('lbl-odd').textContent = `${customOpts.oddMin}~${customOpts.oddMax}개`;
-    document.getElementById('lbl-sum').textContent = `${customOpts.sumMin}~${customOpts.sumMax}`;
-    document.getElementById('lbl-low').textContent = `${customOpts.lowMin}~${customOpts.lowMax}개`;
-}
-</script>
 <script src="./js/storage.js"></script>
 <script src="./js/ui.js"></script>
 <script src="./js/generator.js"></script>
