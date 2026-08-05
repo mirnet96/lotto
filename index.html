@@ -3,44 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <!-- ── 기본 메타 ── -->
-    <title>로또슬기 — 행운의 번호 생성기 | 통계·운세·조건 설정</title>
-    <meta name="description" content="로또슬기: 1,200회↑ 당첨 통계 분석 · 운세 기반 · 조건 설정으로 나만의 행운 번호를 뽑아보세요. QR 스캔으로 중복 번호 자동 제외!">
-    <meta name="keywords" content="로또,로또번호생성기,로또슬기,행운번호,로또통계,로또당첨번호,번호추천">
-    <meta name="author" content="로또슬기">
-    <meta name="theme-color" content="#0F1B2D">
-
-    <!-- ── PWA ── -->
+    <title>로또 번호 생성기 | 통계 기반 AI 추천 - LOTTO+</title>
+    <meta name="description" content="최신 로또 당첨 통계를 분석해 스마트하게 번호를 추천해 드립니다.">
+    <meta name="theme-color" content="#0F172A">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="로또슬기">
-
-    <!-- ── Open Graph ── -->
-    <meta property="og:type"        content="website">
-    <meta property="og:site_name"   content="로또슬기">
-    <meta property="og:title"       content="로또슬기 — 행운의 번호 생성기">
-    <meta property="og:description" content="통계·운세·조건 설정으로 나만의 행운 번호! QR 스캔 중복 제외까지.">
-    <meta property="og:url"         content="https://mirnet96.github.io/lotto/">
-    <meta property="og:image"       content="https://mirnet96.github.io/lotto/src-og.png">
-    <meta property="og:image:width"  content="1024">
-    <meta property="og:image:height" content="1024">
-    <meta property="og:locale"      content="ko_KR">
-
-    <!-- ── Twitter Card ── -->
-    <meta name="twitter:card"        content="summary_large_image">
-    <meta name="twitter:title"       content="로또슬기 — 행운의 번호 생성기">
-    <meta name="twitter:description" content="통계·운세·조건 설정으로 나만의 행운 번호를 뽑아보세요.">
-    <meta name="twitter:image"       content="https://mirnet96.github.io/lotto/src-og.png">
-
-    <!-- ── Canonical ── -->
-    <link rel="canonical" href="https://mirnet96.github.io/lotto/">
-
-    <!-- ── 파비콘 ── -->
-    <link rel="icon"             type="image/png" sizes="32x32"  href="./src-icon-full.png">
-    <link rel="icon"             type="image/png" sizes="192x192" href="./src-icon-full.png">
-    <link rel="apple-touch-icon" sizes="180x180"                  href="./src-icon-full.png">
+    <meta name="apple-mobile-web-app-title" content="LOTTO+">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="로또 번호 생성기 | 통계 기반 AI 추천 - LOTTO+">
+    <meta property="og:description" content="최신 로또 당첨 통계를 분석해 스마트하게 번호를 추천해 드립니다.">
+    <meta property="og:url" content="https://yourdomain.com/">
+    <meta property="og:image" content="https://yourdomain.com/og-image.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <link rel="canonical" href="https://yourdomain.com/">
+    <link rel="icon" href="./favicon.ico">
+    <link rel="apple-touch-icon" sizes="512x512" href="./favicon-512.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Bebas+Neue&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block">
@@ -60,23 +38,6 @@
     </script>
     <script src="https://unpkg.com/html5-qrcode@2.3.4/html5-qrcode.min.js"></script>
     <link rel="stylesheet" href="./style.css">
-
-    <!-- ── 네이버 애널리틱스 ── -->
-    <script type="text/javascript" src="//wcs.pstatic.net/wcslog.js"></script>
-    <script type="text/javascript">
-        if(!wcs_add) var wcs_add = {};
-        wcs_add["wa"] = "19d261fafacf520";
-        if(window.wcs) { wcs_do(); }
-    </script>
-
-    <!-- ── Google Analytics ── -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-C8VYPDR68Z"></script>
-    <script>
-        window.dataLayer = window.dataLayer || [];
-        function gtag(){dataLayer.push(arguments);}
-        gtag('js', new Date());
-        gtag('config', 'G-C8VYPDR68Z');
-    </script>
 </head>
 
 <body class="font-sans min-h-screen">
@@ -84,8 +45,8 @@
 
     <!-- ══ PC 상단 네비 ══ -->
     <header id="top-nav" class="sticky top-0 z-50 h-[60px] px-6 border-b border-white/[.07] bg-[#0F172A]/90 backdrop-blur-xl items-center justify-between">
-        <div class="logo flex items-center gap-2">
-            <img src="./bi-logo.png" alt="로또슬기" style="height:34px;object-fit:contain;">
+        <div class="logo font-display text-[22px] tracking-[3px] text-yellow-400 flex items-center gap-2">
+            <span class="logo-dot w-2 h-2 rounded-full bg-yellow-400"></span>LOTTO+
         </div>
         <nav class="flex gap-1">
             <button id="tn-home"      class="tab-btn active flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-[13px] text-slate-400 hover:bg-white/[.06] transition-all font-sans border-none cursor-pointer" onclick="switchTab('home')">
@@ -108,13 +69,19 @@
 
         <!-- ══════════ 홈 ══════════ -->
         <section class="page active" id="page-home">
-            <div class="relative overflow-hidden rounded-2xl p-5 mb-4 border border-yellow-400/[.12]"
+            <div class="relative overflow-hidden rounded-2xl px-4 py-3 mb-4 border border-yellow-400/[.12]"
                  style="background:linear-gradient(135deg,rgba(245,200,66,.08),rgba(59,130,246,.06))">
-                <span class="absolute right-4 top-1/2 -translate-y-1/2 text-[52px] opacity-[.08] pointer-events-none select-none">🎱</span>
-                <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
-                    <img src="./bi-logo.png" alt="로또슬기" style="height:28px;object-fit:contain;">
+                <span class="absolute right-4 top-1/2 -translate-y-1/2 text-[52px] opacity-[.06] pointer-events-none select-none">🎱</span>
+                <!-- 로고 | 텍스트 -->
+                <div style="display:flex;align-items:center;gap:14px;">
+                    <img src="./bi-logo.png" alt="로또슬기"
+                         style="height:52px;width:auto;object-fit:contain;flex-shrink:0;filter:drop-shadow(0 2px 8px rgba(245,200,66,.4));">
+                    <div style="min-width:0;">
+                        <p id="home-sub" style="font-size:12px;color:#94A3B8;line-height:1.5;margin:0;">
+                            통계 기반 5세트 자동 생성 — ⭐ 버튼으로 저장하세요
+                        </p>
+                    </div>
                 </div>
-                <p class="text-[12px] text-slate-400 leading-relaxed">통계 기반 5세트 자동 생성 — ⭐ 버튼으로 저장하세요</p>
             </div>
             <div id="sets-container"></div>
             <button id="genBtn" onclick="generateAll()"
