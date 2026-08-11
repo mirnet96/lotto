@@ -400,6 +400,17 @@
   .redraw-btn:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
   .redraw-btn.is-visible { display: inline-block; }
 
+  /* 로또 앱 저장 버튼 — 다른 버튼들과 달리 채워진 골드 스타일로 강조 */
+  #saveToLottoBtn {
+    background: linear-gradient(135deg, var(--gold), #b89a00);
+    color: var(--navy);
+    border: none;
+    font-weight: 700;
+  }
+  #saveToLottoBtn:hover { transform: translateY(-1px); box-shadow: 0 0 16px rgba(212,175,55,.5); }
+  #saveToLottoBtn.is-saved { background: linear-gradient(135deg, #22C55E, #15803D); color: #fff; pointer-events: none; }
+  #saveToLottoBtn:disabled { opacity: .5; pointer-events: none; box-shadow: none; }
+
   .empty-hint {
     text-align: center;
     color: var(--mist-dim);
@@ -498,6 +509,7 @@
   </div>
 
   <div class="actions">
+    <button class="redraw-btn is-visible" id="saveToLottoBtn" disabled>🎱 번호 로또 앱에 저장</button>
     <button class="redraw-btn is-visible" id="shareBtn">결과 공유하기</button>
     <button class="redraw-btn is-visible" id="historyBtn">지난 기록 보기</button>
     <button class="redraw-btn is-visible" id="redrawBtn">다시 카드 뽑기</button>
@@ -624,6 +636,7 @@ void main() {
   const redrawBtn = document.getElementById('redrawBtn');
   const shareBtn = document.getElementById('shareBtn');
   const historyBtn = document.getElementById('historyBtn');
+  const saveToLottoBtn = document.getElementById('saveToLottoBtn');
 
   redrawBtn.addEventListener('click', () => {
     window.location.href = './index.html';
@@ -633,6 +646,35 @@ void main() {
   });
 
   let shareText = '';
+  let currentNumbers = [];
+
+  // 로또 앱의 "내 번호"와 같은 localStorage 키를 그대로 씁니다
+  // (lotto/js/state.js의 LS_KEY와 동일). 같은 출처(도메인)에 있어야
+  // 정상 공유되니, tarot/ 폴더가 lotto 앱과 같은 사이트에 있어야 합니다.
+  const LOTTO_HISTORY_KEY = 'lotto_my_history_v1';
+
+  saveToLottoBtn.addEventListener('click', () => {
+    if (!currentNumbers.length) return;
+
+    try {
+      const arr = JSON.parse(localStorage.getItem(LOTTO_HISTORY_KEY) || '[]');
+      const now = new Date();
+      const pad = (n) => String(n).padStart(2, '0');
+      arr.unshift({
+        id: Date.now(),
+        date: `${now.getFullYear()}.${pad(now.getMonth() + 1)}.${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`,
+        nums: currentNumbers,
+        source: 'tarot',
+      });
+      localStorage.setItem(LOTTO_HISTORY_KEY, JSON.stringify(arr));
+
+      saveToLottoBtn.textContent = '✅ 로또 앱 "내 번호"에 저장됨';
+      saveToLottoBtn.classList.add('is-saved');
+    } catch (e) {
+      console.warn('로또 앱에 저장하지 못했습니다.', e);
+      saveToLottoBtn.textContent = '저장 실패 — 다시 시도';
+    }
+  });
 
   shareBtn.addEventListener('click', async () => {
     const shareData = {
@@ -716,6 +758,8 @@ void main() {
     numbersLoading.style.display = 'none';
 
     const { numbers } = numbersFromDrawWeighted(draw, { recentFrequency });
+    currentNumbers = numbers;
+    saveToLottoBtn.disabled = false;
     renderNumbers(numbers, hasSwords && !!recentFrequency);
 
     shareText = buildShareText(reading, draw, numbers);

@@ -22,7 +22,34 @@
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+
+/* ══ 배경 셰이더 (타로 페이지와 동일한 것을 앱 전체에 적용) ══ */
+#shaderBackdrop {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+}
+#shader-canvas-bg { display: block; width: 100%; height: 100%; }
+
+html, body { background: var(--bg); }
+
+body {
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+    /* 불투명 배경 대신, 셰이더가 배경 역할을 하므로 옅은 톤 보정용
+       그라디언트만 남겨둡니다(가독성용). */
+    background-color: transparent;
+    background-image:
+        radial-gradient(circle at 50% 0%, rgba(15, 23, 42, 0.4) 0%, transparent 55%),
+        radial-gradient(circle at 50% 100%, rgba(15, 23, 42, 0.5) 0%, transparent 55%);
+    background-repeat: no-repeat;
+    background-size: cover;
+}
+
+#app { position: relative; z-index: 10; }
 
 /* ── 페이지 전환 ── */
 .page        { display: none; }

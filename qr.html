@@ -6,98 +6,210 @@
     <title>S25 전용 스마트 스캐너</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
+    <style>
+        #shaderBackdrop { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; }
+        #shader-canvas-bg { display: block; width: 100%; height: 100%; }
+        body { background: #0F172A; }
+        #panel { position: relative; z-index: 10; }
+    </style>
 </head>
-<body class="bg-gray-100 p-4">
-    <div class="max-w-md mx-auto flex flex-col gap-4">
-        <div class="bg-white p-4 rounded-lg shadow">
-            <h2 class="text-lg font-bold mb-4">카메라 설정</h2>
-            <button id="btnInit" class="w-full bg-blue-600 text-white py-2 rounded font-bold mb-2">카메라 목록 새로고침</button>
-            <select id="cameraSelect" class="w-full p-2 border rounded mb-2">
-                <option value="">카메라를 선택하세요</option>
-            </select>
-            <div class="flex gap-2">
-                <button id="btnStart" class="flex-1 bg-green-600 text-white py-3 rounded font-bold">스캔 시작</button>
-                <button id="btnReset" class="w-20 bg-gray-400 text-white py-3 rounded font-bold">초기화</button>
-            </div>
+<body class="p-4 text-slate-100">
+
+<div id="shaderBackdrop">
+<canvas id="shader-canvas-bg"></canvas>
+</div>
+
+<div id="panel" class="max-w-md mx-auto flex flex-col gap-4">
+    <div class="rounded-lg p-4" style="background:#1A2744;border:1px solid rgba(255,255,255,.07);">
+        <h2 class="text-lg font-bold mb-4">카메라 설정</h2>
+        <button id="btnInit" class="w-full bg-blue-600 text-white py-2 rounded font-bold mb-2">카메라 목록 새로고침</button>
+        <select id="cameraSelect" class="w-full p-2 rounded mb-2 bg-[#0F172A] text-slate-100 border border-white/10">
+            <option value="">카메라를 선택하세요</option>
+        </select>
+        <div class="flex gap-2">
+            <button id="btnStart" class="flex-1 bg-green-600 text-white py-3 rounded font-bold">스캔 시작</button>
+            <button id="btnReset" class="w-20 bg-gray-500 text-white py-3 rounded font-bold">초기화</button>
         </div>
-        <div id="reader" class="w-full bg-black rounded overflow-hidden" style="min-height: 300px;"></div>
     </div>
+    <div id="reader" class="w-full bg-black rounded overflow-hidden" style="min-height: 300px;"></div>
+</div>
 
-    <script>
-        const html5QrCode = new Html5Qrcode("reader");
-        const STORAGE_KEY = "last_working_camera_label";
+<!-- ============ 배경 셰이더 스크립트 (index.html/타로 페이지와 동일) ============ -->
+<script>
+(function() {
+  const canvas = document.getElementById('shader-canvas-bg');
 
-        async function loadCameras() {
-            try {
-                const devices = await Html5Qrcode.getCameras();
-                const select = document.getElementById('cameraSelect');
-                const savedLabel = localStorage.getItem(STORAGE_KEY);
-                
-                select.innerHTML = '<option value="">카메라를 선택하세요</option>';
-                let foundMatch = null;
+  function syncSize() {
+    const w = canvas.clientWidth  || 1280;
+    const h = canvas.clientHeight || 720;
+    if (canvas.width !== w || canvas.height !== h) {
+      canvas.width  = w;
+      canvas.height = h;
+    }
+  }
+  if (typeof ResizeObserver !== 'undefined') {
+    new ResizeObserver(syncSize).observe(canvas);
+  }
+  syncSize();
 
-                devices.forEach((d, index) => {
-                    const label = d.label || `Camera ${index}`;
-                    const option = document.createElement('option');
-                    option.value = d.id;
-                    option.text = label;
-                    select.appendChild(option);
+  const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+  if (!gl) return;
+  const vs = `attribute vec2 a_position;
+varying vec2 v_texCoord;
+void main() {
+  v_texCoord = a_position * 0.5 + 0.5;
+  gl_Position = vec4(a_position, 0.0, 1.0);
+}`;
+  const fs = `precision highp float;
+varying vec2 v_texCoord;
+uniform float u_time;
+uniform vec2 u_resolution;
 
-                    // 저장된 이름과 현재 이름이 일치하는지 확인
-                    if (label === savedLabel) foundMatch = d.id;
-                });
+vec3 permute(vec3 x) { return mod(((x*34.0)+1.0)*x, 289.0); }
+float snoise(vec2 v){
+  const vec4 C = vec4(0.211324865405187, 0.366025403784439,
+           -0.577350269189626, 0.024390243902439);
+  vec2 i  = floor(v + dot(v, C.yy) );
+  vec2 x0 = v -   i + dot(i, C.xx);
+  vec2 i1;
+  i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
+  vec4 x12 = x0.xyxy + C.xxzz;
+  x12.xy -= i1;
+  i = mod(i, 289.0);
+  vec3 p = permute( permute( i.y + vec3(0.0, i1.y, 1.0 ))
+  + i.x + vec3(0.0, i1.x, 1.0 ));
+  vec3 m = max(0.5 - vec3(dot(x0,x0), dot(x12.xy,x12.xy),
+    dot(x12.zw,x12.zw)), 0.0);
+  m = m*m ;
+  m = m*m ;
+  vec3 x = 2.0 * fract(p * C.www) - 1.0;
+  vec3 h = abs(x) - 0.5;
+  vec3 a0 = x - floor(x + 0.5);
+  vec3 m0 = 1.0 - 1.5*(a0*a0 + h*h);
+  vec3 g;
+  g.x  = a0.x  * x0.x  + h.x  * x0.y;
+  g.yz = a0.yz * x12.xz + h.yz * x12.yw;
+  return 130.0 * dot(m, g);
+}
 
-                if (foundMatch) {
-                    select.value = foundMatch;
-                }
-                return devices;
-            } catch (e) {
-                alert("카메라 권한을 허용해주세요.");
-            }
-        }
+void main() {
+    vec2 uv = v_texCoord;
+    float n = snoise(uv * 3.0 + u_time * 0.2);
+    n += 0.5 * snoise(uv * 6.0 - u_time * 0.4);
 
-        document.getElementById('btnReset').onclick = () => {
-            localStorage.removeItem(STORAGE_KEY);
-            alert("설정이 초기화되었습니다.");
-            location.reload();
-        };
+    vec3 color1 = vec3(0.06, 0.07, 0.15);
+    vec3 color2 = vec3(0.2, 0.0, 0.4);
+    vec3 color3 = vec3(0.6, 0.3, 1.0);
 
-        document.getElementById('btnInit').onclick = loadCameras;
+    vec3 finalColor = mix(color1, color2, n * 0.5 + 0.5);
+    finalColor = mix(finalColor, color3, pow(max(0.0, n), 3.0) * 0.5);
 
-        document.getElementById('btnStart').onclick = async () => {
+    gl_FragColor = vec4(finalColor, 1.0);
+}`;
+  function cs(type, src) {
+    const s = gl.createShader(type);
+    gl.shaderSource(s, src);
+    gl.compileShader(s);
+    return s;
+  }
+  const prog = gl.createProgram();
+  gl.attachShader(prog, cs(gl.VERTEX_SHADER, vs));
+  gl.attachShader(prog, cs(gl.FRAGMENT_SHADER, fs));
+  gl.linkProgram(prog);
+  gl.useProgram(prog);
+  const buf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+  const pos = gl.getAttribLocation(prog, 'a_position');
+  gl.enableVertexAttribArray(pos);
+  gl.vertexAttribPointer(pos, 2, gl.FLOAT, false, 0, 0);
+  const uTime = gl.getUniformLocation(prog, 'u_time');
+  const uRes = gl.getUniformLocation(prog, 'u_resolution');
+
+  function render(t) {
+    if (typeof ResizeObserver === 'undefined') syncSize();
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    if (uTime) gl.uniform1f(uTime, t * 0.001);
+    if (uRes) gl.uniform2f(uRes, canvas.width, canvas.height);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    requestAnimationFrame(render);
+  }
+  render(0);
+})();
+</script>
+
+<script>
+    const html5QrCode = new Html5Qrcode("reader");
+    const STORAGE_KEY = "last_working_camera_label";
+
+    async function loadCameras() {
+        try {
+            const devices = await Html5Qrcode.getCameras();
             const select = document.getElementById('cameraSelect');
-            const targetId = select.value;
-            const targetLabel = select.options[select.selectedIndex].text;
-
-            if (!targetId) return alert("카메라를 선택하세요.");
-            if (html5QrCode.isScanning) await html5QrCode.stop();
-
-            try {
-                await html5QrCode.start(
-                    { deviceId: { exact: targetId } },
-                    { fps: 10, qrbox: 250 },
-                    (t) => {
-                        // 성공 시 label을 저장
-                        localStorage.setItem(STORAGE_KEY, targetLabel);
-                        alert("인식 성공: " + t);
-                        html5QrCode.stop();
-                    }
-                );
-            } catch (e) {
-                alert("카메라 연결 실패. 목록을 새로고침하거나 다른 카메라를 선택하세요.");
-                localStorage.removeItem(STORAGE_KEY);
-            }
-        };
-
-        window.onload = async () => {
-            await loadCameras();
-            // 로드 직후 저장된 값이 선택되어 있다면 바로 시작
             const savedLabel = localStorage.getItem(STORAGE_KEY);
-            const select = document.getElementById('cameraSelect');
-            if (savedLabel && select.value) {
-                document.getElementById('btnStart').click();
+
+            select.innerHTML = '<option value="">카메라를 선택하세요</option>';
+            let foundMatch = null;
+
+            devices.forEach((d, index) => {
+                const label = d.label || `Camera ${index}`;
+                const option = document.createElement('option');
+                option.value = d.id;
+                option.text = label;
+                select.appendChild(option);
+
+                if (label === savedLabel) foundMatch = d.id;
+            });
+
+            if (foundMatch) {
+                select.value = foundMatch;
             }
-        };
-    </script>
+            return devices;
+        } catch (e) {
+            alert("카메라 권한을 허용해주세요.");
+        }
+    }
+
+    document.getElementById('btnReset').onclick = () => {
+        localStorage.removeItem(STORAGE_KEY);
+        alert("설정이 초기화되었습니다.");
+        location.reload();
+    };
+
+    document.getElementById('btnInit').onclick = loadCameras;
+
+    document.getElementById('btnStart').onclick = async () => {
+        const select = document.getElementById('cameraSelect');
+        const targetId = select.value;
+        const targetLabel = select.options[select.selectedIndex].text;
+
+        if (!targetId) return alert("카메라를 선택하세요.");
+        if (html5QrCode.isScanning) await html5QrCode.stop();
+
+        try {
+            await html5QrCode.start(
+                { deviceId: { exact: targetId } },
+                { fps: 10, qrbox: 250 },
+                (t) => {
+                    localStorage.setItem(STORAGE_KEY, targetLabel);
+                    alert("인식 성공: " + t);
+                    html5QrCode.stop();
+                }
+            );
+        } catch (e) {
+            alert("카메라 연결 실패. 목록을 새로고침하거나 다른 카메라를 선택하세요.");
+            localStorage.removeItem(STORAGE_KEY);
+        }
+    };
+
+    window.onload = async () => {
+        await loadCameras();
+        const savedLabel = localStorage.getItem(STORAGE_KEY);
+        const select = document.getElementById('cameraSelect');
+        if (savedLabel && select.value) {
+            document.getElementById('btnStart').click();
+        }
+    };
+</script>
 </body>
 </html>
