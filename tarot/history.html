@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>지난 타로 기록 · 로또슬기</title>
+<meta name="description" content="지난 타로 운세 결과를 월별 달력으로 다시 확인해보세요.">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;700&family=Pretendard:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --navy-deep: #0a0f1a;
+    --navy: #0F1B2D;
+    --navy-panel: #131f33;
+    --gold: #D4AF37;
+    --gold-soft: #ecd48a;
+    --paper: #FAFAF7;
+    --mist: #8b93a6;
+    --mist-dim: #5b6478;
+    --primary: #d8b9ff;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    min-height: 100%;
+    background: var(--navy-deep);
+    color: var(--paper);
+    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', sans-serif;
+  }
+
+  #shaderBackdrop { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; }
+  #shader-canvas-bg { display: block; width: 100%; height: 100%; }
+
+  body {
+    background-color: transparent;
+    background-image:
+      radial-gradient(circle at 50% 0%, rgba(16, 18, 37, 0.35) 0%, transparent 55%),
+      radial-gradient(circle at 50% 100%, rgba(16, 18, 37, 0.45) 0%, transparent 55%);
+    background-repeat: no-repeat;
+    background-size: cover;
+  }
+
+  main {
+    position: relative;
+    z-index: 10;
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 40px 20px 96px;
+  }
+
+  .top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+
+  .back-link {
+    color: var(--gold-soft);
+    text-decoration: none;
+    font-size: 14px;
+  }
+  .back-link:hover { color: var(--gold); }
+
+  h1 {
+    font-family: 'Noto Serif KR', serif;
+    font-weight: 700;
+    text-align: center;
+    font-size: clamp(22px, 5vw, 28px);
+    margin: 0 0 24px;
+  }
+
+  /* ---------- 달력 헤더 ---------- */
+  .month-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+
+  .month-nav button {
+    background: transparent;
+    border: 1px solid rgba(212,175,55,.4);
+    color: var(--gold-soft);
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 16px;
+  }
+  .month-nav button:hover { border-color: var(--gold); }
+
+  .month-label {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--paper);
+  }
+
+  /* ---------- 달력 그리드 ---------- */
+  .weekday-row, .day-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+  }
+
+  .weekday-row {
+    margin-bottom: 6px;
+  }
+  .weekday-row span {
+    text-align: center;
+    font-size: 11px;
+    color: var(--mist-dim);
+  }
+
+  .day-cell {
+    position: relative;
+    aspect-ratio: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    font-size: 13px;
+    color: var(--mist);
+    cursor: default;
+  }
+
+  .day-cell.in-month { color: var(--paper); }
+
+  .day-cell.has-entry {
+    background: rgba(212,175,55,.12);
+    border: 1px solid rgba(212,175,55,.4);
+    cursor: pointer;
+  }
+  .day-cell.has-entry:hover { background: rgba(212,175,55,.22); }
+
+  .day-cell.is-today { box-shadow: inset 0 0 0 1px var(--primary); }
+
+  .day-cell .dot {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--gold);
+    margin-top: 2px;
+  }
+
+  .day-cell.selected {
+    background: var(--gold);
+    color: var(--navy) !important;
+  }
+
+  /* ---------- 선택한 날짜 상세 ---------- */
+  .detail-panel {
+    margin-top: 28px;
+    padding: 18px;
+    background: rgba(19, 31, 51, 0.75);
+    border: 1px solid rgba(212,175,55,.3);
+    border-radius: 10px;
+    display: none;
+  }
+  .detail-panel.is-visible { display: block; }
+
+  .detail-date {
+    font-size: 13px;
+    color: var(--gold-soft);
+    margin-bottom: 4px;
+  }
+  .detail-category {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 14px;
+  }
+
+  .detail-cards {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+  .detail-card {
+    width: 72px;
+    text-align: center;
+  }
+  .detail-card img {
+    width: 100%;
+    aspect-ratio: 2/3;
+    object-fit: cover;
+    border-radius: 5px;
+    border: 1px solid rgba(212,175,55,.4);
+    transform: var(--rot, none);
+  }
+  .detail-card p {
+    font-size: 11px;
+    margin: 4px 0 0;
+    color: var(--mist);
+  }
+
+  .detail-numbers {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .detail-numbers span {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--gold);
+    color: var(--navy);
+    font-size: 12px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .empty-month {
+    text-align: center;
+    color: var(--mist-dim);
+    font-size: 13px;
+    margin-top: 24px;
+  }
+</style>
+</head>
+<body>
+
+<div id="shaderBackdrop">
+<canvas id="shader-canvas-bg"></canvas>
+</div>
+
+<main>
+  <div class="top-bar">
+    <a class="back-link" href="./index.html">← 카드 선택으로</a>
+    <span></span>
+  </div>
+
+  <h1>지난 타로 기록</h1>
+
+  <div class="month-nav">
+    <button id="prevMonth" aria-label="이전 달">‹</button>
+    <span class="month-label" id="monthLabel"></span>
+    <button id="nextMonth" aria-label="다음 달">›</button>
+  </div>
+
+  <div class="weekday-row">
+    <span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span>
+  </div>
+  <div class="day-grid" id="dayGrid"></div>
+
+  <p class="empty-month" id="emptyMonth" style="display:none;">이 달에는 기록이 없습니다.</p>
+
+  <div class="detail-panel" id="detailPanel">
+    <p class="detail-date" id="detailDate"></p>
+    <p class="detail-category" id="detailCategory"></p>
+    <div class="detail-cards" id="detailCards"></div>
+    <div class="detail-numbers" id="detailNumbers"></div>
+  </div>
+</main>
+
+<!-- ============ 셰이더 배경 스크립트 (index.html/result.html과 동일) ============ -->
+<script>
+(function() {
+  const canvas = document.getElementById('shader-canvas-bg');
+
+  function syncSize() {
+    const w = canvas.clientWidth  || 1280;
+    const h = canvas.clientHeight || 720;
+    if (canvas.width !== w || canvas.height !== h) {
+      canvas.width  = w;
+      canvas.height = h;
+    }
+  }
+  if (typeof ResizeObserver !== 'undefined') {
+    new ResizeObserver(syncSize).observe(canvas);
+  }
+  syncSize();
+
+  const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+  if (!gl) return;
+  const vs = `attribute vec2 a_position;
+varying vec2 v_texCoord;
+void main() {
+  v_texCoord = a_position * 0.5 + 0.5;
+  gl_Position = vec4(a_position, 0.0, 1.0);
+}`;
+  const fs = `precision highp float;
+varying vec2 v_texCoord;
+uniform float u_time;
+uniform vec2 u_resolution;
+
+vec3 permute(vec3 x) { return mod(((x*34.0)+1.0)*x, 289.0); }
+float snoise(vec2 v){
+  const vec4 C = vec4(0.211324865405187, 0.366025403784439,
+           -0.577350269189626, 0.024390243902439);
+  vec2 i  = floor(v + dot(v, C.yy) );
+  vec2 x0 = v -   i + dot(i, C.xx);
+  vec2 i1;
+  i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
+  vec4 x12 = x0.xyxy + C.xxzz;
+  x12.xy -= i1;
+  i = mod(i, 289.0);
+  vec3 p = permute( permute( i.y + vec3(0.0, i1.y, 1.0 ))
+  + i.x + vec3(0.0, i1.x, 1.0 ));
+  vec3 m = max(0.5 - vec3(dot(x0,x0), dot(x12.xy,x12.xy),
+    dot(x12.zw,x12.zw)), 0.0);
+  m = m*m ;
+  m = m*m ;
+  vec3 x = 2.0 * fract(p * C.www) - 1.0;
+  vec3 h = abs(x) - 0.5;
+  vec3 a0 = x - floor(x + 0.5);
+  vec3 m0 = 1.0 - 1.5*(a0*a0 + h*h);
+  vec3 g;
+  g.x  = a0.x  * x0.x  + h.x  * x0.y;
+  g.yz = a0.yz * x12.xz + h.yz * x12.yw;
+  return 130.0 * dot(m, g);
+}
+
+void main() {
+    vec2 uv = v_texCoord;
+    float n = snoise(uv * 3.0 + u_time * 0.2);
+    n += 0.5 * snoise(uv * 6.0 - u_time * 0.4);
+
+    vec3 color1 = vec3(0.06, 0.07, 0.15);
+    vec3 color2 = vec3(0.2, 0.0, 0.4);
+    vec3 color3 = vec3(0.6, 0.3, 1.0);
+
+    vec3 finalColor = mix(color1, color2, n * 0.5 + 0.5);
+    finalColor = mix(finalColor, color3, pow(max(0.0, n), 3.0) * 0.5);
+
+    gl_FragColor = vec4(finalColor, 1.0);
+}`;
+  function cs(type, src) {
+    const s = gl.createShader(type);
+    gl.shaderSource(s, src);
+    gl.compileShader(s);
+    return s;
+  }
+  const prog = gl.createProgram();
+  gl.attachShader(prog, cs(gl.VERTEX_SHADER, vs));
+  gl.attachShader(prog, cs(gl.FRAGMENT_SHADER, fs));
+  gl.linkProgram(prog);
+  gl.useProgram(prog);
+  const buf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+  const pos = gl.getAttribLocation(prog, 'a_position');
+  gl.enableVertexAttribArray(pos);
+  gl.vertexAttribPointer(pos, 2, gl.FLOAT, false, 0, 0);
+  const uTime = gl.getUniformLocation(prog, 'u_time');
+  const uRes = gl.getUniformLocation(prog, 'u_resolution');
+
+  function render(t) {
+    if (typeof ResizeObserver === 'undefined') syncSize();
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    if (uTime) gl.uniform1f(uTime, t * 0.001);
+    if (uRes) gl.uniform2f(uRes, canvas.width, canvas.height);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    requestAnimationFrame(render);
+  }
+  render(0);
+})();
+</script>
+
+<script type="module">
+  import { FULL_DECK } from './tarotDeck.js';
+  import { tarotImageUrl } from './tarotImages.js';
+  import { loadReadingsForMonth, todayKey } from './tarotHistory.js';
+
+  const monthLabel = document.getElementById('monthLabel');
+  const dayGrid = document.getElementById('dayGrid');
+  const emptyMonth = document.getElementById('emptyMonth');
+  const detailPanel = document.getElementById('detailPanel');
+  const detailDate = document.getElementById('detailDate');
+  const detailCategory = document.getElementById('detailCategory');
+  const detailCardsEl = document.getElementById('detailCards');
+  const detailNumbersEl = document.getElementById('detailNumbers');
+
+  const today = new Date();
+  let viewYear = today.getFullYear();
+  let viewMonth = today.getMonth() + 1; // 1~12
+  let selectedKey = null;
+
+  document.getElementById('prevMonth').addEventListener('click', () => changeMonth(-1));
+  document.getElementById('nextMonth').addEventListener('click', () => changeMonth(1));
+
+  function changeMonth(delta) {
+    viewMonth += delta;
+    if (viewMonth < 1) { viewMonth = 12; viewYear -= 1; }
+    if (viewMonth > 12) { viewMonth = 1; viewYear += 1; }
+    selectedKey = null;
+    detailPanel.classList.remove('is-visible');
+    render();
+  }
+
+  function render() {
+    monthLabel.textContent = `${viewYear}년 ${viewMonth}월`;
+    const readings = loadReadingsForMonth(viewYear, viewMonth);
+    const readingKeys = Object.keys(readings);
+    emptyMonth.style.display = readingKeys.length === 0 ? 'block' : 'none';
+
+    dayGrid.innerHTML = '';
+
+    const firstDay = new Date(viewYear, viewMonth - 1, 1);
+    const startWeekday = firstDay.getDay(); // 0=일요일
+    const daysInMonth = new Date(viewYear, viewMonth, 0).getDate();
+    const todayStr = todayKey();
+
+    // 앞쪽 빈 칸
+    for (let i = 0; i < startWeekday; i++) {
+      dayGrid.appendChild(document.createElement('div'));
+    }
+
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dateKey = `${viewYear}-${String(viewMonth).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      const cell = document.createElement('div');
+      cell.className = 'day-cell in-month';
+      if (dateKey === todayStr) cell.classList.add('is-today');
+
+      const num = document.createElement('span');
+      num.textContent = d;
+      cell.appendChild(num);
+
+      if (readings[dateKey]) {
+        cell.classList.add('has-entry');
+        const dot = document.createElement('span');
+        dot.className = 'dot';
+        cell.appendChild(dot);
+        cell.addEventListener('click', () => selectDate(dateKey, readings[dateKey], cell));
+      }
+
+      if (dateKey === selectedKey) cell.classList.add('selected');
+
+      dayGrid.appendChild(cell);
+    }
+  }
+
+  function selectDate(dateKey, entry, cellEl) {
+    selectedKey = dateKey;
+    [...dayGrid.children].forEach((c) => c.classList.remove('selected'));
+    cellEl.classList.add('selected');
+
+    detailPanel.classList.add('is-visible');
+    detailDate.textContent = dateKey;
+    const spreadNames = { 1: '오늘의 카드', 2: '상황·해결책', 3: '과거·현재·미래', 5: '원인·현재·장애물·조언·결과' };
+    detailCategory.textContent = `${entry.categoryLabel ?? '총운'} · ${spreadNames[entry.spread] ?? `${entry.spread}장`}`;
+
+    detailCardsEl.innerHTML = '';
+    entry.cards.forEach(({ id, reversed, positionLabel }) => {
+      const card = FULL_DECK.find((c) => c.id === id);
+      if (!card) return;
+
+      const box = document.createElement('div');
+      box.className = 'detail-card';
+      box.innerHTML = `
+        <img src="${tarotImageUrl(card)}" alt="${card.name_ko}" style="--rot:${reversed ? 'rotate(180deg)' : 'none'};">
+        <p>${positionLabel ? positionLabel + ' · ' : ''}${card.name_ko}</p>
+      `;
+      detailCardsEl.appendChild(box);
+    });
+
+    detailNumbersEl.innerHTML = '';
+    (entry.numbers ?? []).forEach((n) => {
+      const span = document.createElement('span');
+      span.textContent = n;
+      detailNumbersEl.appendChild(span);
+    });
+
+    detailPanel.scrollIntoView?.({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  render();
+</script>
+
+</body>
+</html>

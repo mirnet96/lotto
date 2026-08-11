@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>타로 운세 · 로또슬기</title>
+<meta name="description" content="웨이트 타로로 오늘의 운세를 보고, 같은 카드로 로또 번호 6개를 함께 받아보세요.">
+
+<!--
+  배포 경로: /home/smart-lotto/www/public/tarot/
+  이 폴더 안에 아래 파일들이 같은 레벨로 들어갑니다.
+
+    public/tarot/index.html          카드 선택 화면 (진입점)
+    public/tarot/result.html         이 파일 — 선택한 카드의 운세/번호 결과 화면
+    public/tarot/card-back.jpg
+    public/tarot/tarotEngine.js
+    public/tarot/tarotDeck.js
+    public/tarot/tarotImages.js
+
+  접속 흐름: https://lotto.smart-alba.com/tarot/ (index.html에서 카드 선택)
+            → 선택 완료 시 이 페이지로 이동, sessionStorage로 선택 결과 전달
+
+  카드 이미지 자체는 https://lotto.smart-alba.com/images/taro/ 에서
+  원격으로 불러오므로 별도 에셋 배치가 필요 없습니다.
+-->
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;700&family=Pretendard:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --navy-deep: #0a0f1a;
+    --navy: #0F1B2D;
+    --navy-panel: #131f33;
+    --gold: #D4AF37;
+    --gold-soft: #ecd48a;
+    --paper: #FAFAF7;
+    --mist: #8b93a6;
+    --mist-dim: #5b6478;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    min-height: 100%;
+    background: var(--navy-deep);
+    color: var(--paper);
+    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', sans-serif;
+  }
+
+  /* ---------- 셰이더 배경 캔버스 (index.html과 동일) ---------- */
+  #shaderBackdrop {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+  }
+  #shader-canvas-bg { display: block; width: 100%; height: 100%; }
+
+  body {
+    /* 불투명 그라디언트 대신, 셰이더 캔버스가 배경 역할을 하므로
+       아주 옅은 톤 보정용 그라디언트만 남겨둡니다(가독성용). */
+    background-color: transparent;
+    background-image:
+      radial-gradient(circle at 50% 0%, rgba(16, 18, 37, 0.35) 0%, transparent 55%),
+      radial-gradient(circle at 50% 100%, rgba(16, 18, 37, 0.45) 0%, transparent 55%);
+    background-repeat: no-repeat;
+    background-size: cover;
+  }
+
+  main {
+    position: relative;
+    z-index: 10;
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 56px 20px 96px;
+  }
+
+  .eyebrow {
+    text-align: center;
+    letter-spacing: .18em;
+    font-size: 12px;
+    color: var(--gold-soft);
+    text-transform: uppercase;
+    margin: 0 0 10px;
+  }
+
+  h1 {
+    font-family: 'Noto Serif KR', serif;
+    font-weight: 700;
+    text-align: center;
+    font-size: clamp(26px, 5vw, 36px);
+    margin: 0 0 8px;
+    letter-spacing: -0.01em;
+  }
+
+  .lede {
+    text-align: center;
+    color: var(--mist);
+    font-size: 14.5px;
+    margin: 0 auto 36px;
+    max-width: 46ch;
+    line-height: 1.7;
+  }
+
+  /* ---------- 스프레드 선택 ---------- */
+
+  .spread-select {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 40px;
+  }
+
+  .spread-btn {
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--gold-soft);
+    background: transparent;
+    border: 1px solid rgba(212,175,55,.45);
+    border-radius: 999px;
+    padding: 11px 22px;
+    cursor: pointer;
+    transition: background .2s ease, color .2s ease, border-color .2s ease, transform .15s ease;
+  }
+
+  .spread-btn:hover { border-color: var(--gold); transform: translateY(-1px); }
+
+  .spread-btn:focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: 3px;
+  }
+
+  .spread-btn.is-active {
+    background: var(--gold);
+    color: var(--navy);
+    border-color: var(--gold);
+  }
+
+  /* ---------- 카드 영역 ---------- */
+
+  .cards {
+    display: flex;
+    justify-content: center;
+    gap: 22px;
+    flex-wrap: wrap;
+    min-height: 216px;
+    margin-bottom: 8px;
+  }
+
+  .card-slot {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 130px;
+  }
+
+  .card-slot__position {
+    font-size: 12px;
+    color: var(--gold-soft);
+    letter-spacing: .06em;
+    margin-bottom: 8px;
+    min-height: 15px;
+  }
+
+  .flip {
+    position: relative;
+    width: 130px;
+    height: 216px;
+    perspective: 1000px;
+  }
+
+  .flip__inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transform-style: preserve-3d;
+    transition: transform .7s cubic-bezier(.34,1.56,.64,1);
+  }
+
+  .flip.is-revealed .flip__inner { transform: rotateY(180deg); }
+  .flip.is-revealed.is-reversed .flip__inner { transform: rotateY(180deg) rotate(180deg); }
+
+  .flip__face {
+    position: absolute;
+    inset: 0;
+    backface-visibility: hidden;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 8px 24px rgba(0,0,0,.45);
+  }
+
+  .flip__back {
+    background:
+      repeating-linear-gradient(45deg, rgba(212,175,55,.12) 0 2px, transparent 2px 14px),
+      linear-gradient(160deg, var(--navy-panel), var(--navy));
+    border: 1px solid rgba(212,175,55,.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .flip__back::after {
+    content: '✦';
+    color: var(--gold);
+    font-size: 26px;
+    opacity: .8;
+  }
+
+  .flip__front {
+    transform: rotateY(180deg);
+    background: var(--navy-panel);
+    border: 1px solid rgba(212,175,55,.55);
+  }
+
+  .flip__front img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .card-slot__glow {
+    position: absolute;
+    inset: -14px;
+    border-radius: 16px;
+    background: radial-gradient(circle, rgba(212,175,55,.55), transparent 70%);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .flip.is-revealed .card-slot__glow {
+      animation: goldPulse .7s ease-out;
+    }
+  }
+
+  @keyframes goldPulse {
+    0% { opacity: 0; transform: scale(.85); }
+    35% { opacity: .8; }
+    100% { opacity: 0; transform: scale(1.25); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .flip__inner { transition: none; }
+  }
+
+  .card-slot__name {
+    margin-top: 10px;
+    font-size: 13px;
+    text-align: center;
+    color: var(--paper);
+  }
+
+  .card-slot__orientation {
+    color: var(--mist-dim);
+  }
+
+  .arcana-badge {
+    margin-top: 8px;
+    font-size: 10.5px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    letter-spacing: .02em;
+  }
+  .arcana-badge--major {
+    background: rgba(216, 185, 255, 0.18);
+    color: #d8b9ff;
+    border: 1px solid rgba(216, 185, 255, 0.4);
+  }
+  .arcana-badge--minor {
+    background: rgba(212, 175, 55, 0.15);
+    color: var(--gold-soft);
+    border: 1px solid rgba(212, 175, 55, 0.35);
+  }
+
+  /* ---------- 해석 ---------- */
+
+  .interpretation {
+    margin: 36px auto 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .interpretation p {
+    margin: 0;
+    padding: 14px 16px;
+    background: var(--navy-panel);
+    border-left: 3px solid var(--gold);
+    border-radius: 4px;
+    font-size: 14px;
+    line-height: 1.75;
+    color: #e7e5df;
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .interpretation p.is-in {
+      animation: fadeUp .5s ease forwards;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .interpretation p { opacity: 1; transform: none; }
+  }
+
+  @keyframes fadeUp {
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ---------- 로또 번호 ---------- */
+
+  .numbers-heading {
+    text-align: center;
+    font-size: 13px;
+    color: var(--mist);
+    margin: 40px 0 14px;
+    letter-spacing: .04em;
+  }
+
+  .numbers-loading {
+    text-align: center;
+    font-size: 12px;
+    color: var(--mist-dim);
+    margin: 0 0 14px;
+  }
+
+  .numbers-source-note {
+    text-align: center;
+    font-size: 11px;
+    color: var(--mist-dim);
+    margin-top: 10px;
+  }
+
+  .numbers {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .ball {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: var(--gold);
+    color: var(--navy);
+    font-weight: 700;
+    font-size: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transform: scale(.5);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .ball.is-in { animation: pop .45s cubic-bezier(.34,1.56,.64,1) forwards; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ball { opacity: 1; transform: none; }
+  }
+
+  @keyframes pop {
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  /* ---------- 다시 뽑기 ---------- */
+
+  .actions {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 40px;
+  }
+
+  .redraw-btn {
+    font-family: inherit;
+    font-size: 13.5px;
+    color: var(--gold-soft);
+    background: transparent;
+    border: 1px solid rgba(212,175,55,.4);
+    border-radius: 999px;
+    padding: 10px 24px;
+    cursor: pointer;
+    display: none;
+    transition: border-color .2s ease, transform .15s ease;
+  }
+
+  .redraw-btn:hover { border-color: var(--gold); transform: translateY(-1px); }
+  .redraw-btn:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+  .redraw-btn.is-visible { display: inline-block; }
+
+  .empty-hint {
+    text-align: center;
+    color: var(--mist-dim);
+    font-size: 13px;
+    margin-top: 6px;
+  }
+
+  /* ---------- 카드 상세정보 토글 ---------- */
+  .card-detail {
+    margin-top: 8px;
+    width: 100%;
+  }
+  .card-detail summary {
+    cursor: pointer;
+    font-size: 12px;
+    color: var(--gold-soft);
+    text-align: center;
+    list-style: none;
+  }
+  .card-detail summary::-webkit-details-marker { display: none; }
+  .card-detail summary::after { content: '카드 정보 보기 ▾'; }
+  .card-detail[open] summary::after { content: '접기 ▴'; }
+  .card-detail-body {
+    margin-top: 8px;
+    padding: 10px 12px;
+    background: rgba(19, 31, 51, 0.7);
+    border: 1px solid rgba(212,175,55,.25);
+    border-radius: 6px;
+    font-size: 12px;
+    line-height: 1.7;
+    color: var(--mist);
+    text-align: left;
+  }
+  .card-detail-body b { color: var(--paper); }
+
+  /* ---------- 해석 상세 항목 ---------- */
+  .interpretation .reading-line {
+    display: block;
+    margin-top: 4px;
+    font-size: 13px;
+    color: var(--mist);
+  }
+  .interpretation .reading-tag {
+    color: var(--gold-soft);
+    font-weight: 600;
+  }
+
+  /* ---------- 토스트 ---------- */
+  .toast {
+    position: fixed;
+    left: 50%;
+    bottom: 32px;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--navy-panel);
+    border: 1px solid rgba(212,175,55,.5);
+    color: var(--paper);
+    padding: 10px 20px;
+    border-radius: 999px;
+    font-size: 13px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .25s ease, transform .25s ease;
+    z-index: 100;
+  }
+  .toast.is-visible {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  @media (max-width: 420px) {
+    .card-slot, .flip { width: 104px; }
+    .flip { height: 173px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- 배경 셰이더 (index.html과 동일한 것을 이식) -->
+<div id="shaderBackdrop">
+<canvas id="shader-canvas-bg"></canvas>
+</div>
+
+<main>
+  <p class="eyebrow">Rider–Waite Tarot</p>
+  <h1>타로 운세 · 오늘의 번호</h1>
+  <p class="lede" id="ledeText">카드를 뽑으면 그 자리에서 운세 해석과 함께, 같은 카드로 만든 로또 번호 6개가 함께 나옵니다.</p>
+
+  <div class="cards" id="cards" aria-live="polite"></div>
+
+  <div class="interpretation" id="interpretation"></div>
+
+  <div id="numbersBlock" style="display:block;">
+    <p class="numbers-heading">이 카드로 만든 번호</p>
+    <p class="numbers-loading" id="numbersLoading" style="display:none;">최근 당첨 데이터를 분석하는 중...</p>
+    <div class="numbers" id="numbers"></div>
+  </div>
+
+  <div class="actions">
+    <button class="redraw-btn is-visible" id="shareBtn">결과 공유하기</button>
+    <button class="redraw-btn is-visible" id="historyBtn">지난 기록 보기</button>
+    <button class="redraw-btn is-visible" id="redrawBtn">다시 카드 뽑기</button>
+  </div>
+</main>
+
+<!-- ============ 셰이더 배경 스크립트 (index.html과 동일) ============ -->
+<script>
+(function() {
+  const canvas = document.getElementById('shader-canvas-bg');
+
+  function syncSize() {
+    const w = canvas.clientWidth  || 1280;
+    const h = canvas.clientHeight || 720;
+    if (canvas.width !== w || canvas.height !== h) {
+      canvas.width  = w;
+      canvas.height = h;
+    }
+  }
+  if (typeof ResizeObserver !== 'undefined') {
+    new ResizeObserver(syncSize).observe(canvas);
+  }
+  syncSize();
+
+  const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+  if (!gl) return;
+  const vs = `attribute vec2 a_position;
+varying vec2 v_texCoord;
+void main() {
+  v_texCoord = a_position * 0.5 + 0.5;
+  gl_Position = vec4(a_position, 0.0, 1.0);
+}`;
+  const fs = `precision highp float;
+varying vec2 v_texCoord;
+uniform float u_time;
+uniform vec2 u_resolution;
+
+vec3 permute(vec3 x) { return mod(((x*34.0)+1.0)*x, 289.0); }
+float snoise(vec2 v){
+  const vec4 C = vec4(0.211324865405187, 0.366025403784439,
+           -0.577350269189626, 0.024390243902439);
+  vec2 i  = floor(v + dot(v, C.yy) );
+  vec2 x0 = v -   i + dot(i, C.xx);
+  vec2 i1;
+  i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
+  vec4 x12 = x0.xyxy + C.xxzz;
+  x12.xy -= i1;
+  i = mod(i, 289.0);
+  vec3 p = permute( permute( i.y + vec3(0.0, i1.y, 1.0 ))
+  + i.x + vec3(0.0, i1.x, 1.0 ));
+  vec3 m = max(0.5 - vec3(dot(x0,x0), dot(x12.xy,x12.xy),
+    dot(x12.zw,x12.zw)), 0.0);
+  m = m*m ;
+  m = m*m ;
+  vec3 x = 2.0 * fract(p * C.www) - 1.0;
+  vec3 h = abs(x) - 0.5;
+  vec3 a0 = x - floor(x + 0.5);
+  vec3 m0 = 1.0 - 1.5*(a0*a0 + h*h);
+  vec3 g;
+  g.x  = a0.x  * x0.x  + h.x  * x0.y;
+  g.yz = a0.yz * x12.xz + h.yz * x12.yw;
+  return 130.0 * dot(m, g);
+}
+
+void main() {
+    vec2 uv = v_texCoord;
+    float n = snoise(uv * 3.0 + u_time * 0.2);
+    n += 0.5 * snoise(uv * 6.0 - u_time * 0.4);
+
+    vec3 color1 = vec3(0.06, 0.07, 0.15);
+    vec3 color2 = vec3(0.2, 0.0, 0.4);
+    vec3 color3 = vec3(0.6, 0.3, 1.0);
+
+    vec3 finalColor = mix(color1, color2, n * 0.5 + 0.5);
+    finalColor = mix(finalColor, color3, pow(max(0.0, n), 3.0) * 0.5);
+
+    gl_FragColor = vec4(finalColor, 1.0);
+}`;
+  function cs(type, src) {
+    const s = gl.createShader(type);
+    gl.shaderSource(s, src);
+    gl.compileShader(s);
+    return s;
+  }
+  const prog = gl.createProgram();
+  gl.attachShader(prog, cs(gl.VERTEX_SHADER, vs));
+  gl.attachShader(prog, cs(gl.FRAGMENT_SHADER, fs));
+  gl.linkProgram(prog);
+  gl.useProgram(prog);
+  const buf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+  const pos = gl.getAttribLocation(prog, 'a_position');
+  gl.enableVertexAttribArray(pos);
+  gl.vertexAttribPointer(pos, 2, gl.FLOAT, false, 0, 0);
+  const uTime = gl.getUniformLocation(prog, 'u_time');
+  const uRes = gl.getUniformLocation(prog, 'u_resolution');
+
+  function render(t) {
+    if (typeof ResizeObserver === 'undefined') syncSize();
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    if (uTime) gl.uniform1f(uTime, t * 0.001);
+    if (uRes) gl.uniform2f(uRes, canvas.width, canvas.height);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    requestAnimationFrame(render);
+  }
+  render(0);
+})();
+</script>
+
+<script type="module">
+  import { FULL_DECK } from './tarotDeck.js';
+  import { buildCategoryReading, numbersFromDrawWeighted, SUIT_ELEMENT_LABELS } from './tarotEngine.js';
+  import { tarotImageUrl } from './tarotImages.js';
+  import { saveReading } from './tarotHistory.js';
+  import { getRecentNumberFrequency } from './lottoStats.js';
+
+  const cardsEl = document.getElementById('cards');
+  const ledeText = document.getElementById('ledeText');
+  const interpretationEl = document.getElementById('interpretation');
+  const numbersBlock = document.getElementById('numbersBlock');
+  const numbersEl = document.getElementById('numbers');
+  const numbersLoading = document.getElementById('numbersLoading');
+  const redrawBtn = document.getElementById('redrawBtn');
+  const shareBtn = document.getElementById('shareBtn');
+  const historyBtn = document.getElementById('historyBtn');
+
+  redrawBtn.addEventListener('click', () => {
+    window.location.href = './index.html';
+  });
+  historyBtn.addEventListener('click', () => {
+    window.location.href = './history.html';
+  });
+
+  let shareText = '';
+
+  shareBtn.addEventListener('click', async () => {
+    const shareData = {
+      title: '로또슬기 타로 운세',
+      text: shareText,
+      url: window.location.origin + window.location.pathname.replace(/result\.html$/, 'index.html'),
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (e) {
+        // 사용자가 공유를 취소한 경우 등은 조용히 무시
+      }
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(`${shareData.text}\n${shareData.url}`);
+      showToast('결과가 클립보드에 복사되었습니다');
+    } catch (e) {
+      showToast('공유하기를 지원하지 않는 브라우저입니다');
+    }
+  });
+
+  function showToast(message) {
+    let toast = document.getElementById('toast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'toast';
+      toast.className = 'toast';
+      document.body.appendChild(toast);
+    }
+    toast.textContent = message;
+    toast.classList.add('is-visible');
+    setTimeout(() => toast.classList.remove('is-visible'), 2200);
+  }
+
+  // index.html(카드 선택 화면)에서 넘겨준 선택 결과를 읽어옵니다.
+  const stored = sessionStorage.getItem('tarotDraw');
+
+  if (!stored) {
+    // 결과 데이터 없이 이 페이지로 바로 들어온 경우 선택 화면으로 되돌립니다.
+    window.location.href = './index.html';
+  } else {
+    init(JSON.parse(stored));
+  }
+
+  async function init(parsed) {
+    const draw = {
+      spread: parsed.cards.length,
+      dateSeeded: false,
+      seed: 0,
+      drawnAt: new Date().toISOString(),
+      cards: parsed.cards.map((c) => ({
+        card: FULL_DECK.find((fc) => fc.id === c.id),
+        reversed: c.reversed,
+        position: c.position,
+        positionLabel: c.positionLabel,
+      })),
+    };
+
+    const reading = buildCategoryReading(parsed.category, draw);
+
+    const spreadNames = { 1: '오늘의 카드', 2: '상황·해결책', 3: '과거·현재·미래', 5: '원인·현재·장애물·조언·결과' };
+    ledeText.textContent = draw.spread === 1
+      ? `오늘의 ${reading.categoryLabel}, 당신이 고른 카드가 조용히 말을 건넵니다.`
+      : `${spreadNames[draw.spread] ?? ''}, ${draw.spread}장의 카드가 ${reading.categoryLabel}의 흐름을 보여줍니다.`;
+
+    // 카드·해석은 통계를 기다릴 필요가 없으니 먼저 보여줍니다.
+    renderCards(draw);
+    renderInterpretation(reading);
+
+    // 번호는 실제 최근 당첨 데이터(lotto.json)를 가져온 뒤에 계산합니다.
+    // 소드(공기) 카드가 있을 때만 이 데이터가 실제로 영향을 주고,
+    // 가져오기에 실패하면 numbersFromDrawWeighted가 알아서 대체 로직을 씁니다.
+    const hasSwords = draw.cards.some(({ card }) => card.suit === 'swords');
+    numbersLoading.style.display = hasSwords ? 'block' : 'none';
+
+    const recentFrequency = await getRecentNumberFrequency(24);
+    numbersLoading.style.display = 'none';
+
+    const { numbers } = numbersFromDrawWeighted(draw, { recentFrequency });
+    renderNumbers(numbers, hasSwords && !!recentFrequency);
+
+    shareText = buildShareText(reading, draw, numbers);
+
+    // 오늘의 기록으로 localStorage에 저장 (달력 화면에서 사용)
+    saveReading({
+      category: parsed.category,
+      categoryLabel: reading.categoryLabel,
+      spread: draw.spread,
+      cards: parsed.cards,
+      numbers,
+    });
+  }
+
+  function buildShareText(reading, draw, numbers) {
+    const cardLines = draw.cards
+      .map(({ card, reversed }) => `${card.name_ko}(${reversed ? '역' : '정'})`)
+      .join(', ');
+    return `[로또슬기 타로 · ${reading.categoryLabel}]\n뽑은 카드: ${cardLines}\n번호: ${numbers.join(', ')}`;
+  }
+
+  function renderCards(draw) {
+    cardsEl.innerHTML = '';
+
+    draw.cards.forEach(({ card, reversed, positionLabel }, index) => {
+      const slot = document.createElement('div');
+      slot.className = 'card-slot';
+
+      const posLabel = document.createElement('div');
+      posLabel.className = 'card-slot__position';
+      posLabel.textContent = positionLabel ?? '';
+      slot.appendChild(posLabel);
+
+      const flip = document.createElement('div');
+      flip.className = 'flip';
+
+      const glow = document.createElement('div');
+      glow.className = 'card-slot__glow';
+      flip.appendChild(glow);
+
+      const inner = document.createElement('div');
+      inner.className = 'flip__inner';
+
+      const back = document.createElement('div');
+      back.className = 'flip__face flip__back';
+
+      const front = document.createElement('div');
+      front.className = 'flip__face flip__front';
+      const img = document.createElement('img');
+      img.src = tarotImageUrl(card);
+      img.alt = card.name_ko;
+      front.appendChild(img);
+
+      inner.appendChild(back);
+      inner.appendChild(front);
+      flip.appendChild(inner);
+      slot.appendChild(flip);
+
+      const badge = document.createElement('span');
+      badge.className = card.arcana === 'major' ? 'arcana-badge arcana-badge--major' : 'arcana-badge arcana-badge--minor';
+      badge.textContent = card.arcana === 'major' ? '메이저' : `${SUIT_ELEMENT_LABELS[card.suit]} · ${card.suit_name_ko}`;
+      slot.appendChild(badge);
+
+      const name = document.createElement('div');
+      name.className = 'card-slot__name';
+      name.innerHTML = `${card.name_ko}<br><span class="card-slot__orientation">${reversed ? '역방향' : '정방향'}</span>`;
+      slot.appendChild(name);
+
+      slot.appendChild(buildCardDetail(card));
+
+      cardsEl.appendChild(slot);
+
+      // 카드마다 살짝 시차를 두고 순서대로 뒤집기
+      setTimeout(() => {
+        if (reversed) flip.classList.add('is-reversed');
+        flip.classList.add('is-revealed');
+      }, 200 + index * 260);
+    });
+  }
+
+  // 선택한 카드 자체에 대한 상세 정보(아르카나/번호/정·역방향 의미 둘 다)
+  function buildCardDetail(card) {
+    const details = document.createElement('details');
+    details.className = 'card-detail';
+
+    const summary = document.createElement('summary');
+    details.appendChild(summary);
+
+    const body = document.createElement('div');
+    body.className = 'card-detail-body';
+
+    const typeLine = card.arcana === 'major'
+      ? `메이저 아르카나 · ${card.number}번`
+      : `마이너 아르카나 · ${SUIT_ELEMENT_LABELS[card.suit]} · ${card.suit_name_ko} · ${card.number}`;
+
+    body.innerHTML = `
+      <div><b>${card.name_ko}</b> (${card.name_en})</div>
+      <div>${typeLine}</div>
+      <div style="margin-top:6px;"><span style="color:#ecd48a;">정방향</span> — ${card.upright_ko}</div>
+      <div><span style="color:#ecd48a;">역방향</span> — ${card.reversed_ko}</div>
+    `;
+    details.appendChild(body);
+
+    return details;
+  }
+
+  function renderInterpretation(reading) {
+    interpretationEl.innerHTML = '';
+
+    const overall = document.createElement('p');
+    overall.style.borderLeftColor = '#d8b9ff';
+    overall.innerHTML = `<strong>종합 조언</strong><br>${reading.overall}`;
+    interpretationEl.appendChild(overall);
+    setTimeout(() => overall.classList.add('is-in'), 700);
+
+    reading.perCard.forEach(({ headline, arcanaNote, meaning, timingText, adviceText, cautionText }, index) => {
+      const p = document.createElement('p');
+      p.innerHTML = `
+        <strong>${headline}</strong>
+        <span class="reading-line" style="color:#ecd48a;">${arcanaNote}</span>
+        <span class="reading-line">${meaning}</span>
+        <span class="reading-line"><span class="reading-tag">시기</span> · ${timingText}</span>
+        <span class="reading-line"><span class="reading-tag">조언</span> · ${adviceText}</span>
+        <span class="reading-line"><span class="reading-tag">주의</span> · ${cautionText}</span>
+      `;
+      interpretationEl.appendChild(p);
+      setTimeout(() => p.classList.add('is-in'), 950 + index * 220);
+    });
+  }
+
+  function renderNumbers(numbers, usedRealStats) {
+    numbersEl.innerHTML = '';
+    numbersBlock.style.display = 'block';
+
+    numbers.forEach((n, index) => {
+      const ball = document.createElement('span');
+      ball.className = 'ball';
+      ball.textContent = n;
+      numbersEl.appendChild(ball);
+      setTimeout(() => ball.classList.add('is-in'), 300 + index * 90);
+    });
+
+    const existingNote = document.getElementById('numbersSourceNote');
+    if (existingNote) existingNote.remove();
+
+    if (usedRealStats) {
+      const note = document.createElement('p');
+      note.id = 'numbersSourceNote';
+      note.className = 'numbers-source-note';
+      note.textContent = '소드(공기) 카드가 있어 최근 24회차 실제 당첨 데이터를 참고했습니다';
+      numbersEl.after(note);
+    }
+  }
+</script>
+
+</body>
+</html>
