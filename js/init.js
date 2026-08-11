@@ -42,6 +42,13 @@ async function init() {
     updateHomeBanner();
     updateBadge();
     buildStats();
+
+    /* 타로/QR 등 외부 페이지에서 ?tab=xxx 로 들어온 경우 해당 탭으로 전환 */
+    const params = new URLSearchParams(location.search);
+    const requestedTab = params.get('tab');
+    if (requestedTab && document.getElementById('page-' + requestedTab)) {
+        switchTab(requestedTab);
+    }
 }
 
 init();

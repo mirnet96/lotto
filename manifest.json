@@ -1,10 +1,12 @@
 {
-  "name": "LOTTO+ 로또 번호 생성기",
-  "short_name": "LOTTO+",
+  "name": "로또슬기 - 통계·타로 로또 번호 생성",
+  "short_name": "로또슬기",
+  "description": "당첨 통계 분석과 웨이트 타로 운세로 로또 번호를 추천해주는 서비스",
   "start_url": "/lotto/",
   "display": "standalone",
   "background_color": "#0F172A",
   "theme_color": "#0F172A",
+  "lang": "ko",
   "icons": [
     {
       "src": "/lotto/images/favicon-512.png",

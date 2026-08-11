@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>지난 타로 기록 · 로또슬기</title>
 <meta name="description" content="지난 타로 운세 결과를 월별 달력으로 다시 확인해보세요.">
+<!-- 개인 기록(localStorage)을 보여주는 페이지라 검색엔진에는 노출하지 않습니다 -->
+<meta name="robots" content="noindex, nofollow">
+<link rel="canonical" href="https://mirnet96.github.io/lotto/tarot/">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -48,6 +51,7 @@
   main {
     position: relative;
     z-index: 10;
+    padding-top: 12px;
     max-width: 480px;
     margin: 0 auto;
     padding: 40px 20px 96px;
@@ -227,6 +231,62 @@
 </style>
 </head>
 <body>
+<!-- ══ 공통 메뉴 (로또슬기 전체 페이지 공통) ══ -->
+<header id="lotto-top-nav" class="h-[60px] px-6 border-b border-white/[.07] bg-[#0F172A]/90 backdrop-blur-xl items-center justify-between" style="display:none;position:sticky;top:0;z-index:60;">
+  <a href="../index.html" style="display:flex;align-items:center;gap:8px;text-decoration:none;color:#F5C842;font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:3px;">
+    <span style="width:8px;height:8px;border-radius:50%;background:#F5C842;"></span>로또슬기
+  </a>
+  <nav style="display:flex;gap:4px;">
+    <a href="../index.html" style="display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:12px;font-size:13px;color:#94A3B8;text-decoration:none;">
+      <span class="material-symbols-outlined" style="font-size:17px;">home</span>홈
+    </a>
+    <a href="../index.html?tab=qr" style="display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:12px;font-size:13px;color:#94A3B8;text-decoration:none;">
+      <span class="material-symbols-outlined" style="font-size:17px;">qr_code_scanner</span>QR
+    </a>
+    <a href="../index.html?tab=stats" style="display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:12px;font-size:13px;color:#94A3B8;text-decoration:none;">
+      <span class="material-symbols-outlined" style="font-size:17px;">bar_chart</span>통계
+    </a>
+    <a href="../index.html?tab=myhistory" style="display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:12px;font-size:13px;color:#94A3B8;text-decoration:none;">
+      <span class="material-symbols-outlined" style="font-size:17px;">bookmarks</span>내 번호
+    </a>
+    <span style="display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:12px;font-size:13px;font-weight:700;color:#F5C842;background:rgba(245,200,66,.12);">
+      <span class="material-symbols-outlined" style="font-size:17px;">style</span>타로
+    </span>
+    <a href="../index.html?tab=myinfo" style="display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:12px;font-size:13px;color:#94A3B8;text-decoration:none;">
+      <span class="material-symbols-outlined" style="font-size:17px;">badge</span>내정보
+    </a>
+  </nav>
+</header>
+
+<nav id="lotto-bottom-nav" aria-label="하단 메뉴" style="position:fixed;bottom:0;left:0;right:0;height:64px;background:rgba(10,16,30,0.97);backdrop-filter:blur(16px);border-top:1px solid rgba(255,255,255,.1);box-shadow:0 -4px 24px rgba(0,0,0,.5);z-index:60;display:none;">
+  <a href="../index.html" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-family:inherit;font-size:10px;color:#64748B;text-decoration:none;">
+    <span class="material-symbols-outlined" style="font-size:22px;">home</span>홈
+  </a>
+  <a href="../index.html?tab=qr" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-family:inherit;font-size:10px;color:#64748B;text-decoration:none;">
+    <span class="material-symbols-outlined" style="font-size:22px;">qr_code_scanner</span>QR
+  </a>
+  <a href="../index.html?tab=stats" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-family:inherit;font-size:10px;color:#64748B;text-decoration:none;">
+    <span class="material-symbols-outlined" style="font-size:22px;">bar_chart</span>통계
+  </a>
+  <a href="../index.html?tab=myhistory" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-family:inherit;font-size:10px;color:#64748B;text-decoration:none;">
+    <span class="material-symbols-outlined" style="font-size:22px;">bookmarks</span>내번호
+  </a>
+  <span style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-family:inherit;font-size:10px;color:#F5C842;position:relative;">
+    <span class="material-symbols-outlined" style="font-size:22px;filter:drop-shadow(0 0 6px rgba(245,200,66,.55));">style</span>타로
+    <span style="position:absolute;top:0;left:20%;right:20%;height:2px;background:#F5C842;border-radius:0 0 3px 3px;"></span>
+  </span>
+  <a href="../index.html?tab=myinfo" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-family:inherit;font-size:10px;color:#64748B;text-decoration:none;">
+    <span class="material-symbols-outlined" style="font-size:22px;">badge</span>내정보
+  </a>
+</nav>
+
+<style>
+  @media (max-width: 640px) { #lotto-top-nav { display: none !important; } #lotto-bottom-nav { display: flex !important; } }
+  @media (min-width: 641px) { #lotto-top-nav { display: flex !important; } #lotto-bottom-nav { display: none !important; } }
+  body { padding-bottom: 0; }
+  @media (max-width: 640px) { .main-content, main { padding-bottom: 80px; } }
+</style>
+
 
 <div id="shaderBackdrop">
 <canvas id="shader-canvas-bg"></canvas>

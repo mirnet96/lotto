@@ -60,6 +60,7 @@ function switchTab(name) {
     /* 탭별 후처리 */
     if (name === 'stats'     && typeof buildStats      === 'function') buildStats();
     if (name === 'myhistory' && typeof renderMyHistory === 'function') renderMyHistory();
+    if (name === 'myinfo'    && typeof loadProfileForm === 'function') loadProfileForm();
 
     /* 스크롤 상단 이동 */
     window.scrollTo({ top: 0, behavior: 'smooth' });
