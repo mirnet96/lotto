@@ -579,7 +579,7 @@
 </head>
 <body>
 <!-- ══ 공통 메뉴 (로또슬기 전체 페이지 공통) ══ -->
-<header id="lotto-top-nav" class="h-[60px] px-6 border-b border-white/[.07] bg-[#0F172A]/90 backdrop-blur-xl items-center justify-between" style="display:none;position:sticky;top:0;z-index:60;">
+<header id="lotto-top-nav" style="display:none;position:sticky;top:0;z-index:60;height:60px;padding:0 24px;box-sizing:border-box;border-bottom:1px solid rgba(255,255,255,.07);background:rgba(15,23,42,.9);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);align-items:center;justify-content:space-between;">
   <a href="../index.html" style="display:flex;align-items:center;gap:8px;text-decoration:none;color:#F5C842;font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:3px;">
     <span style="width:8px;height:8px;border-radius:50%;background:#F5C842;"></span>로또슬기
   </a>
@@ -593,12 +593,12 @@
     <a href="../index.html?tab=stats" style="display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:12px;font-size:13px;color:#94A3B8;text-decoration:none;">
       <span class="material-symbols-outlined" style="font-size:17px;">bar_chart</span>통계
     </a>
-    <a href="../index.html?tab=myhistory" style="display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:12px;font-size:13px;color:#94A3B8;text-decoration:none;">
-      <span class="material-symbols-outlined" style="font-size:17px;">bookmarks</span>내 번호
+    <a href="../shops.html" style="display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:12px;font-size:13px;color:#94A3B8;text-decoration:none;">
+      <span class="material-symbols-outlined" style="font-size:17px;">storefront</span>판매점
     </a>
-    <span style="display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:12px;font-size:13px;font-weight:700;color:#F5C842;background:rgba(245,200,66,.12);">
-      <span class="material-symbols-outlined" style="font-size:17px;">style</span>타로
-    </span>
+    <a href="../fortune/" style="display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:12px;font-size:13px;font-weight:700;color:#F5C842;background:rgba(245,200,66,.12);text-decoration:none;">
+      <span class="material-symbols-outlined" style="font-size:17px;">auto_awesome</span>운세
+    </a>
     <a href="../index.html?tab=myinfo" style="display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:12px;font-size:13px;color:#94A3B8;text-decoration:none;">
       <span class="material-symbols-outlined" style="font-size:17px;">badge</span>내정보
     </a>
@@ -615,13 +615,12 @@
   <a href="../index.html?tab=stats" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-family:inherit;font-size:10px;color:#64748B;text-decoration:none;">
     <span class="material-symbols-outlined" style="font-size:22px;">bar_chart</span>통계
   </a>
-  <a href="../index.html?tab=myhistory" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-family:inherit;font-size:10px;color:#64748B;text-decoration:none;">
-    <span class="material-symbols-outlined" style="font-size:22px;">bookmarks</span>내번호
+  <a href="../shops.html" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-family:inherit;font-size:10px;color:#64748B;text-decoration:none;">
+    <span class="material-symbols-outlined" style="font-size:22px;">storefront</span>판매점
   </a>
-  <span style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-family:inherit;font-size:10px;color:#F5C842;position:relative;">
-    <span class="material-symbols-outlined" style="font-size:22px;filter:drop-shadow(0 0 6px rgba(245,200,66,.55));">style</span>타로
-    <span style="position:absolute;top:0;left:20%;right:20%;height:2px;background:#F5C842;border-radius:0 0 3px 3px;"></span>
-  </span>
+  <a href="../fortune/" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-family:inherit;font-size:10px;color:#64748B;text-decoration:none;">
+    <span class="material-symbols-outlined" style="font-size:22px;">auto_awesome</span>운세
+  </a>
   <a href="../index.html?tab=myinfo" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-family:inherit;font-size:10px;color:#64748B;text-decoration:none;">
     <span class="material-symbols-outlined" style="font-size:22px;">badge</span>내정보
   </a>
@@ -665,6 +664,15 @@
 
 <section class="text-center mt-4 mb-2 z-10 relative">
 <h2 class="font-display-lg-mobile md:font-display-lg text-primary mb-2 font-headline-md">당신의 운명</h2>
+
+<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:14px;">
+  <span style="padding:7px 14px;border-radius:999px;font-size:12.5px;font-weight:700;background:linear-gradient(135deg,#e9c400,#b89a00);color:#101225;">🔮 타로</span>
+  <a href="../biorhythm/" style="padding:7px 14px;border-radius:999px;font-size:12.5px;text-decoration:none;border:1px solid rgba(233,196,0,.35);color:#cec2d7;">📈 바이오리듬</a>
+  <a href="../saju/" style="padding:7px 14px;border-radius:999px;font-size:12.5px;text-decoration:none;border:1px solid rgba(233,196,0,.35);color:#cec2d7;">🎋 사주</a>
+  <a href="../gwansang/" style="padding:7px 14px;border-radius:999px;font-size:12.5px;text-decoration:none;border:1px solid rgba(233,196,0,.35);color:#cec2d7;">🪞 관상</a>
+  <a href="../fortune/" style="padding:7px 14px;border-radius:999px;font-size:12.5px;text-decoration:none;border:1px solid rgba(233,196,0,.35);color:#cec2d7;">전체보기</a>
+</div>
+
 <p class="font-body-lg text-on-surface-variant">어떤 운세가 궁금하신가요?</p>
 
 <div class="category-grid" id="categoryGrid"></div>
@@ -680,18 +688,14 @@
 </section>
 
 <section class="deck-area" id="deckArea">
-  <div class="deck-pile" id="deckPile" role="button" tabindex="0" aria-label="카드 더미, 눌러서 카드 뽑기">
-    <div class="deck-card-back deck-card-back--3"></div>
-    <div class="deck-card-back deck-card-back--2"></div>
-    <div class="deck-card-back deck-card-back--1"></div>
-    <div class="deck-card-back deck-card-back--0"></div>
-  </div>
   <button class="shuffle-btn" id="shuffleBtn">
     <span class="material-symbols-outlined" style="font-size:18px;">shuffle</span>
     카드 섞기
   </button>
   <p class="deck-hint" id="deckHint">먼저 카드를 섞어주세요</p>
 </section>
+
+<section class="tarot-spread-container" id="cardContainer"></section>
 
 <!-- 뽑은 카드가 덱과 별도로 모이는 자리 -->
 <section class="selected-tray" id="selectedTray"></section>
@@ -831,12 +835,12 @@ void main() {
   };
 
   const categoryGrid = document.getElementById('categoryGrid');
+  const cardContainer = document.getElementById('cardContainer');
   const trayEl = document.getElementById('selectedTray');
   const countDisplay = document.getElementById('selectionCount');
   const maxDisplay = document.getElementById('selectionMax');
   const resultBtn = document.getElementById('resultBtn');
   const instructionText = document.getElementById('instructionText');
-  const deckPile = document.getElementById('deckPile');
   const deckHint = document.getElementById('deckHint');
   const shuffleBtn = document.getElementById('shuffleBtn');
   const spreadButtons = {
@@ -853,11 +857,15 @@ void main() {
     5: '켈틱 스타일 5장',
   };
 
+  // 78장 전체를 부채꼴로 다 펼치면 너무 빽빽해서, 카테고리 가중치로 이미 섞인
+  // 상위 24장만 부채꼴에 보여줍니다 (확률은 78장 전체 기준 그대로 유지됩니다).
+  const FAN_SIZE = 24;
+
   let maxSelection = 3;
   let selectedCategory = 'general';
-  let assigned = [];       // shuffleForSelectionWeighted() 결과 — 순서대로 뽑힐 카드 (공개 전)
-  let pickedSlots = [];     // 지금까지 덱에서 뽑은 순서(= assigned의 인덱스, 항상 0,1,2...)
-  let isShuffled = false;   // "카드 섞기" 버튼을 눌러야 덱을 탭해서 뽑을 수 있음
+  let fanPool = [];       // 지금 부채꼴에 보이는(아직 안 고른) 카드들 [{card, reversed}, ...]
+  let pickedCards = [];   // 사용자가 고른 카드들, 고른 순서대로 [{card, reversed}, ...]
+  let fanWrappers = [];   // fanPool과 같은 순서의 DOM 노드
 
   function buildCategoryGrid() {
     categoryGrid.innerHTML = '';
@@ -876,72 +884,108 @@ void main() {
   }
 
   function startNewRound() {
-    assigned = shuffleForSelectionWeighted(FULL_DECK, selectedCategory, { dateSeeded: false });
-    pickedSlots = [];
-    isShuffled = false;
-    deckPile.classList.add('is-disabled');
-    shuffleBtn.disabled = false;
-    shuffleBtn.textContent = '';
-    shuffleBtn.innerHTML = '<span class="material-symbols-outlined" style="font-size:18px;">shuffle</span> 카드 섞기';
-    deckHint.textContent = '먼저 카드를 섞어주세요';
+    pickedCards = [];
+    buildFan();
     renderTray();
     updateStatus();
   }
 
-  // "카드 섞기" 버튼: 언제 눌러도 항상 동작 — 뽑던 중이었으면 그 라운드를 리셋하고 새로 섞음
-  shuffleBtn.addEventListener('click', () => {
-    pickedSlots = [];
+  /** FULL_DECK(78장)에서 이미 고른 카드를 뺀 나머지를 카테고리 가중치로 섞어
+   *  상위 FAN_SIZE장을 부채꼴로 그립니다. */
+  function buildFan() {
+    const usedIds = new Set(pickedCards.map((p) => p.card.id));
+    const remainingPool = FULL_DECK.filter((c) => !usedIds.has(c.id));
+    const shuffled = shuffleForSelectionWeighted(remainingPool, selectedCategory, { dateSeeded: false });
+    fanPool = shuffled.slice(0, FAN_SIZE);
+    renderFanDOM();
+  }
+
+  function renderFanDOM() {
+    cardContainer.innerHTML = '';
+    fanWrappers = [];
+    const total = fanPool.length;
+
+    fanPool.forEach((entry, i) => {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'tarot-card-wrapper';
+
+      const angle = total > 1 ? -75 + (150 / (total - 1)) * i : 0;
+      wrapper.style.setProperty('--r', `${angle}deg`);
+      wrapper.style.setProperty('--i', i);
+      wrapper.style.setProperty('--z', i);
+
+      wrapper.innerHTML = `
+        <div class="tarot-card">
+          <div class="tarot-card-inner">
+            <div class="tarot-card-back">
+              <div class="tarot-card-back-inner">
+                <img src="${CARD_BACK_IMG}" alt="로또슬기 카드 뒷면" class="object-cover">
+              </div>
+            </div>
+            <div class="tarot-card-front glass-panel gold-border flex flex-col items-center justify-center">
+              <span class="material-symbols-outlined text-tertiary text-3xl mb-1" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+            </div>
+          </div>
+        </div>
+      `;
+
+      wrapper.addEventListener('click', () => pickFromFan(i, wrapper));
+      cardContainer.appendChild(wrapper);
+      fanWrappers.push(wrapper);
+    });
+  }
+
+  function pickFromFan(index, wrapper) {
+    if (pickedCards.length >= maxSelection) {
+      // 최대 개수 초과 시 살짝 흔들어서 안내
+      wrapper.style.transform = `rotate(var(--r)) translateY(-10px) translateX(-5px) scale(var(--s))`;
+      setTimeout(() => { wrapper.style.transform = `rotate(var(--r)) translateY(-10px) translateX(5px) scale(var(--s))`; }, 100);
+      setTimeout(() => { wrapper.style.transform = ''; }, 200);
+      return;
+    }
+
+    pickedCards.push(fanPool[index]);
+    wrapper.classList.add('picked');
+
     renderTray();
     updateStatus();
-    shuffleAnimation();
-  });
 
-  function shuffleAnimation() {
-    isShuffled = false;
-    deckPile.classList.add('is-disabled', 'is-shuffling');
+    deckHint.textContent = pickedCards.length >= maxSelection
+      ? '카드를 모두 뽑았습니다.'
+      : `카드를 눌러 뽑아주세요 (${pickedCards.length} / ${maxSelection})`;
+  }
+
+  // "카드 섞기" 버튼: 이미 뽑은 카드는 그대로 두고, 부채꼴만 다시 섞습니다.
+  shuffleBtn.addEventListener('click', () => {
     deckHint.textContent = '카드를 섞는 중...';
+    cardContainer.style.transition = 'opacity .3s ease';
+    cardContainer.style.opacity = '0.25';
 
     setTimeout(() => {
-      assigned = shuffleForSelectionWeighted(FULL_DECK, selectedCategory, { dateSeeded: false });
-      deckPile.classList.remove('is-shuffling', 'is-disabled');
-      isShuffled = true;
-      shuffleBtn.innerHTML = '<span class="material-symbols-outlined" style="font-size:18px;">shuffle</span> 다시 섞기';
-      deckHint.textContent = `카드를 눌러 뽑아주세요 (0 / ${maxSelection})`;
-    }, 950);
-  }
-
-  function handleDeckTap() {
-    if (!isShuffled || pickedSlots.length >= maxSelection) return;
-    dealOneCard();
-  }
-
-  deckPile.addEventListener('click', handleDeckTap);
-  deckPile.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleDeckTap(); }
+      buildFan();
+      cardContainer.style.opacity = '1';
+      deckHint.textContent = pickedCards.length >= maxSelection
+        ? '카드를 모두 뽑았습니다.'
+        : `카드를 눌러 뽑아주세요 (${pickedCards.length} / ${maxSelection})`;
+    }, 500);
   });
-
-  function dealOneCard() {
-    const slotIndex = pickedSlots.length;
-    pickedSlots.push(slotIndex);
-
-    renderTray();
-    updateStatus();
-
-    if (pickedSlots.length >= maxSelection) {
-      deckPile.classList.add('is-disabled');
-      deckHint.textContent = '카드를 모두 뽑았습니다. 마음이 바뀌면 "다시 섞기"를 눌러도 됩니다.';
-    } else {
-      deckHint.textContent = `카드를 눌러 뽑아주세요 (${pickedSlots.length} / ${maxSelection})`;
-    }
-  }
 
   function renderTray() {
     trayEl.innerHTML = '';
     for (let i = 0; i < maxSelection; i++) {
       const slot = document.createElement('div');
-      if (i < pickedSlots.length) {
+      if (i < pickedCards.length) {
         slot.className = 'tray-slot filled';
         slot.innerHTML = `<img src="${CARD_BACK_IMG}" alt="뽑은 카드">`;
+        slot.title = '다시 누르면 선택이 취소됩니다';
+        slot.style.cursor = 'pointer';
+        slot.addEventListener('click', () => {
+          pickedCards.splice(i, 1);
+          buildFan(); // 취소된 카드가 다시 부채꼴 후보에 포함되도록 재구성
+          renderTray();
+          updateStatus();
+          deckHint.textContent = `카드를 눌러 뽑아주세요 (${pickedCards.length} / ${maxSelection})`;
+        });
       } else {
         slot.className = 'tray-slot';
       }
@@ -950,7 +994,7 @@ void main() {
   }
 
   function updateStatus() {
-    const count = pickedSlots.length;
+    const count = pickedCards.length;
     countDisplay.textContent = count;
     maxDisplay.textContent = maxSelection;
 
@@ -980,7 +1024,7 @@ void main() {
   resultBtn.addEventListener('click', goToResult);
 
   function goToResult() {
-    const draw = buildDrawFromPicks(assigned, pickedSlots);
+    const draw = buildDrawFromPicks(pickedCards, pickedCards.map((_, i) => i));
 
     sessionStorage.setItem('tarotDraw', JSON.stringify({
       category: selectedCategory,
@@ -999,10 +1043,9 @@ void main() {
   buildCategoryGrid();
   startNewRound();
 
-  // 헤더 버튼: 뒤로가기 / 지난 기록 / 공유
+  // 헤더 버튼: 뒤로가기(항상 메인으로) / 지난 기록 / 공유
   document.getElementById('backBtn').addEventListener('click', () => {
-    if (window.history.length > 1) window.history.back();
-    else window.location.href = '../';
+    window.location.href = '../index.html';
   });
 
   document.getElementById('headerHistoryBtn').addEventListener('click', () => {

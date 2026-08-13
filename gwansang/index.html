@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>관상으로 보는 오늘의 복 지수와 로또 번호 - 로또슬기</title>
+<meta name="description" content="내 정보에 등록한 사진으로 이마·눈·코·입·턱 오부위 해석과 오늘의 복 지수를 재미로 보고, 그 값으로 만든 로또 번호까지 함께 받아보세요.">
+<meta name="keywords" content="로또슬기 관상, 관상 로또 번호, 재미로 보는 관상, 무료 관상">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://mirnet96.github.io/lotto/gwansang/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="로또슬기">
+<meta property="og:title" content="관상으로 보는 오늘의 복 지수와 로또 번호 - 로또슬기">
+<meta property="og:description" content="이마·눈·코·입·턱 오부위 해석과 복 지수를 보고, 그 값으로 만든 로또 번호를 받아보세요.">
+<meta property="og:url" content="https://mirnet96.github.io/lotto/gwansang/">
+<meta property="og:locale" content="ko_KR">
+<meta name="twitter:card" content="summary_large_image">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "관상으로 보는 오늘의 복 지수와 로또 번호",
+  "url": "https://mirnet96.github.io/lotto/gwansang/",
+  "isPartOf": { "@type": "WebSite", "name": "로또슬기", "url": "https://mirnet96.github.io/lotto/" },
+  "description": "이마·눈·코·입·턱 오부위 해석과 오늘의 복 지수를 재미로 보고, 그 값으로 로또 번호를 생성하는 무료 서비스",
+  "inLanguage": "ko"
+}
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;700&family=Pretendard:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --navy-deep: #0a0f1a;
+    --navy: #0F1B2D;
+    --navy-panel: #131f33;
+    --gold: #D4AF37;
+    --gold-soft: #ecd48a;
+    --paper: #FAFAF7;
+    --mist: #8b93a6;
+    --mist-dim: #5b6478;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; min-height: 100%;
+    background: var(--navy-deep); color: var(--paper);
+    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', sans-serif;
+  }
+  #shaderBackdrop { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; }
+  #shader-canvas-bg { display: block; width: 100%; height: 100%; }
+  body {
+    background-color: transparent;
+    background-image:
+      radial-gradient(circle at 50% 0%, rgba(16, 18, 37, 0.35) 0%, transparent 55%),
+      radial-gradient(circle at 50% 100%, rgba(16, 18, 37, 0.5) 0%, transparent 55%);
+    background-repeat: no-repeat; background-size: cover;
+  }
+  main { position: relative; z-index: 10; max-width: 560px; margin: 0 auto; padding: 24px 20px 96px; }
+
+  .eyebrow { text-align: center; letter-spacing: .18em; font-size: 12px; color: var(--gold-soft); text-transform: uppercase; margin: 0 0 10px; }
+  .back-home-link { display: inline-block; font-size: 13px; color: var(--mist); text-decoration: none; margin-bottom: 14px; }
+  .back-home-link:hover { color: var(--gold-soft); }
+  h1 { font-family: 'Noto Serif KR', serif; font-weight: 700; text-align: center; font-size: clamp(22px, 5vw, 28px); margin: 0 0 8px; }
+  .lede { text-align: center; color: var(--mist); font-size: 13.5px; margin: 0 auto 28px; max-width: 42ch; line-height: 1.7; }
+
+  .need-profile { text-align: center; padding: 40px 20px; background: var(--navy-panel); border: 1px solid rgba(212,175,55,.25); border-radius: 14px; }
+
+  .quick-toggle-btn {
+    padding: 9px 0; border-radius: 10px; font-size: 12.5px; font-weight: 700;
+    background: var(--navy-deep); border: 1.5px solid rgba(255,255,255,.12); color: var(--mist);
+    cursor: pointer; transition: all .15s ease;
+  }
+  .quick-toggle-btn.active { background: linear-gradient(135deg,var(--gold),#b89a00); color: var(--navy); border-color: transparent; }
+
+  .photo-upload-zone {
+    width: 132px; height: 132px; border-radius: 50%; margin: 0 auto 14px;
+    background: var(--navy-deep); border: 2px dashed rgba(212,175,55,.4);
+    display: flex; align-items: center; justify-content: center; overflow: hidden;
+    cursor: pointer; position: relative;
+  }
+  .photo-upload-zone img { width: 100%; height: 100%; object-fit: cover; }
+  .photo-upload-zone .placeholder-icon { font-size: 40px; color: var(--mist-dim); }
+
+  /* ---------- 사진 + 복 지수 ---------- */
+  .face-photo-wrap { display: flex; flex-direction: column; align-items: center; margin-bottom: 20px; }
+  .face-photo {
+    width: 120px; height: 120px; border-radius: 50%; object-fit: cover;
+    border: 3px solid var(--gold); box-shadow: 0 4px 24px rgba(212,175,55,.3);
+  }
+  .luck-score-wrap { text-align: center; margin-top: 14px; }
+  .luck-score-label { font-size: 11.5px; color: var(--mist); margin: 0 0 4px; }
+  .luck-score-value { font-family: 'Noto Serif KR', serif; font-size: 40px; font-weight: 700; color: var(--gold-soft); line-height: 1; }
+  .luck-score-value span { font-size: 16px; color: var(--mist); font-weight: 500; }
+
+  /* ---------- 부위별 해석 ---------- */
+  .part-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+  .part-row {
+    background: var(--navy-panel); border: 1px solid rgba(255,255,255,.07); border-radius: 10px;
+    padding: 12px 14px; font-size: 12.5px; line-height: 1.6; color: var(--mist);
+  }
+  .part-row b { color: var(--gold-soft); font-family: 'Noto Serif KR', serif; }
+  .part-row.is-dominant { border-color: rgba(212,175,55,.4); background: rgba(212,175,55,.06); }
+
+  .timing-note { background: var(--navy-panel); border: 1px solid rgba(212,175,55,.25); border-radius: 12px; padding: 14px 16px; margin-bottom: 28px; font-size: 12.5px; line-height: 1.7; color: var(--mist); }
+  .timing-note b { color: var(--gold-soft); }
+  .disclaimer-note { text-align: center; font-size: 10.5px; color: var(--mist-dim); margin: -8px 0 24px; line-height: 1.6; }
+
+  .gen-btn { width: 100%; padding: 15px; border-radius: 16px; border: none; font-size: 14.5px; font-weight: 800; color: var(--navy); cursor: pointer; background: linear-gradient(135deg, var(--gold), #b89a00); box-shadow: 0 4px 20px rgba(212,175,55,.3); display: flex; align-items: center; justify-content: center; gap: 8px; }
+
+  .loading-block { display: none; text-align: center; padding: 24px 0; }
+  .loading-block.is-visible { display: block; }
+  .loading-block p { font-size: 13.5px; color: var(--gold-soft); font-family: 'Noto Serif KR', serif; animation: loadingPulse 1.1s ease-in-out infinite; }
+  @keyframes loadingPulse { 0%,100% { opacity: .4; } 50% { opacity: 1; } }
+
+  .result-block { margin-top: 24px; display: none; }
+  .result-block.is-visible { display: block; }
+  .dominant-note { text-align: center; font-size: 13px; color: var(--gold-soft); margin-bottom: 14px; }
+
+  .sets-list { display: flex; flex-direction: column; gap: 10px; max-width: 420px; margin: 0 auto 20px; }
+  .set-row { display: flex; flex-direction: column; gap: 8px; background: var(--navy-panel); border: 1px solid rgba(255,255,255,.07); border-radius: 12px; padding: 12px 14px; }
+  .set-label { font-size: 12px; font-weight: 700; color: var(--gold-soft); }
+  .numbers { display: flex; gap: 7px; flex-wrap: wrap; }
+  .ball { width: 34px; height: 34px; border-radius: 50%; background: var(--gold); color: #fff; font-weight: 800; font-size: 12.5px; display: flex; align-items: center; justify-content: center; opacity: 0; transform: scale(.5); box-shadow: 0 3px 8px rgba(0,0,0,.35); }
+  .ball.b-y   { background: linear-gradient(135deg,#FBC02D,#F59E0B); }
+  .ball.b-b   { background: linear-gradient(135deg,#3B82F6,#1D4ED8); }
+  .ball.b-r   { background: linear-gradient(135deg,#EF4444,#B91C1C); }
+  .ball.b-gr  { background: linear-gradient(135deg,#22C55E,#15803D); }
+  .ball.b-gry { background: linear-gradient(135deg,#9CA3AF,#4B5563); }
+  @media (prefers-reduced-motion: no-preference) { .ball.is-in { animation: pop .4s cubic-bezier(.34,1.56,.64,1) forwards; } }
+  @media (prefers-reduced-motion: reduce) { .ball { opacity: 1; transform: none; } }
+  @keyframes pop { to { opacity: 1; transform: scale(1); } }
+
+  .closing-card {
+    text-align: center; padding: 20px; margin: 26px 0;
+    background: linear-gradient(135deg, rgba(212,175,55,.1), rgba(157,80,255,.06));
+    border: 1px solid rgba(212,175,55,.25); border-radius: 14px;
+    font-family: 'Noto Serif KR', serif; font-size: 13.5px; line-height: 1.8; color: var(--gold-soft);
+  }
+
+  .actions { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; }
+  .ghost-btn { font-family: inherit; font-size: 13px; color: var(--gold-soft); background: transparent; border: 1px solid rgba(212,175,55,.4); border-radius: 999px; padding: 9px 20px; cursor: pointer; }
+  .ghost-btn:hover { border-color: var(--gold); }
+  #saveBtn.is-saved { background: linear-gradient(135deg,#22C55E,#15803D); color: #fff; border: none; pointer-events: none; }
+</style>
+</head>
+<body>
+
+<div class="ai-fullscreen-loading" id="aiLoadingOverlay">
+  <div class="ai-loading-spinner"></div>
+  <p class="ai-loading-text">분석 준비 중...</p>
+</div>
+
+
+<div id="shaderBackdrop"><canvas id="shader-canvas-bg"></canvas></div>
+
+<!-- ══ 공통 메뉴 ══ -->
+<header id="lotto-top-nav" style="display:none;position:sticky;top:0;z-index:60;height:60px;padding:0 24px;box-sizing:border-box;border-bottom:1px solid rgba(255,255,255,.07);background:rgba(15,23,42,.9);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);align-items:center;justify-content:space-between;">
+  <a href="../index.html" style="display:flex;align-items:center;gap:8px;text-decoration:none;color:#F5C842;font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:3px;">
+    <span style="width:8px;height:8px;border-radius:50%;background:#F5C842;"></span>로또슬기
+  </a>
+  <nav style="display:flex;gap:4px;">
+    <a href="../index.html" style="display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:12px;font-size:13px;color:#94A3B8;text-decoration:none;">
+      <span class="material-symbols-outlined" style="font-size:17px;">home</span>홈
+    </a>
+    <a href="../index.html?tab=qr" style="display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:12px;font-size:13px;color:#94A3B8;text-decoration:none;">
+      <span class="material-symbols-outlined" style="font-size:17px;">qr_code_scanner</span>QR
+    </a>
+    <a href="../shops.html" style="display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:12px;font-size:13px;color:#94A3B8;text-decoration:none;">
+      <span class="material-symbols-outlined" style="font-size:17px;">storefront</span>판매점
+    </a>
+    <a href="../fortune/" style="display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:12px;font-size:13px;font-weight:700;color:#F5C842;background:rgba(245,200,66,.12);text-decoration:none;">
+      <span class="material-symbols-outlined" style="font-size:17px;">auto_awesome</span>운세
+    </a>
+    <a href="../index.html?tab=myinfo" style="display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:12px;font-size:13px;color:#94A3B8;text-decoration:none;">
+      <span class="material-symbols-outlined" style="font-size:17px;">badge</span>내정보
+    </a>
+  </nav>
+</header>
+
+<nav id="lotto-bottom-nav" aria-label="하단 메뉴" style="position:fixed;bottom:0;left:0;right:0;height:64px;background:rgba(10,16,30,0.97);backdrop-filter:blur(16px);border-top:1px solid rgba(255,255,255,.1);box-shadow:0 -4px 24px rgba(0,0,0,.5);z-index:60;display:none;">
+  <a href="../index.html" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-family:inherit;font-size:10px;color:#64748B;text-decoration:none;">
+    <span class="material-symbols-outlined" style="font-size:22px;">home</span>홈
+  </a>
+  <a href="../index.html?tab=qr" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-family:inherit;font-size:10px;color:#64748B;text-decoration:none;">
+    <span class="material-symbols-outlined" style="font-size:22px;">qr_code_scanner</span>QR
+  </a>
+  <a href="../shops.html" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-family:inherit;font-size:10px;color:#64748B;text-decoration:none;">
+    <span class="material-symbols-outlined" style="font-size:22px;">storefront</span>판매점
+  </a>
+  <span style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-family:inherit;font-size:10px;color:#F5C842;position:relative;">
+    <span class="material-symbols-outlined" style="font-size:22px;filter:drop-shadow(0 0 6px rgba(245,200,66,.55));">auto_awesome</span>운세
+    <span style="position:absolute;top:0;left:20%;right:20%;height:2px;background:#F5C842;border-radius:0 0 3px 3px;"></span>
+  </span>
+  <a href="../index.html?tab=myinfo" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-family:inherit;font-size:10px;color:#64748B;text-decoration:none;">
+    <span class="material-symbols-outlined" style="font-size:22px;">badge</span>내정보
+  </a>
+</nav>
+
+<style>
+  @media (max-width: 640px) { #lotto-top-nav { display: none !important; } #lotto-bottom-nav { display: flex !important; } }
+  @media (min-width: 641px) { #lotto-top-nav { display: flex !important; } #lotto-bottom-nav { display: none !important; } }
+  @media (max-width: 640px) { main { padding-bottom: 96px; } }
+</style>
+
+
+<main>
+  <a href="../index.html" class="back-home-link">← 메인으로</a>
+  <p class="eyebrow">Gwansang</p>
+  <h1>오늘의 관상</h1>
+  <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:10px 0 14px;">
+    <a href="../tarot/" style="padding:6px 13px;border-radius:999px;font-size:12px;text-decoration:none;border:1px solid rgba(212,175,55,.35);color:var(--mist);">🔮 타로</a>
+    <a href="../biorhythm/" style="padding:6px 13px;border-radius:999px;font-size:12px;text-decoration:none;border:1px solid rgba(212,175,55,.35);color:var(--mist);">📈 바이오리듬</a>
+    <a href="../saju/" style="padding:6px 13px;border-radius:999px;font-size:12px;text-decoration:none;border:1px solid rgba(212,175,55,.35);color:var(--mist);">🎋 사주</a>
+    <span style="padding:6px 13px;border-radius:999px;font-size:12px;font-weight:700;background:linear-gradient(135deg,var(--gold),#b89a00);color:var(--navy);">🪞 관상</span>
+    <a href="../fortune/" style="padding:6px 13px;border-radius:999px;font-size:12px;text-decoration:none;border:1px solid rgba(212,175,55,.35);color:var(--mist);">전체보기</a>
+  </div>
+  <p class="lede">내 정보에 등록한 사진으로 이마·눈·코·입·턱 오부위 해석과 오늘의 복 지수를 재미로 보고, 그 값으로 만든 로또 번호를 받아보세요.</p>
+  <p class="disclaimer-note">⚠️ 실제 사진을 AI가 분석하는 기능이 아니라, 전통 관상학 개념을 빌려온 재미 콘텐츠입니다. 진지하게 받아들이지 말아주세요 :)</p>
+
+  <div id="needProfile" class="need-profile" style="display:none;">
+    <p style="margin:0 0 16px;font-size:14px;color:var(--mist);">관상을 보려면 사진이 필요해요. 여기서 바로 등록할 수 있어요.</p>
+    <div class="photo-upload-zone" id="photoUploadZone">
+      <span class="material-symbols-outlined placeholder-icon">add_a_photo</span>
+    </div>
+    <input type="file" id="quickPhotoInput" accept="image/*" style="display:none;">
+    <p style="margin:0 0 16px;font-size:10.5px;color:var(--mist-dim);">얼굴이 잘 보이는 사진일수록 재미있어요 (재미로 보는 용도예요)</p>
+    <button id="quickSaveBtn" style="max-width:280px;margin:0 auto;display:block;padding:11px 24px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--gold),#b89a00);color:var(--navy);font-weight:800;font-size:13.5px;cursor:pointer;">
+      확인하고 관상 보기
+    </button>
+    <button id="quickCancelBtn" style="display:none;max-width:280px;margin:10px auto 0;padding:9px;border-radius:12px;border:1px solid rgba(255,255,255,.15);background:transparent;color:var(--mist);font-weight:600;font-size:12.5px;cursor:pointer;">
+      취소하고 돌아가기
+    </button>
+    <p id="quickError" style="margin:10px 0 0;font-size:11.5px;color:#f87171;display:none;"></p>
+    <p style="margin-top:16px;font-size:11px;color:var(--mist-dim);">여기서 등록하면 <a href="../index.html?tab=myinfo" style="color:var(--gold-soft);">내 정보</a>에도 함께 저장됩니다</p>
+  </div>
+
+  <div id="content" style="display:none;">
+    <a href="#" id="editInfoLink" style="display:block;text-align:center;font-size:11px;color:var(--mist-dim);text-decoration:underline;margin-bottom:14px;">사진 다시 등록하기</a>
+
+    <div class="face-photo-wrap">
+      <img id="facePhoto" class="face-photo" alt="등록한 사진">
+      <div class="luck-score-wrap">
+        <p class="luck-score-label">오늘의 복 지수</p>
+        <p class="luck-score-value" id="luckScoreValue">-<span>/100</span></p>
+      </div>
+    </div>
+
+    <div class="part-list" id="partList"></div>
+
+    <div class="timing-note" id="dominantPartNote"></div>
+
+    <button class="gen-btn" id="genBtn">
+      <span class="material-symbols-outlined" style="font-size:20px;">auto_awesome</span>
+      관상 맞춤 번호 보기
+    </button>
+
+    <div class="loading-block" id="loadingBlock">
+      <p id="loadingText">얼굴 오부위를 살피는 중...</p>
+    </div>
+
+    <div class="result-block" id="resultBlock">
+      <section class="fortune-section">
+        <p class="dominant-note" id="setsIntro">이마·눈·코·입·턱 각 부위의 기운을 담아 5세트를 만들었어요</p>
+        <div class="sets-list" id="setsList"></div>
+      </section>
+
+      <section class="closing-card" id="closingCard"></section>
+
+      <div class="actions">
+        <button class="ghost-btn" id="rerollBtn">🔄 다시 생성</button>
+        <button class="ghost-btn" id="shareBtn">📤 결과 공유하기</button>
+        <button class="ghost-btn" id="saveBtn">🎱 5세트 모두 저장</button>
+      </div>
+
+      <!-- AI 심층분석 (광고는 추후 연동 — 현재는 클릭 시 바로 조회) -->
+      <div class="ai-unlock-section">
+        <button class="ai-unlock-btn" id="aiUnlockBtn">📺 광고 보고 AI 심층분석 보기</button>
+        <p class="ai-unlock-hint">오늘의 관상 해석을 바탕으로 AI가 더 깊이 있는 이야기를 들려드려요</p>
+      </div>
+      <div class="ai-result-wrap" id="aiResultWrap"></div>
+    </div>
+  </div>
+
+  <p style="text-align:center;font-size:9px;color:#3a3f4d;margin-top:24px;">build 2026-08-13-01</p>
+</main>
+
+<!-- ============ 배경 셰이더 스크립트 (다른 페이지와 동일) ============ -->
+<script>
+(function() {
+  const canvas = document.getElementById('shader-canvas-bg');
+  function syncSize() {
+    const w = canvas.clientWidth || 1280, h = canvas.clientHeight || 720;
+    if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+  }
+  if (typeof ResizeObserver !== 'undefined') new ResizeObserver(syncSize).observe(canvas);
+  syncSize();
+  const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+  if (!gl) return;
+  const vs = `attribute vec2 a_position;varying vec2 v_texCoord;void main(){v_texCoord=a_position*0.5+0.5;gl_Position=vec4(a_position,0.0,1.0);}`;
+  const fs = `precision highp float;varying vec2 v_texCoord;uniform float u_time;uniform vec2 u_resolution;
+vec3 permute(vec3 x){return mod(((x*34.0)+1.0)*x,289.0);}
+float snoise(vec2 v){const vec4 C=vec4(0.211324865405187,0.366025403784439,-0.577350269189626,0.024390243902439);vec2 i=floor(v+dot(v,C.yy));vec2 x0=v-i+dot(i,C.xx);vec2 i1;i1=(x0.x>x0.y)?vec2(1.0,0.0):vec2(0.0,1.0);vec4 x12=x0.xyxy+C.xxzz;x12.xy-=i1;i=mod(i,289.0);vec3 p=permute(permute(i.y+vec3(0.0,i1.y,1.0))+i.x+vec3(0.0,i1.x,1.0));vec3 m=max(0.5-vec3(dot(x0,x0),dot(x12.xy,x12.xy),dot(x12.zw,x12.zw)),0.0);m=m*m;m=m*m;vec3 x=2.0*fract(p*C.www)-1.0;vec3 h=abs(x)-0.5;vec3 a0=x-floor(x+0.5);vec3 g;g.x=a0.x*x0.x+h.x*x0.y;g.yz=a0.yz*x12.xz+h.yz*x12.yw;return 130.0*dot(m,g);}
+void main(){vec2 uv=v_texCoord;float n=snoise(uv*3.0+u_time*0.2);n+=0.5*snoise(uv*6.0-u_time*0.4);vec3 color1=vec3(0.06,0.07,0.15);vec3 color2=vec3(0.2,0.0,0.4);vec3 color3=vec3(0.6,0.3,1.0);vec3 finalColor=mix(color1,color2,n*0.5+0.5);finalColor=mix(finalColor,color3,pow(max(0.0,n),3.0)*0.5);gl_FragColor=vec4(finalColor,1.0);}`;
+  function cs(type, src) { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); return s; }
+  const prog = gl.createProgram();
+  gl.attachShader(prog, cs(gl.VERTEX_SHADER, vs));
+  gl.attachShader(prog, cs(gl.FRAGMENT_SHADER, fs));
+  gl.linkProgram(prog); gl.useProgram(prog);
+  const buf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1,1,-1,-1,1,1,1]), gl.STATIC_DRAW);
+  const pos = gl.getAttribLocation(prog, 'a_position');
+  gl.enableVertexAttribArray(pos);
+  gl.vertexAttribPointer(pos, 2, gl.FLOAT, false, 0, 0);
+  const uTime = gl.getUniformLocation(prog, 'u_time');
+  const uRes = gl.getUniformLocation(prog, 'u_resolution');
+  function render(t) {
+    if (typeof ResizeObserver === 'undefined') syncSize();
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    if (uTime) gl.uniform1f(uTime, t * 0.001);
+    if (uRes) gl.uniform2f(uRes, canvas.width, canvas.height);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    requestAnimationFrame(render);
+  }
+  render(0);
+})();
+</script>
+
+<script src="../js/aiAnalysis.js"></script>
+<script type="module">
+  import { buildGwansangSummary, fiveNumberSetsFromGwansang, closingMessage, FACE_PARTS } from './gwansangEngine.js';
+  import { getRecentNumberFrequency } from '../tarot/lottoStats.js';
+
+  const PROFILE_KEY = 'lotto_my_profile_v1';
+  const LOTTO_HISTORY_KEY = 'lotto_my_history_v1';
+
+  function getProfile() {
+    try { return JSON.parse(localStorage.getItem(PROFILE_KEY) || '{}'); }
+    catch { return {}; }
+  }
+
+  function setProfile(obj) {
+    localStorage.setItem(PROFILE_KEY, JSON.stringify(obj));
+  }
+
+  /** 내 정보의 사진 압축 로직과 동일 (js/profile.js 참고) */
+  function compressPhoto(file, maxSize = 240, quality = 0.8) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+          const w = Math.round(img.width * scale);
+          const h = Math.round(img.height * scale);
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        };
+        img.onerror = reject;
+        img.src = e.target.result;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  const needProfile = document.getElementById('needProfile');
+  const content = document.getElementById('content');
+  const photoUploadZone = document.getElementById('photoUploadZone');
+  const quickPhotoInput = document.getElementById('quickPhotoInput');
+  const quickSaveBtn = document.getElementById('quickSaveBtn');
+  const quickCancelBtn = document.getElementById('quickCancelBtn');
+  const quickError = document.getElementById('quickError');
+  const editInfoLink = document.getElementById('editInfoLink');
+  const facePhoto = document.getElementById('facePhoto');
+  const luckScoreValue = document.getElementById('luckScoreValue');
+  const partList = document.getElementById('partList');
+  const dominantPartNote = document.getElementById('dominantPartNote');
+  const genBtn = document.getElementById('genBtn');
+  const loadingBlock = document.getElementById('loadingBlock');
+  const loadingText = document.getElementById('loadingText');
+  const resultBlock = document.getElementById('resultBlock');
+  const setsListEl = document.getElementById('setsList');
+  const closingCard = document.getElementById('closingCard');
+  const rerollBtn = document.getElementById('rerollBtn');
+  const shareBtn = document.getElementById('shareBtn');
+  const saveBtn = document.getElementById('saveBtn');
+
+  /** 실제 로또 6/45 공식 색상 규칙과 동일 */
+  function ballColorClass(n) {
+    if (n <= 10) return 'b-y';
+    if (n <= 20) return 'b-b';
+    if (n <= 30) return 'b-r';
+    if (n <= 40) return 'b-gr';
+    return 'b-gry';
+  }
+
+  let pendingPhotoDataUrl = null;
+  let currentSummary = null;
+  let currentNickname = '';
+  let lastPayload = null;
+
+  photoUploadZone.addEventListener('click', () => quickPhotoInput.click());
+  quickPhotoInput.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      pendingPhotoDataUrl = await compressPhoto(file);
+      photoUploadZone.innerHTML = `<img src="${pendingPhotoDataUrl}" alt="선택한 사진">`;
+      quickError.style.display = 'none';
+    } catch (err) {
+      quickError.textContent = '사진을 불러오지 못했어요. 다시 시도해주세요.';
+      quickError.style.display = 'block';
+    }
+  });
+
+  function openQuickEntry(isEdit) {
+    const p = getProfile();
+    pendingPhotoDataUrl = p.photo || null;
+    if (pendingPhotoDataUrl) {
+      photoUploadZone.innerHTML = `<img src="${pendingPhotoDataUrl}" alt="현재 사진">`;
+    } else {
+      photoUploadZone.innerHTML = `<span class="material-symbols-outlined placeholder-icon">add_a_photo</span>`;
+    }
+    quickError.style.display = 'none';
+    quickCancelBtn.style.display = isEdit ? 'block' : 'none';
+    quickSaveBtn.textContent = isEdit ? '수정 완료하고 다시 보기' : '확인하고 관상 보기';
+
+    content.style.display = 'none';
+    needProfile.style.display = 'block';
+  }
+
+  editInfoLink.addEventListener('click', (e) => {
+    e.preventDefault();
+    openQuickEntry(true);
+  });
+
+  quickCancelBtn.addEventListener('click', () => {
+    needProfile.style.display = 'none';
+    content.style.display = 'block';
+  });
+
+  quickSaveBtn.addEventListener('click', () => {
+    if (!pendingPhotoDataUrl) {
+      quickError.textContent = '사진을 먼저 선택해주세요.';
+      quickError.style.display = 'block';
+      return;
+    }
+    quickError.style.display = 'none';
+
+    const p = getProfile();
+    p.photo = pendingPhotoDataUrl;
+    setProfile(p);
+
+    needProfile.style.display = 'none';
+    content.style.display = 'block';
+    init(p.photo, p.nickname || '');
+
+    if (currentSummary) generate(currentNickname, true);
+  });
+
+  const profile = getProfile();
+  if (!profile.photo) {
+    openQuickEntry(false);
+  } else {
+    content.style.display = 'block';
+    init(profile.photo, profile.nickname || '');
+  }
+
+  function init(photoDataUrl, nickname) {
+    currentNickname = nickname;
+    facePhoto.src = photoDataUrl;
+
+    try {
+      const summary = buildGwansangSummary({ seedKey: nickname });
+      currentSummary = summary;
+      renderSummary(summary);
+    } catch (e) {
+      console.warn('관상 렌더링 중 일부 오류가 있었습니다.', e);
+    }
+  }
+
+  // 버튼 리스너는 한 번만 등록 (정보 재등록으로 init()이 여러 번 불려도 중복 등록되지 않도록)
+  genBtn.addEventListener('click', () => generate(currentNickname, true));
+  rerollBtn.addEventListener('click', () => generate(currentNickname, false));
+  saveBtn.addEventListener('click', saveCurrentSets);
+  shareBtn.addEventListener('click', shareResult);
+
+  if (window.FortuneAI) {
+    window.FortuneAI.attach({
+      unlockBtn: document.getElementById('aiUnlockBtn'),
+      overlayEl: document.getElementById('aiLoadingOverlay'),
+      resultContainer: document.getElementById('aiResultWrap'),
+      type: 'gwansang',
+      getPayload: () => ({
+        luckScore: currentSummary?.luckScore ?? 0,
+        dominant: currentSummary?.dominant ?? '',
+        parts: currentSummary?.parts ?? {},
+      }),
+      loadingMessages: ['관상을 다시 살피는 중...', 'AI가 오늘의 이야기를 짓는 중...', '결과를 정리하는 중...'],
+    });
+  }
+
+  function renderSummary(summary) {
+    luckScoreValue.innerHTML = `${summary.luckScore}<span>/100</span>`;
+
+    partList.innerHTML = '';
+    Object.entries(summary.parts).forEach(([part, text]) => {
+      const row = document.createElement('div');
+      row.className = 'part-row' + (part === summary.dominant ? ' is-dominant' : '');
+      row.innerHTML = `<b>${part}</b> — ${text}`;
+      partList.appendChild(row);
+    });
+
+    const dominantInfo = FACE_PARTS[summary.dominant];
+    dominantPartNote.innerHTML = `오늘은 <b>${summary.dominant}(${dominantInfo.trait})</b> 기운이 가장 두드러집니다.`;
+  }
+
+  const LOADING_MESSAGES = ['얼굴 오부위를 살피는 중...', '오늘의 기운을 읽는 중...', '행운의 번호를 조합 중...'];
+
+  async function generate(nickname, dateSeeded) {
+    genBtn.disabled = true;
+    resultBlock.classList.remove('is-visible');
+    loadingBlock.classList.add('is-visible');
+
+    let step = 0;
+    loadingText.textContent = LOADING_MESSAGES[0];
+    const loadingTimer = setInterval(() => {
+      step += 1;
+      if (step < LOADING_MESSAGES.length) loadingText.textContent = LOADING_MESSAGES[step];
+    }, 600);
+
+    let recentFrequency = null;
+    try {
+      recentFrequency = await getRecentNumberFrequency(24);
+    } catch (e) { /* 실패해도 엔진이 대체 로직으로 처리 */ }
+
+    await new Promise((r) => setTimeout(r, LOADING_MESSAGES.length * 600 + 200));
+    clearInterval(loadingTimer);
+    loadingBlock.classList.remove('is-visible');
+    genBtn.disabled = false;
+
+    const sets = fiveNumberSetsFromGwansang({ dateSeeded, seedKey: nickname, recentFrequency });
+    const closing = closingMessage({ seedKey: nickname });
+
+    lastPayload = { sets };
+
+    setsListEl.innerHTML = '';
+    sets.forEach((set, setIdx) => {
+      const row = document.createElement('div');
+      row.className = 'set-row';
+
+      const label = document.createElement('p');
+      label.className = 'set-label';
+      label.textContent = set.label;
+      row.appendChild(label);
+
+      const numbersWrap = document.createElement('div');
+      numbersWrap.className = 'numbers';
+      set.numbers.forEach((n, i) => {
+        const ball = document.createElement('span');
+        ball.className = `ball ${ballColorClass(n)}`;
+        ball.textContent = n;
+        numbersWrap.appendChild(ball);
+        setTimeout(() => ball.classList.add('is-in'), setIdx * 120 + i * 60);
+      });
+      row.appendChild(numbersWrap);
+
+      setsListEl.appendChild(row);
+    });
+
+    closingCard.textContent = `“ ${closing} ”`;
+
+    saveBtn.textContent = '🎱 5세트 모두 저장';
+    saveBtn.classList.remove('is-saved');
+
+    resultBlock.classList.add('is-visible');
+    resultBlock.scrollIntoView?.({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function saveCurrentSets() {
+    if (!lastPayload) return;
+    try {
+      const arr = JSON.parse(localStorage.getItem(LOTTO_HISTORY_KEY) || '[]');
+      const now = new Date();
+      const pad = (n) => String(n).padStart(2, '0');
+      const dateStr = `${now.getFullYear()}.${pad(now.getMonth() + 1)}.${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+
+      [...lastPayload.sets].reverse().forEach((set) => {
+        arr.unshift({
+          id: Date.now() + Math.random(),
+          date: dateStr,
+          nums: set.numbers,
+          source: 'gwansang',
+        });
+      });
+      localStorage.setItem(LOTTO_HISTORY_KEY, JSON.stringify(arr));
+      saveBtn.textContent = '✅ 저장됨';
+      saveBtn.classList.add('is-saved');
+    } catch (e) {
+      saveBtn.textContent = '저장 실패';
+    }
+  }
+
+  async function shareResult() {
+    if (!lastPayload) return;
+    const setLines = lastPayload.sets.map((s, i) => `${i + 1}세트(${s.label}): ${s.numbers.join(', ')}`).join('\n');
+    const text = `[로또슬기 관상 운세]\n${setLines}`;
+    const shareData = { title: '로또슬기 관상 운세', text, url: window.location.href };
+
+    if (navigator.share) {
+      try { await navigator.share(shareData); } catch (e) { /* 취소는 무시 */ }
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(`${text}\n${shareData.url}`);
+      shareBtn.textContent = '✅ 복사됨';
+      setTimeout(() => { shareBtn.textContent = '📤 결과 공유하기'; }, 1800);
+    } catch (e) {
+      shareBtn.textContent = '공유 실패';
+    }
+  }
+</script>
+
+</body>
+</html>

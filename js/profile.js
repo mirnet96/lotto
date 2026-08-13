@@ -61,16 +61,41 @@ function loadProfileForm() {
 
     if (nickname) nickname.value = p.nickname || '';
     if (birthdate) birthdate.value = p.birthdate || '';
-    if (birthtime) birthtime.value = p.birthtime || '';
+    if (birthtime) birthtime.value = (window.DateInputHelpers?.parseHourLoose(p.birthtime)) ?? '';
+    setToggleActive('calendar', p.calendarType || 'solar');
+    setToggleActive('gender', p.gender || '');
     renderProfilePhoto(p.photo || null);
     renderSavedNumbersPreview();
 }
 
+/* 성별/양력·음력처럼 두 버튼 중 하나를 고르는 토글의 활성 상태를 갱신 */
+function setToggleActive(group, value) {
+    document.querySelectorAll(`.${group}-toggle-btn`).forEach((btn) => {
+        btn.classList.toggle('active', btn.dataset.value === value);
+    });
+}
+
 function saveProfileForm() {
     const p = getProfile();
-    p.nickname = document.getElementById('profile-nickname')?.value.trim() || '';
-    p.birthdate = document.getElementById('profile-birthdate')?.value || '';
-    p.birthtime = document.getElementById('profile-birthtime')?.value || '';
+    const nickname = document.getElementById('profile-nickname')?.value.trim() || '';
+    const birthdateRaw = document.getElementById('profile-birthdate')?.value.trim() || '';
+    const birthtimeRaw = document.getElementById('profile-birthtime')?.value.trim() || '';
+    const H = window.DateInputHelpers;
+
+    if (birthdateRaw && H && !H.isValidDateStr(birthdateRaw)) {
+        if (typeof toast === 'function') toast('생년월일 형식을 확인해주세요 (예: 1996-05-20)');
+        return;
+    }
+    if (birthtimeRaw && H && !H.isValidHourStr(birthtimeRaw)) {
+        if (typeof toast === 'function') toast('태어난 시는 0~23 사이 숫자로 입력해주세요 (예: 14)');
+        return;
+    }
+
+    p.nickname = nickname;
+    p.birthdate = birthdateRaw;
+    p.birthtime = birthtimeRaw;
+    p.calendarType = document.querySelector('.calendar-toggle-btn.active')?.dataset.value || 'solar';
+    p.gender = document.querySelector('.gender-toggle-btn.active')?.dataset.value || '';
     setProfile(p);
     if (typeof toast === 'function') toast('🪪 내 정보가 저장되었습니다');
 }
@@ -122,6 +147,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const photoInput = document.getElementById('profile-photo-input');
     const removeBtn = document.getElementById('profile-photo-remove');
     const saveBtn = document.getElementById('profile-save-btn');
+    const birthdateInput = document.getElementById('profile-birthdate');
+    const birthtimeInput = document.getElementById('profile-birthtime');
+
+    if (window.DateInputHelpers) {
+        window.DateInputHelpers.attachDateInput(birthdateInput);
+        window.DateInputHelpers.attachHourInput(birthtimeInput);
+    }
+
+    document.querySelectorAll('.calendar-toggle-btn').forEach((btn) => {
+        btn.addEventListener('click', () => setToggleActive('calendar', btn.dataset.value));
+    });
+    document.querySelectorAll('.gender-toggle-btn').forEach((btn) => {
+        btn.addEventListener('click', () => setToggleActive('gender', btn.dataset.value));
+    });
 
     if (photoInput) {
         photoInput.addEventListener('change', async (e) => {

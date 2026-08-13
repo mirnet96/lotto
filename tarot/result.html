@@ -343,27 +343,56 @@
     margin-top: 10px;
   }
 
+  .sets-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 420px;
+    margin: 0 auto;
+  }
+  .set-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--navy-panel);
+    border: 1px solid rgba(255,255,255,.07);
+    border-radius: 12px;
+    padding: 10px 12px;
+  }
+  .set-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--mist);
+    width: 34px;
+    flex-shrink: 0;
+  }
   .numbers {
     display: flex;
-    justify-content: center;
-    gap: 10px;
+    gap: 7px;
     flex-wrap: wrap;
   }
 
   .ball {
-    width: 42px;
-    height: 42px;
+    width: 34px;
+    height: 34px;
     border-radius: 50%;
     background: var(--gold);
-    color: var(--navy);
-    font-weight: 700;
-    font-size: 15px;
+    color: #fff;
+    font-weight: 800;
+    font-size: 12.5px;
     display: flex;
     align-items: center;
     justify-content: center;
     opacity: 0;
     transform: scale(.5);
+    box-shadow: 0 3px 10px rgba(0,0,0,.4);
   }
+  /* 실제 로또 6/45 공식 볼 색상과 동일하게 통일 */
+  .ball.b-y   { background: linear-gradient(135deg,#FBC02D,#F59E0B); }
+  .ball.b-b   { background: linear-gradient(135deg,#3B82F6,#1D4ED8); }
+  .ball.b-r   { background: linear-gradient(135deg,#EF4444,#B91C1C); }
+  .ball.b-gr  { background: linear-gradient(135deg,#22C55E,#15803D); }
+  .ball.b-gry { background: linear-gradient(135deg,#9CA3AF,#4B5563); }
 
   @media (prefers-reduced-motion: no-preference) {
     .ball.is-in { animation: pop .45s cubic-bezier(.34,1.56,.64,1) forwards; }
@@ -491,8 +520,14 @@
 </style>
 </head>
 <body>
+
+<div class="ai-fullscreen-loading" id="aiLoadingOverlay">
+  <div class="ai-loading-spinner"></div>
+  <p class="ai-loading-text">분석 준비 중...</p>
+</div>
+
 <!-- ══ 공통 메뉴 (로또슬기 전체 페이지 공통) ══ -->
-<header id="lotto-top-nav" class="h-[60px] px-6 border-b border-white/[.07] bg-[#0F172A]/90 backdrop-blur-xl items-center justify-between" style="display:none;position:sticky;top:0;z-index:60;">
+<header id="lotto-top-nav" style="display:none;position:sticky;top:0;z-index:60;height:60px;padding:0 24px;box-sizing:border-box;border-bottom:1px solid rgba(255,255,255,.07);background:rgba(15,23,42,.9);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);align-items:center;justify-content:space-between;">
   <a href="../index.html" style="display:flex;align-items:center;gap:8px;text-decoration:none;color:#F5C842;font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:3px;">
     <span style="width:8px;height:8px;border-radius:50%;background:#F5C842;"></span>로또슬기
   </a>
@@ -506,12 +541,12 @@
     <a href="../index.html?tab=stats" style="display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:12px;font-size:13px;color:#94A3B8;text-decoration:none;">
       <span class="material-symbols-outlined" style="font-size:17px;">bar_chart</span>통계
     </a>
-    <a href="../index.html?tab=myhistory" style="display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:12px;font-size:13px;color:#94A3B8;text-decoration:none;">
-      <span class="material-symbols-outlined" style="font-size:17px;">bookmarks</span>내 번호
+    <a href="../shops.html" style="display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:12px;font-size:13px;color:#94A3B8;text-decoration:none;">
+      <span class="material-symbols-outlined" style="font-size:17px;">storefront</span>판매점
     </a>
-    <span style="display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:12px;font-size:13px;font-weight:700;color:#F5C842;background:rgba(245,200,66,.12);">
-      <span class="material-symbols-outlined" style="font-size:17px;">style</span>타로
-    </span>
+    <a href="../fortune/" style="display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:12px;font-size:13px;font-weight:700;color:#F5C842;background:rgba(245,200,66,.12);text-decoration:none;">
+      <span class="material-symbols-outlined" style="font-size:17px;">auto_awesome</span>운세
+    </a>
     <a href="../index.html?tab=myinfo" style="display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:12px;font-size:13px;color:#94A3B8;text-decoration:none;">
       <span class="material-symbols-outlined" style="font-size:17px;">badge</span>내정보
     </a>
@@ -528,13 +563,12 @@
   <a href="../index.html?tab=stats" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-family:inherit;font-size:10px;color:#64748B;text-decoration:none;">
     <span class="material-symbols-outlined" style="font-size:22px;">bar_chart</span>통계
   </a>
-  <a href="../index.html?tab=myhistory" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-family:inherit;font-size:10px;color:#64748B;text-decoration:none;">
-    <span class="material-symbols-outlined" style="font-size:22px;">bookmarks</span>내번호
+  <a href="../shops.html" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-family:inherit;font-size:10px;color:#64748B;text-decoration:none;">
+    <span class="material-symbols-outlined" style="font-size:22px;">storefront</span>판매점
   </a>
-  <span style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-family:inherit;font-size:10px;color:#F5C842;position:relative;">
-    <span class="material-symbols-outlined" style="font-size:22px;filter:drop-shadow(0 0 6px rgba(245,200,66,.55));">style</span>타로
-    <span style="position:absolute;top:0;left:20%;right:20%;height:2px;background:#F5C842;border-radius:0 0 3px 3px;"></span>
-  </span>
+  <a href="../fortune/" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-family:inherit;font-size:10px;color:#64748B;text-decoration:none;">
+    <span class="material-symbols-outlined" style="font-size:22px;">auto_awesome</span>운세
+  </a>
   <a href="../index.html?tab=myinfo" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-family:inherit;font-size:10px;color:#64748B;text-decoration:none;">
     <span class="material-symbols-outlined" style="font-size:22px;">badge</span>내정보
   </a>
@@ -556,6 +590,14 @@
 <main>
   <p class="eyebrow">Rider–Waite Tarot</p>
   <h1>타로 운세 · 오늘의 번호</h1>
+  <a href="../index.html" style="display:inline-block;font-size:13px;color:var(--mist);text-decoration:none;margin-bottom:10px;">← 메인으로</a>
+  <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:10px 0 14px;">
+    <span style="padding:6px 13px;border-radius:999px;font-size:12px;font-weight:700;background:linear-gradient(135deg,var(--gold),#b89a00);color:var(--navy);">🔮 타로</span>
+    <a href="../biorhythm/" style="padding:6px 13px;border-radius:999px;font-size:12px;text-decoration:none;border:1px solid rgba(212,175,55,.35);color:var(--mist);">📈 바이오리듬</a>
+    <a href="../saju/" style="padding:6px 13px;border-radius:999px;font-size:12px;text-decoration:none;border:1px solid rgba(212,175,55,.35);color:var(--mist);">🎋 사주</a>
+    <a href="../gwansang/" style="padding:6px 13px;border-radius:999px;font-size:12px;text-decoration:none;border:1px solid rgba(212,175,55,.35);color:var(--mist);">🪞 관상</a>
+    <a href="../fortune/" style="padding:6px 13px;border-radius:999px;font-size:12px;text-decoration:none;border:1px solid rgba(212,175,55,.35);color:var(--mist);">전체보기</a>
+  </div>
   <p class="lede" id="ledeText">카드를 뽑으면 그 자리에서 운세 해석과 함께, 같은 카드로 만든 로또 번호 6개가 함께 나옵니다.</p>
 
   <div class="cards" id="cards" aria-live="polite"></div>
@@ -563,9 +605,9 @@
   <div class="interpretation" id="interpretation"></div>
 
   <div id="numbersBlock" style="display:block;">
-    <p class="numbers-heading">이 카드로 만든 번호</p>
+    <p class="numbers-heading">이 카드로 만든 번호 (5세트)</p>
     <p class="numbers-loading" id="numbersLoading" style="display:none;">최근 당첨 데이터를 분석하는 중...</p>
-    <div class="numbers" id="numbers"></div>
+    <div class="sets-list" id="setsList"></div>
   </div>
 
   <div class="actions">
@@ -574,6 +616,13 @@
     <button class="redraw-btn is-visible" id="historyBtn">지난 기록 보기</button>
     <button class="redraw-btn is-visible" id="redrawBtn">다시 카드 뽑기</button>
   </div>
+
+  <!-- AI 심층분석 (광고는 추후 연동 — 현재는 클릭 시 바로 조회) -->
+  <div class="ai-unlock-section">
+    <button class="ai-unlock-btn" id="aiUnlockBtn">📺 광고 보고 AI 심층분석 보기</button>
+    <p class="ai-unlock-hint">뽑은 카드를 바탕으로 AI가 더 깊이 있는 이야기를 들려드려요</p>
+  </div>
+  <div class="ai-result-wrap" id="aiResultWrap"></div>
 </main>
 
 <!-- ============ 셰이더 배경 스크립트 (index.html과 동일) ============ -->
@@ -680,9 +729,10 @@ void main() {
 })();
 </script>
 
+<script src="../js/aiAnalysis.js"></script>
 <script type="module">
   import { FULL_DECK } from './tarotDeck.js';
-  import { buildCategoryReading, numbersFromDrawWeighted, SUIT_ELEMENT_LABELS } from './tarotEngine.js';
+  import { buildCategoryReading, setsFromDrawWeighted, SUIT_ELEMENT_LABELS } from './tarotEngine.js';
   import { tarotImageUrl } from './tarotImages.js';
   import { saveReading } from './tarotHistory.js';
   import { getRecentNumberFrequency } from './lottoStats.js';
@@ -691,7 +741,7 @@ void main() {
   const ledeText = document.getElementById('ledeText');
   const interpretationEl = document.getElementById('interpretation');
   const numbersBlock = document.getElementById('numbersBlock');
-  const numbersEl = document.getElementById('numbers');
+  const setsListEl = document.getElementById('setsList');
   const numbersLoading = document.getElementById('numbersLoading');
   const redrawBtn = document.getElementById('redrawBtn');
   const shareBtn = document.getElementById('shareBtn');
@@ -706,7 +756,18 @@ void main() {
   });
 
   let shareText = '';
-  let currentNumbers = [];
+  let currentSets = [];
+  let currentDraw = null;
+  let currentReading = null;
+
+  /** 실제 로또 6/45 공식 색상 규칙과 동일 */
+  function ballColorClass(n) {
+    if (n <= 10) return 'b-y';
+    if (n <= 20) return 'b-b';
+    if (n <= 30) return 'b-r';
+    if (n <= 40) return 'b-gr';
+    return 'b-gry';
+  }
 
   // 로또 앱의 "내 번호"와 같은 localStorage 키를 그대로 씁니다
   // (lotto/js/state.js의 LS_KEY와 동일). 같은 출처(도메인)에 있어야
@@ -714,21 +775,27 @@ void main() {
   const LOTTO_HISTORY_KEY = 'lotto_my_history_v1';
 
   saveToLottoBtn.addEventListener('click', () => {
-    if (!currentNumbers.length) return;
+    if (!currentSets.length) return;
 
     try {
       const arr = JSON.parse(localStorage.getItem(LOTTO_HISTORY_KEY) || '[]');
       const now = new Date();
       const pad = (n) => String(n).padStart(2, '0');
-      arr.unshift({
-        id: Date.now(),
-        date: `${now.getFullYear()}.${pad(now.getMonth() + 1)}.${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`,
-        nums: currentNumbers,
-        source: 'tarot',
+      const dateStr = `${now.getFullYear()}.${pad(now.getMonth() + 1)}.${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+
+      // 5세트를 순서대로(1세트→5세트) 저장 — unshift 특성상 역순으로 넣어야
+      // "내 번호" 목록에서 1세트가 맨 위에 옵니다.
+      [...currentSets].reverse().forEach((set) => {
+        arr.unshift({
+          id: Date.now() + Math.random(),
+          date: dateStr,
+          nums: set.numbers,
+          source: 'tarot',
+        });
       });
       localStorage.setItem(LOTTO_HISTORY_KEY, JSON.stringify(arr));
 
-      saveToLottoBtn.textContent = '✅ 로또 앱 "내 번호"에 저장됨';
+      saveToLottoBtn.textContent = '✅ 5세트 모두 로또 앱에 저장됨';
       saveToLottoBtn.classList.add('is-saved');
     } catch (e) {
       console.warn('로또 앱에 저장하지 못했습니다.', e);
@@ -798,6 +865,8 @@ void main() {
     };
 
     const reading = buildCategoryReading(parsed.category, draw);
+    currentDraw = draw;
+    currentReading = reading;
 
     const spreadNames = { 1: '오늘의 카드', 2: '상황·해결책', 3: '과거·현재·미래', 5: '원인·현재·장애물·조언·결과' };
     ledeText.textContent = draw.spread === 1
@@ -810,35 +879,54 @@ void main() {
 
     // 번호는 실제 최근 당첨 데이터(lotto.json)를 가져온 뒤에 계산합니다.
     // 소드(공기) 카드가 있을 때만 이 데이터가 실제로 영향을 주고,
-    // 가져오기에 실패하면 numbersFromDrawWeighted가 알아서 대체 로직을 씁니다.
+    // 가져오기에 실패하면 setsFromDrawWeighted가 알아서 대체 로직을 씁니다.
     const hasSwords = draw.cards.some(({ card }) => card.suit === 'swords');
     numbersLoading.style.display = hasSwords ? 'block' : 'none';
 
     const recentFrequency = await getRecentNumberFrequency(24);
     numbersLoading.style.display = 'none';
 
-    const { numbers } = numbersFromDrawWeighted(draw, { recentFrequency });
-    currentNumbers = numbers;
+    const sets = setsFromDrawWeighted(draw, { recentFrequency }, 5);
+    currentSets = sets;
     saveToLottoBtn.disabled = false;
-    renderNumbers(numbers, hasSwords && !!recentFrequency);
+    renderSets(sets, hasSwords && !!recentFrequency);
 
-    shareText = buildShareText(reading, draw, numbers);
+    shareText = buildShareText(reading, draw, sets);
 
-    // 오늘의 기록으로 localStorage에 저장 (달력 화면에서 사용)
+    // 오늘의 기록으로 localStorage에 저장 (달력 화면에서 사용) — 1세트만 대표로 저장
     saveReading({
       category: parsed.category,
       categoryLabel: reading.categoryLabel,
       spread: draw.spread,
       cards: parsed.cards,
-      numbers,
+      numbers: sets[0].numbers,
     });
+
+    if (window.FortuneAI) {
+      window.FortuneAI.attach({
+        unlockBtn: document.getElementById('aiUnlockBtn'),
+        overlayEl: document.getElementById('aiLoadingOverlay'),
+        resultContainer: document.getElementById('aiResultWrap'),
+        type: 'tarot',
+        getPayload: () => ({
+          categoryLabel: currentReading?.categoryLabel ?? '',
+          cards: (currentDraw?.cards ?? []).map(({ card, reversed, positionLabel }) => ({
+            name: card?.name_ko ?? card?.name_en ?? '',
+            reversed: !!reversed,
+            positionLabel: positionLabel ?? '',
+          })),
+        }),
+        loadingMessages: ['카드를 다시 살피는 중...', 'AI가 오늘의 메시지를 읽는 중...', '결과를 정리하는 중...'],
+      });
+    }
   }
 
-  function buildShareText(reading, draw, numbers) {
+  function buildShareText(reading, draw, sets) {
     const cardLines = draw.cards
       .map(({ card, reversed }) => `${card.name_ko}(${reversed ? '역' : '정'})`)
       .join(', ');
-    return `[로또슬기 타로 · ${reading.categoryLabel}]\n뽑은 카드: ${cardLines}\n번호: ${numbers.join(', ')}`;
+    const setLines = sets.map((s, i) => `${i + 1}세트: ${s.numbers.join(', ')}`).join('\n');
+    return `[로또슬기 타로 · ${reading.categoryLabel}]\n뽑은 카드: ${cardLines}\n${setLines}`;
   }
 
   function renderCards(draw) {
@@ -950,16 +1038,30 @@ void main() {
     });
   }
 
-  function renderNumbers(numbers, usedRealStats) {
-    numbersEl.innerHTML = '';
-    numbersBlock.style.display = 'block';
+  function renderSets(sets, usedRealStats) {
+    setsListEl.innerHTML = '';
 
-    numbers.forEach((n, index) => {
-      const ball = document.createElement('span');
-      ball.className = 'ball';
-      ball.textContent = n;
-      numbersEl.appendChild(ball);
-      setTimeout(() => ball.classList.add('is-in'), 300 + index * 90);
+    sets.forEach((set, setIdx) => {
+      const row = document.createElement('div');
+      row.className = 'set-row';
+
+      const label = document.createElement('span');
+      label.className = 'set-label';
+      label.textContent = `${setIdx + 1}세트`;
+      row.appendChild(label);
+
+      const numbersWrap = document.createElement('div');
+      numbersWrap.className = 'numbers';
+      set.numbers.forEach((n, i) => {
+        const ball = document.createElement('span');
+        ball.className = `ball ${ballColorClass(n)}`;
+        ball.textContent = n;
+        numbersWrap.appendChild(ball);
+        setTimeout(() => ball.classList.add('is-in'), setIdx * 120 + i * 60);
+      });
+      row.appendChild(numbersWrap);
+
+      setsListEl.appendChild(row);
     });
 
     const existingNote = document.getElementById('numbersSourceNote');
@@ -970,7 +1072,7 @@ void main() {
       note.id = 'numbersSourceNote';
       note.className = 'numbers-source-note';
       note.textContent = '소드(공기) 카드가 있어 최근 24회차 실제 당첨 데이터를 참고했습니다';
-      numbersEl.after(note);
+      setsListEl.after(note);
     }
   }
 </script>

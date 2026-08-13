@@ -232,11 +232,11 @@ function numberWeight(n, counts, recentFrequency) {
  *   최근 당첨 번호 빈도 맵. 소드(공기) 카드가 있을 때만 영향을 줍니다.
  * @returns {{ numbers: number[] }} numbers는 오름차순 6개
  */
-export function numbersFromDrawWeighted(draw, { recentFrequency = null } = {}) {
+export function numbersFromDrawWeighted(draw, { recentFrequency = null, variantIndex = 0 } = {}) {
   const seedParts = draw.cards
     .map(({ card, reversed }, i) => `${card.id}-${reversed ? 'R' : 'U'}-${i}`)
     .join('|');
-  const seed = hashStringToInt(`${seedParts}-${draw.seed}-weighted`);
+  const seed = hashStringToInt(`${seedParts}-${draw.seed}-weighted-v${variantIndex}`);
   const rand = mulberry32(seed);
 
   const counts = computeElementCounts(draw);
@@ -251,6 +251,22 @@ export function numbersFromDrawWeighted(draw, { recentFrequency = null } = {}) {
   const numbers = keyed.slice(0, 6).map((k) => k.n).sort((a, b) => a - b);
 
   return { numbers };
+}
+
+/**
+ * 같은 뽑기 결과로 로또 번호 5세트를 한 번에 만듭니다 (메인 앱의 "5게임 생성",
+ * 바이오리듬의 5세트 생성과 동일한 방식). 세트마다 다른 값이 나오되,
+ * recentFrequency 등 조건이 같으면 항상 같은 5세트가 재현됩니다.
+ *
+ * @param {ReturnType<typeof buildDrawFromPicks>} draw
+ * @param {Object} [options] - numbersFromDrawWeighted와 동일 (variantIndex 제외)
+ * @param {number} [count] - 세트 개수 (기본 5)
+ * @returns {Array<{ numbers: number[] }>}
+ */
+export function setsFromDrawWeighted(draw, options = {}, count = 5) {
+  return Array.from({ length: count }, (_, i) =>
+    numbersFromDrawWeighted(draw, { ...options, variantIndex: i })
+  );
 }
 
 /**

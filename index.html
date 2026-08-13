@@ -90,12 +90,11 @@
             <button id="tn-stats"     class="tab-btn flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-[13px] text-slate-400 hover:bg-white/[.06] transition-all font-sans border-none cursor-pointer" onclick="switchTab('stats')">
                 <span class="material-symbols-rounded text-[17px]">bar_chart</span>통계
             </button>
-            <button id="tn-myhistory" class="tab-btn relative flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-[13px] text-slate-400 hover:bg-white/[.06] transition-all font-sans border-none cursor-pointer" onclick="switchTab('myhistory')">
-                <span class="material-symbols-rounded text-[17px]">bookmarks</span>내 번호
-                <span id="pc-badge"></span>
-            </button>
-            <a id="tn-tarot" href="./tarot/" class="tab-btn flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-[13px] text-slate-400 hover:bg-white/[.06] transition-all font-sans border-none cursor-pointer no-underline">
-                <span class="material-symbols-rounded text-[17px]">style</span>타로
+            <a id="tn-shops" href="./shops.html" class="tab-btn flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-[13px] text-slate-400 hover:bg-white/[.06] transition-all font-sans border-none cursor-pointer no-underline">
+                <span class="material-symbols-rounded text-[17px]">storefront</span>판매점
+            </a>
+            <a id="tn-tarot" href="./fortune/" class="tab-btn flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-[13px] text-slate-400 hover:bg-white/[.06] transition-all font-sans border-none cursor-pointer no-underline">
+                <span class="material-symbols-rounded text-[17px]">auto_awesome</span>운세
             </a>
             <button id="tn-myinfo" class="tab-btn flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-[13px] text-slate-400 hover:bg-white/[.06] transition-all font-sans border-none cursor-pointer" onclick="switchTab('myinfo')">
                 <span class="material-symbols-rounded text-[17px]">badge</span>내정보
@@ -121,12 +120,46 @@
                     </div>
                 </div>
             </div>
+
+            <!-- 1등 예상 당첨금 (동행복권 API 연동) -->
+            <div id="expected-amount-card" class="rounded-2xl px-4 py-3 mb-3 border border-yellow-400/[.1]" style="background:#1A2744;display:none;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <span style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:#94A3B8;">
+                        <span class="material-symbols-rounded" style="font-size:17px;color:#F5C842;">emoji_events</span>
+                        이번 회차 1등 예상 당첨금
+                    </span>
+                    <span id="expected-amount-value" style="font-size:15px;font-weight:800;color:#F5C842;">불러오는 중...</span>
+                </div>
+            </div>
+
+            <!-- 주변 판매점 찾기 (카카오맵 연동) -->
+            <a href="./shops.html" class="rounded-2xl px-4 py-3 mb-4 border border-yellow-400/[.1]"
+               style="background:#1A2744;text-decoration:none;color:inherit;display:flex;align-items:center;justify-content:space-between;">
+                <span style="display:flex;align-items:center;gap:8px;font-size:13px;color:#E2E8F0;">
+                    <span class="material-symbols-rounded" style="font-size:20px;color:#F5C842;">storefront</span>
+                    내 주변 로또 판매점 찾기
+                </span>
+                <span class="material-symbols-rounded" style="font-size:18px;color:#64748B;">chevron_right</span>
+            </a>
+
             <div id="sets-container"></div>
             <button id="genBtn" onclick="generateAll()"
                 class="w-full mt-4 flex items-center justify-center gap-2 py-4 rounded-2xl border-none font-sans text-[15px] font-black text-[#0F172A] cursor-pointer tracking-wide transition-all active:scale-[.97]"
                 style="background:linear-gradient(135deg,#F5C842,#E8A800);box-shadow:0 4px 24px rgba(245,200,66,.35);">
                 <span class="text-[20px]" id="gen-icon">🎲</span>번호 새로 생성하기
             </button>
+
+            <!-- 최신 이야기 (로또 잡학·역사 스토리 API 연동) -->
+            <div id="stories-widget" style="display:none;margin-top:22px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                    <p style="font-size:13px;font-weight:800;color:#E2E8F0;margin:0;display:flex;align-items:center;gap:6px;">
+                        <span class="material-symbols-rounded" style="font-size:18px;color:#F5C842;">auto_stories</span>
+                        최신 이야기
+                    </p>
+                    <a href="./stories.html" style="font-size:11px;color:#F5C842;text-decoration:none;font-weight:700;">더보기 →</a>
+                </div>
+                <div id="stories-list" style="display:flex;flex-direction:column;gap:8px;"></div>
+            </div>
         </section>
 
         <!-- ══════════ QR ══════════ -->
@@ -288,18 +321,42 @@
                 </div>
                 <div>
                     <label class="block text-[11px] font-bold text-slate-400 mb-1.5">생년월일</label>
-                    <input id="profile-birthdate" type="date"
-                        class="w-full px-3.5 py-2.5 rounded-xl text-[14px] text-slate-100 outline-none"
-                        style="background:#0F172A;border:1.5px solid rgba(255,255,255,.09);color-scheme:dark;">
+                    <div class="flex gap-2 mb-2">
+                        <button type="button" id="profile-calendar-solar" class="calendar-toggle-btn flex-1" data-value="solar">양력</button>
+                        <button type="button" id="profile-calendar-lunar" class="calendar-toggle-btn flex-1" data-value="lunar">음력</button>
+                    </div>
+                    <input id="profile-birthdate" type="text" placeholder="1996-05-20" autocomplete="off" inputmode="numeric"
+                        class="w-full px-3.5 py-2.5 rounded-xl text-[14px] text-slate-100 placeholder-slate-500 outline-none"
+                        style="background:#0F172A;border:1.5px solid rgba(255,255,255,.09);">
+                    <p class="text-[10.5px] text-slate-500 mt-1">숫자만 입력하면 자동으로 - 가 붙어요 (예: 19960520)</p>
                 </div>
                 <div>
                     <label class="block text-[11px] font-bold text-slate-400 mb-1.5">태어난 시</label>
-                    <input id="profile-birthtime" type="time"
-                        class="w-full px-3.5 py-2.5 rounded-xl text-[14px] text-slate-100 outline-none"
-                        style="background:#0F172A;border:1.5px solid rgba(255,255,255,.09);color-scheme:dark;">
-                    <p class="text-[10.5px] text-slate-500 mt-1">정확히 모르면 비워두셔도 됩니다</p>
+                    <input id="profile-birthtime" type="text" placeholder="14" autocomplete="off" inputmode="numeric"
+                        class="w-full px-3.5 py-2.5 rounded-xl text-[14px] text-slate-100 placeholder-slate-500 outline-none"
+                        style="background:#0F172A;border:1.5px solid rgba(255,255,255,.09);">
+                    <p class="text-[10.5px] text-slate-500 mt-1">0~23 중 시(時)만 입력 (분은 필요 없어요). 정확히 모르면 비워두셔도 됩니다</p>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-400 mb-1.5">성별</label>
+                    <div class="flex gap-2">
+                        <button type="button" id="profile-gender-male" class="gender-toggle-btn flex-1" data-value="male">남성</button>
+                        <button type="button" id="profile-gender-female" class="gender-toggle-btn flex-1" data-value="female">여성</button>
+                    </div>
+                    <p class="text-[10.5px] text-slate-500 mt-1">사주 운세 해석(연애운 등)에만 참고로 쓰여요</p>
                 </div>
             </div>
+
+            <style>
+                .calendar-toggle-btn, .gender-toggle-btn {
+                    padding: 10px 0; border-radius: 10px; font-size: 13px; font-weight: 700;
+                    background: #0F172A; border: 1.5px solid rgba(255,255,255,.09); color: #94A3B8;
+                    cursor: pointer; transition: all .15s ease;
+                }
+                .calendar-toggle-btn.active, .gender-toggle-btn.active {
+                    background: linear-gradient(135deg,#F5C842,#E8A800); color: #0F172A; border-color: transparent;
+                }
+            </style>
 
             <button id="profile-save-btn"
                 class="w-full mb-5 flex items-center justify-center gap-2 py-3.5 rounded-2xl border-none font-sans text-[14px] font-black text-[#0F172A] cursor-pointer transition-all active:scale-[.97]"
@@ -335,12 +392,11 @@
         <button id="bn-stats" class="tab-btn" onclick="switchTab('stats')" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:none;background:transparent;font-family:inherit;font-size:10px;color:#64748B;cursor:pointer;position:relative;white-space:nowrap;padding:0;">
             <span class="material-symbols-rounded" style="font-size:22px;">bar_chart</span>통계
         </button>
-        <button id="bn-myhistory" class="tab-btn" onclick="switchTab('myhistory')" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:none;background:transparent;font-family:inherit;font-size:10px;color:#64748B;cursor:pointer;position:relative;white-space:nowrap;padding:0;">
-            <span class="material-symbols-rounded" style="font-size:22px;">bookmarks</span>내번호
-            <span id="mob-badge" class="badge"></span>
-        </button>
-        <a id="bn-tarot" href="./tarot/" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:none;background:transparent;font-family:inherit;font-size:10px;color:#64748B;cursor:pointer;position:relative;white-space:nowrap;padding:0;text-decoration:none;">
-            <span class="material-symbols-rounded" style="font-size:22px;">style</span>타로
+        <a id="bn-shops" href="./shops.html" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:none;background:transparent;font-family:inherit;font-size:10px;color:#64748B;cursor:pointer;position:relative;white-space:nowrap;padding:0;text-decoration:none;">
+            <span class="material-symbols-rounded" style="font-size:22px;">storefront</span>판매점
+        </a>
+        <a id="bn-tarot" href="./fortune/" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:none;background:transparent;font-family:inherit;font-size:10px;color:#64748B;cursor:pointer;position:relative;white-space:nowrap;padding:0;text-decoration:none;">
+            <span class="material-symbols-rounded" style="font-size:22px;">auto_awesome</span>운세
         </a>
         <button id="bn-myinfo" class="tab-btn" onclick="switchTab('myinfo')" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:none;background:transparent;font-family:inherit;font-size:10px;color:#64748B;cursor:pointer;position:relative;white-space:nowrap;padding:0;">
             <span class="material-symbols-rounded" style="font-size:22px;">badge</span>내정보
@@ -458,11 +514,14 @@ void main() {
 <script src="./js/state.js"></script>
 <script src="./js/storage.js"></script>
 <script src="./js/ui.js"></script>
+<script src="./js/dateInputHelpers.js"></script>
 <script src="./js/profile.js"></script>
 <script src="./js/generator.js"></script>
 <script src="./js/qr.js?v=20260526-001"></script>
 <script src="./js/history.js"></script>
 <script src="./js/stats.js"></script>
+<script src="./js/expectedAmount.js"></script>
+<script src="./js/stories.js"></script>
 <script src="./js/init.js"></script>
 
 <script>

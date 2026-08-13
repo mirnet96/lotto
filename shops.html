@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>내 주변 로또 판매점 찾기 - 로또슬기</title>
+<meta name="description" content="내 위치 주변의 로또 판매점을 지도에서 찾아보세요. 1등·2등 당첨 이력도 함께 확인할 수 있습니다.">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://mirnet96.github.io/lotto/shops.html">
+
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block">
+
+<!-- 카카오맵 JS SDK — 카카오 디벨로퍼스에서 이 도메인이 "Web 플랫폼"에 등록돼 있어야 지도가 뜹니다 -->
+<script src="//dapi.kakao.com/v2/maps/sdk.js?appkey=ed22d5504be53d988c4ba7fecd99a7b2&libraries=services"></script>
+
+<style>
+  :root { --navy: #0F172A; --card: #1A2744; --gold: #F5C842; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; background: var(--navy); color: #E2E8F0; font-family: 'Noto Sans KR', sans-serif; }
+
+  main { max-width: 640px; margin: 0 auto; padding: 76px 16px 96px; }
+  @media (min-width: 641px) { main { padding-bottom: 24px; } }
+
+  h1 { font-size: 18px; font-weight: 900; margin: 0 0 4px; text-align: center; }
+  .lede { text-align: center; font-size: 12.5px; color: #94A3B8; margin: 0 0 16px; }
+
+  .controls { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; align-items: center; justify-content: center; }
+  .radius-chip {
+    padding: 7px 14px; border-radius: 999px; font-size: 12.5px; font-weight: 700;
+    background: var(--card); border: 1px solid rgba(255,255,255,.1); color: #94A3B8; cursor: pointer;
+  }
+  .radius-chip.active { background: linear-gradient(135deg,var(--gold),#E8A800); color: var(--navy); border-color: transparent; }
+  .sort-chip {
+    padding: 6px 13px; border-radius: 999px; font-size: 12px; font-weight: 700;
+    background: var(--card); border: 1px solid rgba(255,255,255,.1); color: #94A3B8; cursor: pointer;
+  }
+  .sort-chip.active { background: rgba(245,200,66,.15); color: var(--gold); border-color: rgba(245,200,66,.4); }
+  .locate-btn {
+    display: flex; align-items: center; gap: 5px; padding: 7px 14px; border-radius: 999px;
+    font-size: 12.5px; font-weight: 700; background: var(--card); border: 1px solid rgba(255,255,255,.1);
+    color: #E2E8F0; cursor: pointer;
+  }
+
+  #map { width: 100%; height: 340px; border-radius: 14px; overflow: hidden; background: #0B1220; margin-bottom: 16px; }
+
+  .status-msg { text-align: center; font-size: 13px; color: #94A3B8; padding: 24px 0; }
+  .status-msg .retry-btn {
+    display: block; margin: 10px auto 0; padding: 8px 18px; border-radius: 999px; border: 1px solid rgba(245,200,66,.4);
+    background: transparent; color: var(--gold); font-size: 12.5px; cursor: pointer;
+  }
+
+  .shop-list { display: flex; flex-direction: column; gap: 8px; }
+  .shop-card {
+    background: var(--card); border: 1px solid rgba(255,255,255,.07); border-radius: 12px; padding: 12px 14px;
+    cursor: pointer; transition: border-color .15s ease;
+  }
+  .shop-card:hover, .shop-card.is-active { border-color: rgba(245,200,66,.5); }
+  .shop-card-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 4px; flex-wrap: wrap; }
+  .shop-name-score { display: flex; align-items: baseline; gap: 5px; flex-wrap: wrap; min-width: 0; }
+  .shop-name { font-size: 14px; font-weight: 800; color: #fff; }
+  .shop-score-value { font-size: 19px; font-weight: 900; color: #FBBF24; line-height: 1; }
+  .shop-score-label { font-size: 9.5px; color: #94A3B8; font-weight: 500; }
+  .shop-distance { font-size: 11.5px; color: var(--gold); font-weight: 700; flex-shrink: 0; }
+  .shop-address { font-size: 12px; color: #94A3B8; margin: 0 0 6px; }
+  .shop-meta { display: flex; gap: 10px; font-size: 11px; color: #64748B; flex-wrap: wrap; }
+  .shop-meta b { color: #F87171; }
+  .shop-meta .prize1 b { color: #FBBF24; }
+  .shop-meta .prize2 b { color: #94A3B8; }
+  .shop-tel { color: #60A5FA; text-decoration: none; }
+  .directions-btn {
+    display: inline-flex; align-items: center; gap: 4px; margin-top: 8px; padding: 6px 12px;
+    border-radius: 999px; font-size: 11.5px; font-weight: 700; text-decoration: none;
+    background: linear-gradient(135deg,#3B82F6,#1D4ED8); color: #fff;
+  }
+
+  /* 판매점 마커 = 당첨지수 배지. 선택되면 빨간색으로 바뀌며 바운스합니다. */
+  .shop-marker-badge {
+    min-width: 26px; height: 26px; padding: 0 7px; border-radius: 999px;
+    background: #fff; border: 2px solid #F5C842; color: #0F172A;
+    font-family: 'Noto Sans KR', sans-serif; font-weight: 800; font-size: 11.5px;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 2px 6px rgba(0,0,0,.4); cursor: pointer; transition: transform .15s ease;
+  }
+  .shop-marker-badge.is-zero { background: rgba(255,255,255,.85); border-color: #94A3B8; color: #475569; }
+  .shop-marker-badge:hover { transform: scale(1.1); }
+  .shop-marker-badge.is-selected {
+    background: #EF4444; border-color: #fff; color: #fff;
+    animation: markerBounce .6s ease infinite alternate;
+  }
+  @keyframes markerBounce {
+    from { margin-top: 0; }
+    to { margin-top: -12px; }
+  }
+
+  .back-home-link { display: block; text-align: center; font-size: 12px; color: #64748B; text-decoration: none; margin-top: 20px; }
+</style>
+</head>
+<body>
+
+<!-- ══ 공통 메뉴 ══ -->
+<header id="lotto-top-nav" style="display:none;position:sticky;top:0;z-index:60;height:60px;padding:0 24px;box-sizing:border-box;border-bottom:1px solid rgba(255,255,255,.07);background:rgba(15,23,42,.95);align-items:center;justify-content:space-between;">
+  <a href="./index.html" style="display:flex;align-items:center;gap:8px;text-decoration:none;color:#F5C842;font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:3px;">
+    <span style="width:8px;height:8px;border-radius:50%;background:#F5C842;"></span>로또슬기
+  </a>
+  <nav style="display:flex;gap:4px;">
+    <a href="./index.html" style="display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:12px;font-size:13px;color:#94A3B8;text-decoration:none;">
+      <span class="material-symbols-rounded" style="font-size:17px;">home</span>홈
+    </a>
+    <a href="./index.html?tab=qr" style="display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:12px;font-size:13px;color:#94A3B8;text-decoration:none;">
+      <span class="material-symbols-rounded" style="font-size:17px;">qr_code_scanner</span>QR
+    </a>
+    <span style="display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:12px;font-size:13px;font-weight:700;color:#F5C842;background:rgba(245,200,66,.12);">
+      <span class="material-symbols-rounded" style="font-size:17px;">storefront</span>판매점
+    </span>
+    <a href="./fortune/" style="display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:12px;font-size:13px;color:#94A3B8;text-decoration:none;">
+      <span class="material-symbols-rounded" style="font-size:17px;">auto_awesome</span>운세
+    </a>
+    <a href="./index.html?tab=myinfo" style="display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:12px;font-size:13px;color:#94A3B8;text-decoration:none;">
+      <span class="material-symbols-rounded" style="font-size:17px;">badge</span>내정보
+    </a>
+  </nav>
+</header>
+
+<nav id="lotto-bottom-nav" aria-label="하단 메뉴" style="position:fixed;bottom:0;left:0;right:0;height:64px;background:rgba(10,16,30,0.97);backdrop-filter:blur(16px);border-top:1px solid rgba(255,255,255,.1);box-shadow:0 -4px 24px rgba(0,0,0,.5);z-index:60;display:none;">
+  <a href="./index.html" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-family:inherit;font-size:10px;color:#64748B;text-decoration:none;">
+    <span class="material-symbols-rounded" style="font-size:22px;">home</span>홈
+  </a>
+  <a href="./index.html?tab=qr" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-family:inherit;font-size:10px;color:#64748B;text-decoration:none;">
+    <span class="material-symbols-rounded" style="font-size:22px;">qr_code_scanner</span>QR
+  </a>
+  <span style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-family:inherit;font-size:10px;color:#F5C842;position:relative;">
+    <span class="material-symbols-rounded" style="font-size:22px;filter:drop-shadow(0 0 6px rgba(245,200,66,.55));">storefront</span>판매점
+    <span style="position:absolute;top:0;left:20%;right:20%;height:2px;background:#F5C842;border-radius:0 0 3px 3px;"></span>
+  </span>
+  <a href="./fortune/" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-family:inherit;font-size:10px;color:#64748B;text-decoration:none;">
+    <span class="material-symbols-rounded" style="font-size:22px;">auto_awesome</span>운세
+  </a>
+  <a href="./index.html?tab=myinfo" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-family:inherit;font-size:10px;color:#64748B;text-decoration:none;">
+    <span class="material-symbols-rounded" style="font-size:22px;">badge</span>내정보
+  </a>
+</nav>
+
+<style>
+  @media (max-width: 640px) { #lotto-top-nav { display: none !important; } #lotto-bottom-nav { display: flex !important; } }
+  @media (min-width: 641px) { #lotto-top-nav { display: flex !important; } #lotto-bottom-nav { display: none !important; } }
+</style>
+
+<main>
+  <h1>🏪 내 주변 로또 판매점</h1>
+  <p class="lede">1등·2등 당첨 이력이 있는 판매점을 지도에서 확인해보세요</p>
+  <p style="text-align:center;font-size:11px;color:#64748B;margin:-8px 0 14px;">🏆 마커·목록의 숫자는 <b style="color:#FBBF24;">당첨지수</b> (1등×3 + 2등×1)입니다</p>
+
+  <div class="controls">
+    <button class="locate-btn" id="locateBtn">
+      <span class="material-symbols-rounded" style="font-size:16px;">my_location</span>
+      내 위치로 찾기
+    </button>
+    <button class="radius-chip" data-radius="1">1km</button>
+    <button class="radius-chip active" data-radius="3">3km</button>
+    <button class="radius-chip" data-radius="5">5km</button>
+    <button class="radius-chip" data-radius="10">10km</button>
+  </div>
+
+  <div class="controls">
+    <span style="font-size:11.5px;color:#64748B;">정렬</span>
+    <button class="sort-chip active" data-sort="distance">거리순</button>
+    <button class="sort-chip" data-sort="winners">당첨지수순</button>
+  </div>
+
+  <div id="map"></div>
+
+  <div id="statusMsg" class="status-msg">위치 권한을 허용하면 주변 판매점을 찾아드려요.</div>
+  <div class="shop-list" id="shopList"></div>
+
+  <a href="./index.html" class="back-home-link">← 메인으로</a>
+</main>
+
+<script>
+(function () {
+  const statusMsg = document.getElementById('statusMsg');
+  const shopListEl = document.getElementById('shopList');
+  const locateBtn = document.getElementById('locateBtn');
+  const radiusChips = [...document.querySelectorAll('.radius-chip')];
+  const sortChips = [...document.querySelectorAll('.sort-chip')];
+
+  // 실제 배포된 API 도메인/경로에 맞춰 필요하면 조정해주세요.
+  const SHOPS_API = 'https://lotto.smart-alba.com/api/lotto-shops/nearby';
+
+  let map = null;
+  let markers = [];
+  let currentInfoWindow = null;
+  let currentPos = null;
+  let currentRadius = 3;
+  let currentSort = 'distance';
+  let lastShops = [];
+  let selectedMarkerEl = null;
+
+  // 당첨지수 = 1등 배출 횟수에 더 큰 가중치를 둔 종합 점수 (1등 3점 + 2등 1점)
+  const WIN_WEIGHT_FIRST = 3;
+  const WIN_WEIGHT_SECOND = 1;
+  function calcWinScore(shop) {
+    return (shop.first_prize_count ?? 0) * WIN_WEIGHT_FIRST + (shop.second_prize_count ?? 0) * WIN_WEIGHT_SECOND;
+  }
+
+  function setStatus(message, showRetry) {
+    statusMsg.style.display = 'block';
+    statusMsg.innerHTML = message + (showRetry ? '<button class="retry-btn" id="retryBtn">다시 시도</button>' : '');
+    if (showRetry) {
+      document.getElementById('retryBtn').addEventListener('click', locate);
+    }
+  }
+
+  function initMap(lat, lng) {
+    if (typeof kakao === 'undefined' || !kakao.maps) {
+      setStatus('지도를 불러오지 못했습니다. 카카오 디벨로퍼스에 이 도메인이 등록되어 있는지 확인해주세요.', false);
+      return;
+    }
+    const container = document.getElementById('map');
+    map = new kakao.maps.Map(container, {
+      center: new kakao.maps.LatLng(lat, lng),
+      level: 5,
+    });
+
+    // 내 위치 마커
+    new kakao.maps.Marker({
+      map,
+      position: new kakao.maps.LatLng(lat, lng),
+      image: new kakao.maps.MarkerImage(
+        'data:image/svg+xml;base64,' + btoa('<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"><circle cx="10" cy="10" r="8" fill="#3B82F6" stroke="white" stroke-width="2"/></svg>'),
+        new kakao.maps.Size(20, 20)
+      ),
+    });
+  }
+
+  function clearMarkers() {
+    markers.forEach((m) => m.setMap(null));
+    markers = [];
+    if (currentInfoWindow) currentInfoWindow.close();
+    selectedMarkerEl = null;
+  }
+
+  function sortShops(shops, mode) {
+    const arr = [...shops];
+    if (mode === 'winners') {
+      arr.sort((a, b) => calcWinScore(b) - calcWinScore(a));
+    } else {
+      arr.sort((a, b) => (a.distance ?? 0) - (b.distance ?? 0));
+    }
+    return arr;
+  }
+
+  /** 카카오맵 앱/웹의 표준 길찾기 딥링크 — 별도 API 키 없이도 동작하며,
+   *  현재 위치를 출발지로 자동 인식해 도보/대중교통/자동차 경로를 안내합니다. */
+  function kakaoDirectionsUrl(shop) {
+    return `https://map.kakao.com/link/to/${encodeURIComponent(shop.name)},${shop.latitude},${shop.longitude}`;
+  }
+
+  /** 판매점 마커를 "당첨지수" 배지 형태의 CustomOverlay로 만듭니다.
+   *  선택되면 빨간색으로 바뀌며 바운스합니다. */
+  function createShopMarker(shop, position, onClick) {
+    const score = calcWinScore(shop);
+    const el = document.createElement('div');
+    el.className = 'shop-marker-badge';
+    if (score === 0) el.classList.add('is-zero');
+    el.textContent = score;
+    el.title = `${shop.name} · 당첨지수 ${score}`;
+    el.addEventListener('click', onClick);
+
+    const overlay = new kakao.maps.CustomOverlay({
+      map,
+      position,
+      content: el,
+      yAnchor: 0.5,
+      zIndex: score > 0 ? 5 : 1,
+    });
+    overlay.__el = el;
+    return overlay;
+  }
+
+  function selectMarker(el) {
+    if (selectedMarkerEl) selectedMarkerEl.classList.remove('is-selected');
+    el.classList.add('is-selected');
+    selectedMarkerEl = el;
+  }
+
+  function renderShops(shops) {
+    clearMarkers();
+    shopListEl.innerHTML = '';
+
+    if (!shops.length) {
+      setStatus('이 반경 안에는 등록된 판매점이 없어요. 반경을 넓혀보세요.', false);
+      return;
+    }
+    statusMsg.style.display = 'none';
+
+    const sorted = sortShops(shops, currentSort);
+
+    sorted.forEach((shop, idx) => {
+      const position = new kakao.maps.LatLng(shop.latitude, shop.longitude);
+      const score = calcWinScore(shop);
+
+      const infoContent = `
+        <div style="padding:8px 10px;font-size:12px;color:#111;min-width:170px;">
+          <b>${escapeHtml(shop.name)}</b> <span style="font-size:15px;font-weight:900;color:#B45309;">${score}</span><span style="font-size:9.5px;color:#888;">(당첨지수)</span><br>
+          <span style="color:#666;">${escapeHtml(shop.address || '')}</span><br>
+          <a href="${kakaoDirectionsUrl(shop)}" target="_blank" rel="noopener" style="display:inline-block;margin-top:6px;color:#1D4ED8;font-weight:700;">🧭 길찾기</a>
+        </div>
+      `;
+      const infoWindow = new kakao.maps.InfoWindow({ content: infoContent, removable: true, position });
+
+      const selectShop = () => {
+        if (currentInfoWindow) currentInfoWindow.close();
+        infoWindow.open(map);
+        currentInfoWindow = infoWindow;
+        map.panTo(position);
+        selectMarker(marker.__el);
+        highlightCard(idx);
+      };
+
+      const marker = createShopMarker(shop, position, selectShop);
+      markers.push(marker);
+
+      const card = document.createElement('div');
+      card.className = 'shop-card';
+      card.dataset.idx = idx;
+      card.innerHTML = `
+        <div class="shop-card-head">
+          <div class="shop-name-score">
+            <span class="shop-name">${escapeHtml(shop.name)}</span>
+            <span class="shop-score-value">${score}</span><span class="shop-score-label">(당첨지수)</span>
+          </div>
+          <span class="shop-distance">${shop.distance != null ? Number(shop.distance).toFixed(1) + 'km' : ''}</span>
+        </div>
+        <p class="shop-address">${escapeHtml(shop.address || '')}</p>
+        <div class="shop-meta">
+          ${shop.tele ? `<a class="shop-tel" href="tel:${escapeHtml(shop.tele)}">📞 ${escapeHtml(shop.tele)}</a>` : ''}
+          <span class="prize1">1등 <b>${shop.first_prize_count ?? 0}</b>회</span>
+          <span class="prize2">2등 <b>${shop.second_prize_count ?? 0}</b>회</span>
+        </div>
+        <a class="directions-btn" href="${kakaoDirectionsUrl(shop)}" target="_blank" rel="noopener">
+          🧭 길찾기
+        </a>
+      `;
+      card.querySelector('.directions-btn').addEventListener('click', (e) => e.stopPropagation());
+      card.addEventListener('click', selectShop);
+      shopListEl.appendChild(card);
+    });
+  }
+
+  function highlightCard(idx) {
+    [...shopListEl.children].forEach((c) => c.classList.toggle('is-active', Number(c.dataset.idx) === idx));
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str ?? '';
+    return div.innerHTML;
+  }
+
+  async function fetchShops(lat, lng, radius) {
+    setStatus('주변 판매점을 찾는 중...', false);
+    try {
+      const url = `${SHOPS_API}?lat=${lat}&lng=${lng}&radius=${radius}`;
+      const res = await fetch(url);
+      const json = await res.json();
+      if (!json.success) throw new Error(json.message || '조회 실패');
+      lastShops = json.data || [];
+      renderShops(lastShops);
+    } catch (e) {
+      console.warn('판매점 조회 실패', e);
+      setStatus('판매점 정보를 불러오지 못했어요.', true);
+    }
+  }
+
+  function locate() {
+    if (!navigator.geolocation) {
+      setStatus('이 브라우저는 위치 정보를 지원하지 않아요.', false);
+      return;
+    }
+    setStatus('내 위치를 확인하는 중...', false);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        currentPos = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        initMap(currentPos.lat, currentPos.lng);
+        fetchShops(currentPos.lat, currentPos.lng, currentRadius);
+      },
+      () => {
+        setStatus('위치 권한이 거부됐어요. 브라우저 설정에서 위치 권한을 허용해주세요.', true);
+      },
+      { enableHighAccuracy: true, timeout: 8000 }
+    );
+  }
+
+  locateBtn.addEventListener('click', locate);
+
+  radiusChips.forEach((chip) => {
+    chip.addEventListener('click', () => {
+      radiusChips.forEach((c) => c.classList.remove('active'));
+      chip.classList.add('active');
+      currentRadius = Number(chip.dataset.radius);
+      if (currentPos) fetchShops(currentPos.lat, currentPos.lng, currentRadius);
+    });
+  });
+
+  sortChips.forEach((chip) => {
+    chip.addEventListener('click', () => {
+      sortChips.forEach((c) => c.classList.remove('active'));
+      chip.classList.add('active');
+      currentSort = chip.dataset.sort;
+      if (lastShops.length) renderShops(lastShops);
+    });
+  });
+
+  // 페이지 진입 시 자동으로 위치 요청
+  locate();
+})();
+</script>
+
+</body>
+</html>

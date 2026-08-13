@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>운세로 만드는 로또 번호 - 타로 · 바이오리듬 | 로또슬기</title>
+<meta name="description" content="타로, 바이오리듬, 사주, 관상 등 다양한 운세로 오늘의 로또 번호를 만들어보세요. 로또슬기의 운세 모음입니다.">
+<meta name="keywords" content="로또슬기 운세, 로또 타로, 로또 바이오리듬, 로또 사주, 무료 운세 로또 번호">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://mirnet96.github.io/lotto/fortune/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="로또슬기">
+<meta property="og:title" content="운세로 만드는 로또 번호 - 로또슬기">
+<meta property="og:description" content="타로, 바이오리듬 등 다양한 운세로 오늘의 로또 번호를 만들어보세요.">
+<meta property="og:url" content="https://mirnet96.github.io/lotto/fortune/">
+<meta property="og:locale" content="ko_KR">
+<meta name="twitter:card" content="summary_large_image">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  "name": "운세로 만드는 로또 번호",
+  "url": "https://mirnet96.github.io/lotto/fortune/",
+  "isPartOf": { "@type": "WebSite", "name": "로또슬기", "url": "https://mirnet96.github.io/lotto/" },
+  "description": "타로, 바이오리듬, 사주, 관상 등 다양한 운세 기반 로또 번호 생성 기능 모음",
+  "inLanguage": "ko"
+}
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;700&family=Pretendard:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --navy-deep: #0a0f1a; --navy-panel: #131f33; --gold: #D4AF37; --gold-soft: #ecd48a;
+    --paper: #FAFAF7; --mist: #8b93a6; --mist-dim: #5b6478;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; background: var(--navy-deep); color: var(--paper); font-family: 'Pretendard', sans-serif; }
+  #shaderBackdrop { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; }
+  #shader-canvas-bg { display: block; width: 100%; height: 100%; }
+  body {
+    background-color: transparent;
+    background-image: radial-gradient(circle at 50% 0%, rgba(16,18,37,.35) 0%, transparent 55%), radial-gradient(circle at 50% 100%, rgba(16,18,37,.5) 0%, transparent 55%);
+    background-repeat: no-repeat; background-size: cover;
+  }
+  main { position: relative; z-index: 10; max-width: 560px; margin: 0 auto; padding: 24px 20px 96px; }
+  .eyebrow { text-align: center; letter-spacing: .18em; font-size: 12px; color: var(--gold-soft); text-transform: uppercase; margin: 0 0 10px; }
+  .back-home-link { display: inline-block; font-size: 13px; color: var(--mist); text-decoration: none; margin-bottom: 14px; }
+  .back-home-link:hover { color: var(--gold-soft); }
+  h1 { font-family: 'Noto Serif KR', serif; font-weight: 700; text-align: center; font-size: clamp(22px, 5vw, 28px); margin: 0 0 8px; }
+  .lede { text-align: center; color: var(--mist); font-size: 13.5px; margin: 0 auto 28px; max-width: 42ch; line-height: 1.7; }
+
+  .card-grid { display: flex; flex-direction: column; gap: 14px; }
+  .fortune-card {
+    display: flex; align-items: center; gap: 16px; padding: 18px;
+    background: var(--navy-panel); border: 1px solid rgba(212,175,55,.25); border-radius: 16px;
+    text-decoration: none; color: inherit; transition: border-color .2s, transform .15s;
+  }
+  .fortune-card:hover { border-color: var(--gold); transform: translateY(-1px); }
+  .fortune-card.is-soon { opacity: .55; pointer-events: none; }
+  .fortune-icon {
+    width: 52px; height: 52px; border-radius: 14px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; font-size: 26px;
+    background: linear-gradient(135deg, rgba(212,175,55,.18), rgba(157,80,255,.12));
+  }
+  .fortune-body h2 { font-size: 15.5px; margin: 0 0 4px; }
+  .fortune-body p { font-size: 12.5px; color: var(--mist); margin: 0; line-height: 1.5; }
+  .soon-badge { font-size: 10px; color: var(--mist-dim); border: 1px solid rgba(255,255,255,.15); padding: 2px 8px; border-radius: 999px; margin-left: auto; flex-shrink: 0; white-space: nowrap; }
+</style>
+</head>
+<body>
+
+<div id="shaderBackdrop"><canvas id="shader-canvas-bg"></canvas></div>
+
+<!-- ══ 공통 메뉴 ══ -->
+<header id="lotto-top-nav" style="display:none;position:sticky;top:0;z-index:60;height:60px;padding:0 24px;box-sizing:border-box;border-bottom:1px solid rgba(255,255,255,.07);background:rgba(15,23,42,.9);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);align-items:center;justify-content:space-between;">
+  <a href="../index.html" style="display:flex;align-items:center;gap:8px;text-decoration:none;color:#F5C842;font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:3px;">
+    <span style="width:8px;height:8px;border-radius:50%;background:#F5C842;"></span>로또슬기
+  </a>
+  <nav style="display:flex;gap:4px;">
+    <a href="../index.html" style="display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:12px;font-size:13px;color:#94A3B8;text-decoration:none;">
+      <span class="material-symbols-outlined" style="font-size:17px;">home</span>홈
+    </a>
+    <a href="../index.html?tab=qr" style="display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:12px;font-size:13px;color:#94A3B8;text-decoration:none;">
+      <span class="material-symbols-outlined" style="font-size:17px;">qr_code_scanner</span>QR
+    </a>
+    <a href="../index.html?tab=stats" style="display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:12px;font-size:13px;color:#94A3B8;text-decoration:none;">
+      <span class="material-symbols-outlined" style="font-size:17px;">bar_chart</span>통계
+    </a>
+    <a href="../shops.html" style="display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:12px;font-size:13px;color:#94A3B8;text-decoration:none;">
+      <span class="material-symbols-outlined" style="font-size:17px;">storefront</span>판매점
+    </a>
+    <span style="display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:12px;font-size:13px;font-weight:700;color:#F5C842;background:rgba(245,200,66,.12);">
+      <span class="material-symbols-outlined" style="font-size:17px;">auto_awesome</span>운세
+    </span>
+    <a href="../index.html?tab=myinfo" style="display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:12px;font-size:13px;color:#94A3B8;text-decoration:none;">
+      <span class="material-symbols-outlined" style="font-size:17px;">badge</span>내정보
+    </a>
+  </nav>
+</header>
+
+<nav id="lotto-bottom-nav" aria-label="하단 메뉴" style="position:fixed;bottom:0;left:0;right:0;height:64px;background:rgba(10,16,30,0.97);backdrop-filter:blur(16px);border-top:1px solid rgba(255,255,255,.1);box-shadow:0 -4px 24px rgba(0,0,0,.5);z-index:60;display:none;">
+  <a href="../index.html" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-family:inherit;font-size:10px;color:#64748B;text-decoration:none;">
+    <span class="material-symbols-outlined" style="font-size:22px;">home</span>홈
+  </a>
+  <a href="../index.html?tab=qr" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-family:inherit;font-size:10px;color:#64748B;text-decoration:none;">
+    <span class="material-symbols-outlined" style="font-size:22px;">qr_code_scanner</span>QR
+  </a>
+  <a href="../index.html?tab=stats" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-family:inherit;font-size:10px;color:#64748B;text-decoration:none;">
+    <span class="material-symbols-outlined" style="font-size:22px;">bar_chart</span>통계
+  </a>
+  <a href="../shops.html" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-family:inherit;font-size:10px;color:#64748B;text-decoration:none;">
+    <span class="material-symbols-outlined" style="font-size:22px;">storefront</span>판매점
+  </a>
+  <span style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-family:inherit;font-size:10px;color:#F5C842;position:relative;">
+    <span class="material-symbols-outlined" style="font-size:22px;filter:drop-shadow(0 0 6px rgba(245,200,66,.55));">auto_awesome</span>운세
+    <span style="position:absolute;top:0;left:20%;right:20%;height:2px;background:#F5C842;border-radius:0 0 3px 3px;"></span>
+  </span>
+  <a href="../index.html?tab=myinfo" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-family:inherit;font-size:10px;color:#64748B;text-decoration:none;">
+    <span class="material-symbols-outlined" style="font-size:22px;">badge</span>내정보
+  </a>
+</nav>
+
+<style>
+  @media (max-width: 640px) { #lotto-top-nav { display: none !important; } #lotto-bottom-nav { display: flex !important; } }
+  @media (min-width: 641px) { #lotto-top-nav { display: flex !important; } #lotto-bottom-nav { display: none !important; } }
+  @media (max-width: 640px) { main { padding-bottom: 96px; } }
+</style>
+
+
+<main>
+  <a href="../index.html" class="back-home-link">← 메인으로</a>
+  <p class="eyebrow">Fortune</p>
+  <h1>오늘의 운세</h1>
+  <p class="lede">여러 방식의 운세로 나를 들여다보고, 그 결과로 만든 로또 번호까지 함께 받아보세요.</p>
+
+  <div class="card-grid">
+    <a class="fortune-card" href="../tarot/">
+      <div class="fortune-icon">🔮</div>
+      <div class="fortune-body">
+        <h2>타로 운세</h2>
+        <p>웨이트 타로 78장으로 총운·연애운·사업운·재물운·건강운을 보고 번호를 뽑아보세요</p>
+      </div>
+    </a>
+
+    <a class="fortune-card" href="../biorhythm/">
+      <div class="fortune-icon">📈</div>
+      <div class="fortune-body">
+        <h2>바이오리듬</h2>
+        <p>생년월일로 오늘의 신체·감성·지성 컨디션을 그래프로 보고 번호를 만들어보세요</p>
+      </div>
+    </a>
+
+    <a class="fortune-card" href="../saju/">
+      <div class="fortune-icon">🎋</div>
+      <div class="fortune-body">
+        <h2>사주</h2>
+        <p>생년월일시로 보는 사주 네 기둥과 오행 분포로 번호를 뽑아보세요</p>
+      </div>
+    </a>
+
+    <a class="fortune-card" href="../gwansang/">
+      <div class="fortune-icon">🪞</div>
+      <div class="fortune-body">
+        <h2>관상</h2>
+        <p>내 정보에 등록한 사진으로 오부위 해석과 복 지수를 보고 번호를 뽑아보세요</p>
+      </div>
+    </a>
+  </div>
+</main>
+
+<!-- ============ 배경 셰이더 스크립트 (다른 페이지와 동일) ============ -->
+<script>
+(function() {
+  const canvas = document.getElementById('shader-canvas-bg');
+  function syncSize() {
+    const w = canvas.clientWidth || 1280, h = canvas.clientHeight || 720;
+    if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+  }
+  if (typeof ResizeObserver !== 'undefined') new ResizeObserver(syncSize).observe(canvas);
+  syncSize();
+  const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+  if (!gl) return;
+  const vs = `attribute vec2 a_position;varying vec2 v_texCoord;void main(){v_texCoord=a_position*0.5+0.5;gl_Position=vec4(a_position,0.0,1.0);}`;
+  const fs = `precision highp float;varying vec2 v_texCoord;uniform float u_time;uniform vec2 u_resolution;
+vec3 permute(vec3 x){return mod(((x*34.0)+1.0)*x,289.0);}
+float snoise(vec2 v){const vec4 C=vec4(0.211324865405187,0.366025403784439,-0.577350269189626,0.024390243902439);vec2 i=floor(v+dot(v,C.yy));vec2 x0=v-i+dot(i,C.xx);vec2 i1;i1=(x0.x>x0.y)?vec2(1.0,0.0):vec2(0.0,1.0);vec4 x12=x0.xyxy+C.xxzz;x12.xy-=i1;i=mod(i,289.0);vec3 p=permute(permute(i.y+vec3(0.0,i1.y,1.0))+i.x+vec3(0.0,i1.x,1.0));vec3 m=max(0.5-vec3(dot(x0,x0),dot(x12.xy,x12.xy),dot(x12.zw,x12.zw)),0.0);m=m*m;m=m*m;vec3 x=2.0*fract(p*C.www)-1.0;vec3 h=abs(x)-0.5;vec3 a0=x-floor(x+0.5);vec3 g;g.x=a0.x*x0.x+h.x*x0.y;g.yz=a0.yz*x12.xz+h.yz*x12.yw;return 130.0*dot(m,g);}
+void main(){vec2 uv=v_texCoord;float n=snoise(uv*3.0+u_time*0.2);n+=0.5*snoise(uv*6.0-u_time*0.4);vec3 color1=vec3(0.06,0.07,0.15);vec3 color2=vec3(0.2,0.0,0.4);vec3 color3=vec3(0.6,0.3,1.0);vec3 finalColor=mix(color1,color2,n*0.5+0.5);finalColor=mix(finalColor,color3,pow(max(0.0,n),3.0)*0.5);gl_FragColor=vec4(finalColor,1.0);}`;
+  function cs(type, src) { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); return s; }
+  const prog = gl.createProgram();
+  gl.attachShader(prog, cs(gl.VERTEX_SHADER, vs));
+  gl.attachShader(prog, cs(gl.FRAGMENT_SHADER, fs));
+  gl.linkProgram(prog); gl.useProgram(prog);
+  const buf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1,1,-1,-1,1,1,1]), gl.STATIC_DRAW);
+  const pos = gl.getAttribLocation(prog, 'a_position');
+  gl.enableVertexAttribArray(pos);
+  gl.vertexAttribPointer(pos, 2, gl.FLOAT, false, 0, 0);
+  const uTime = gl.getUniformLocation(prog, 'u_time');
+  const uRes = gl.getUniformLocation(prog, 'u_resolution');
+  function render(t) {
+    if (typeof ResizeObserver === 'undefined') syncSize();
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    if (uTime) gl.uniform1f(uTime, t * 0.001);
+    if (uRes) gl.uniform2f(uRes, canvas.width, canvas.height);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    requestAnimationFrame(render);
+  }
+  render(0);
+})();
+</script>
+
+</body>
+</html>
